@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,6 +13,8 @@
 #ifdef HAVE_MALLOC_USABLE_SIZE
 #include <malloc.h>
 #endif
+
+// TODO test fortify failures
 
 static _attr_unused void print_array(int *arr, bool print_reverse)
 {
@@ -44,6 +47,7 @@ static _attr_unused void print_array(int *arr, bool print_reverse)
 
 static bool check_array_content(size_t length, int *arr, ...)
 {
+	CHECK(((uintptr_t)arr) % _Alignof(max_align_t) == sizeof(_arr) % _Alignof(max_align_t));
 	CHECK(array_length(arr) == length);
 	CHECK(array_capacity(arr) >= length);
 #ifdef HAVE_MALLOC_USABLE_SIZE

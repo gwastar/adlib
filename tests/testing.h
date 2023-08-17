@@ -26,7 +26,9 @@
 
 _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
-// TODO find a way to not leak memory when CHECK fails (maybe use _attr_cleanup)
+// TODO CHECK should do exit(EXIT_FAILURE) instead of return false now that tests always run in a subprocess
+//      and tests should no longer return a bool to indicate success
+
 #define CHECK(cond)							\
 	do {								\
 		if (unlikely(!(cond)))  {				\
@@ -36,65 +38,50 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	} while (0)
 
 #define SIMPLE_TEST(name)			\
-	_SIMPLE_TEST(name, true, false)
-#define RANGE_TEST(name, start_, end_)			\
-	_RANGE_TEST(name, start_, end_, true, false)
+	_SIMPLE_TEST(name, true)
+#define RANGE_TEST(name, start_, end_)		\
+	_RANGE_TEST(name, start_, end_, true)
 #define RANDOM_TEST(name, num_values, min_value, max_value)		\
-	_RANDOM_TEST(name, num_values, min_value, max_value, true, false)
-
-#define SIMPLE_TEST_SUBPROCESS(name)		\
-	_SIMPLE_TEST(name, true, true)
-#define RANGE_TEST_SUBPROCESS(name, start_, end_)	\
-	_RANGE_TEST(name, start_, end_, true, true)
-#define RANDOM_TEST_SUBPROCESS(name, num_values, min_value, max_value)	\
-	_RANDOM_TEST(name, num_values, min_value, max_value, true, true)
+	_RANDOM_TEST(name, num_values, min_value, max_value, true)
 
 #define NEGATIVE_SIMPLE_TEST(name)		\
-	_SIMPLE_TEST(name, false, false)
-#define NEGATIVE_RANGE_TEST(name, start_, end_)		\
-	_RANGE_TEST(name, start_, end_, false, false)
+	_SIMPLE_TEST(name, false)
+#define NEGATIVE_RANGE_TEST(name, start_, end_)	\
+	_RANGE_TEST(name, start_, end_, false)
 #define NEGATIVE_RANDOM_TEST(name, num_values, min_value, max_value)	\
-	_RANDOM_TEST(name, num_values, min_value, max_value, false, false)
+	_RANDOM_TEST(name, num_values, min_value, max_value, false)
 
-#define NEGATIVE_SIMPLE_TEST_SUBPROCESS(name)	\
-	_SIMPLE_TEST(name, false, true)
-#define NEGATIVE_RANGE_TEST_SUBPROCESS(name, start_, end_)	\
-	_RANGE_TEST(name, start_, end_, false, true)
-#define NEGATIVE_RANDOM_TEST_SUBPROCESS(name, num_values, min_value, max_value)	\
-	_RANDOM_TEST(name, num_values, min_value, max_value, false, true)
-
-#define _SIMPLE_TEST(name, should_succeed, need_subprocess)		\
+#define _SIMPLE_TEST(name, should_succeed)				\
 	static bool test_##name(void);					\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_simple_test(__FILE__, #name, test_##name, should_succeed, need_subprocess); \
+		register_simple_test(__FILE__, #name, test_##name, should_succeed); \
 	}								\
 	static bool test_##name(void)
 
-#define _RANGE_TEST(name, start_, end_, should_succeed, need_subprocess) \
+#define _RANGE_TEST(name, start_, end_, should_succeed)			\
 	static bool test_##name(uint64_t start, uint64_t end);		\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_range_test(__FILE__, #name, start_, end_, test_##name, should_succeed, need_subprocess); \
+		register_range_test(__FILE__, #name, start_, end_, test_##name, should_succeed); \
 	}								\
 	static bool test_##name(uint64_t start, uint64_t end)
 
-#define _RANDOM_TEST(name, num_values, min_value, max_value, should_succeed, need_subprocess) \
+#define _RANDOM_TEST(name, num_values, min_value, max_value, should_succeed) \
 	static bool test_##name(uint64_t random);			\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_random_test(__FILE__, #name, num_values, min_value, max_value, test_##name, should_succeed, need_subprocess); \
+		register_random_test(__FILE__, #name, num_values, min_value, max_value, test_##name, should_succeed); \
 	}								\
 	static bool test_##name(uint64_t random)
 
 
 void register_simple_test(const char *file, const char *name,
-			  bool (*f)(void), bool should_succeed, bool need_subprocess);
+			  bool (*f)(void), bool should_succeed);
 void register_range_test(const char *file, const char *name, uint64_t start, uint64_t end,
-			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed, bool need_subprocess);
+			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed);
 void register_random_test(const char *file, const char *name, uint64_t num_values, uint64_t min_value,
-			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed,
-			  bool need_subprocess);
+			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed);
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);
 

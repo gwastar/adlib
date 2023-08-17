@@ -135,7 +135,7 @@
 		return iter;						\
 	}								\
 									\
-	static _attr_unused entry_type *name##_lookup(struct name *table, key_type key, name##_uint_t hash) \
+	static _attr_unused entry_type *name##_lookup(struct name *table, key_type key, name##_hash_t hash) \
 	{								\
 		_hashtable_idx_t index;					\
 		if (!_hashtable_lookup(&table->impl, &key, hash, &index, &_##name##_info)) { \
@@ -144,13 +144,13 @@
 		return _hashtable_entry(&table->impl, index, &_##name##_info); \
 	}								\
 									\
-	static _attr_unused entry_type *name##_insert(struct name *table, key_type key, name##_uint_t hash) \
+	static _attr_unused entry_type *name##_insert(struct name *table, key_type key, name##_hash_t hash) \
 	{								\
 		_hashtable_idx_t index = _hashtable_insert(&table->impl, hash, &_##name##_info); \
 		return _hashtable_entry(&table->impl, index, &_##name##_info); \
 	}								\
 									\
-	static _attr_unused bool name##_remove(struct name *table, key_type key, name##_uint_t hash, entry_type *ret_entry) \
+	static _attr_unused bool name##_remove(struct name *table, key_type key, name##_hash_t hash, entry_type *ret_entry) \
 	{								\
 		_hashtable_idx_t index;					\
 		if (!_hashtable_lookup(&table->impl, &key, hash, &index, &_##name##_info)) { \

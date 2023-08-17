@@ -24,11 +24,18 @@
 #include "hashtable.h"
 #include "macros.h"
 
+// TODO try using a hash function instead of storing the hash values (evaluate performance with and without user-cached hashes)
 // TODO ordered hashtable implementation (insertion order) (see python dict) (how to share code?)
 // TODO add generation and check it during iteration?
 // TODO make it possible to choose the implementation for each instance? (probably too slow or messy...)
 // TODO make _hashtable_lookup return the first eligable slot for insertion to speed up subsequent insertion
 //      and make hashtable_set (lookup + insert) helper
+
+// TODO make a linked hashtable with inline links like:
+// struct hash_node {
+//     struct rb_node rb_node;
+//     struct list_head list_head;
+// };
 
 /* Memory layout:
  * For in-place resizing the memory layout needs to look like this (e=entry, m=metadata):

@@ -9,6 +9,7 @@ set(EXECUTABLES
   endian
   error
   heap
+  lfqueue
   list
   locktest
   malloc

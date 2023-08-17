@@ -23,6 +23,8 @@
 #include "hash.h"
 #include "macros.h"
 
+// TODO add FNV-1 and FNV-1a
+
 /*
   SipHash reference C implementation
   Copyright (c) 2012-2021 Jean-Philippe Aumasson

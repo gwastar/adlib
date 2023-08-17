@@ -15,7 +15,7 @@
 #ifdef __HASHTABLE_PROFILING
 # define N 1
 #else
-# define N 20
+# define N 30
 #endif
 
 // TODO remove this eventually

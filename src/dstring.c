@@ -35,7 +35,7 @@
 #include "dstring.h"
 #include "utils.h"
 
-__AD_LINKAGE struct strview strview_from_chars(const char *chars, size_t n)
+static _attr_always_inline _attr_unused struct strview _strview_from_chars(const char *chars, size_t n)
 {
 	return (struct strview){
 		.characters = chars,
@@ -43,9 +43,14 @@ __AD_LINKAGE struct strview strview_from_chars(const char *chars, size_t n)
 	};
 }
 
+__AD_LINKAGE struct strview (strview_from_chars)(const char *chars, size_t n)
+{
+	return _strview_from_chars(chars, n);
+}
+
 __AD_LINKAGE struct strview strview_from_cstr(const char *cstr)
 {
-	return strview_from_chars(cstr, strlen(cstr));
+	return _strview_from_chars(cstr, strlen(cstr));
 }
 
 __AD_LINKAGE char *strview_to_cstr(struct strview view)
@@ -294,7 +299,7 @@ __AD_LINKAGE bool strview_startswith_cstr(struct strview view, const char *prefi
 	// if the prefix is longer than the view we always return false, so use strnlen to limit the number
 	// of bytes we touch in the prefix
 	// (if the prefix is *much* longer than the view than using strlen would really hurt performance)
-	struct strview prefix_view = strview_from_chars(prefix, strnlen(prefix, view.length + 1));
+	struct strview prefix_view = _strview_from_chars(prefix, strnlen(prefix, view.length + 1));
 	return strview_startswith(view, prefix_view);
 #else
 	// theoretically this should be faster if the compiler can vectorize this loop
@@ -323,7 +328,7 @@ __AD_LINKAGE bool strview_endswith_cstr(struct strview view, const char *suffix)
 {
 #ifdef HAVE_STRNLEN
 	// see comment in strview_startswith_cstr
-	struct strview suffix_view = strview_from_chars(suffix, strnlen(suffix, view.length + 1));
+	struct strview suffix_view = _strview_from_chars(suffix, strnlen(suffix, view.length + 1));
 #else
 	struct strview suffix_view = strview_from_cstr(suffix);
 #endif
@@ -762,26 +767,31 @@ __AD_LINKAGE void dstr_append_char(dstr_t *dstrp, char c)
 	_dstr_set_length(*dstrp, length + 1);
 }
 
-__AD_LINKAGE void dstr_append_chars(dstr_t *dstrp, const char *chars, size_t n)
+static _attr_always_inline _attr_unused void _dstr_append_chars(dstr_t *dstrp, const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, dstr_length(*dstrp), 0, n);
 	memcpy(p, chars, n);
 }
 
+__AD_LINKAGE void (dstr_append_chars)(dstr_t *dstrp, const char *chars, size_t n)
+{
+	_dstr_append_chars(dstrp, chars, n);
+}
+
 __AD_LINKAGE void dstr_append_dstr(dstr_t *dstrp, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	dstr_append_chars(dstrp, dstr, dstr_length(dstr));
+	_dstr_append_chars(dstrp, dstr, dstr_length(dstr));
 }
 
 __AD_LINKAGE void dstr_append_cstr(dstr_t *dstrp, const char *cstr)
 {
-	dstr_append_chars(dstrp, cstr, strlen(cstr));
+	_dstr_append_chars(dstrp, cstr, strlen(cstr));
 }
 
 __AD_LINKAGE void dstr_append_view(dstr_t *dstrp, struct strview view)
 {
-	dstr_append_chars(dstrp, view.characters, view.length);
+	_dstr_append_chars(dstrp, view.characters, view.length);
 }
 
 __AD_LINKAGE size_t dstr_append_fmt(dstr_t *dstrp, const char *fmt, ...)
@@ -803,31 +813,37 @@ __AD_LINKAGE char *dstr_append_uninitialized(dstr_t *dstrp, size_t uninit_len)
 	return _dstr_replace(dstrp, dstr_length(*dstrp), 0, uninit_len);
 }
 
-__AD_LINKAGE void dstr_insert_chars(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
+static _attr_always_inline _attr_unused void _dstr_insert_chars(dstr_t *dstrp, size_t pos,
+								const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, pos, 0, n);
 	memcpy(p, chars, n);
 }
 
+__AD_LINKAGE void (dstr_insert_chars)(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
+{
+	_dstr_insert_chars(dstrp, pos, chars, n);
+}
+
 __AD_LINKAGE void dstr_insert_char(dstr_t *dstrp, size_t pos, char c)
 {
-	dstr_insert_chars(dstrp, pos, &c, 1);
+	_dstr_insert_chars(dstrp, pos, &c, 1);
 }
 
 __AD_LINKAGE void dstr_insert_dstr(dstr_t *dstrp, size_t pos, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	dstr_insert_chars(dstrp, pos, dstr, dstr_length(dstr));
+	_dstr_insert_chars(dstrp, pos, dstr, dstr_length(dstr));
 }
 
 __AD_LINKAGE void dstr_insert_cstr(dstr_t *dstrp, size_t pos, const char *cstr)
 {
-	dstr_insert_chars(dstrp, pos, cstr, strlen(cstr));
+	_dstr_insert_chars(dstrp, pos, cstr, strlen(cstr));
 }
 
 __AD_LINKAGE void dstr_insert_view(dstr_t *dstrp, size_t pos, struct strview view)
 {
-	dstr_insert_chars(dstrp, pos, view.characters, view.length);
+	_dstr_insert_chars(dstrp, pos, view.characters, view.length);
 }
 
 __AD_LINKAGE size_t dstr_insert_fmt(dstr_t *dstrp, size_t pos, const char *fmt, ...)
@@ -849,26 +865,32 @@ __AD_LINKAGE char *dstr_insert_uninitialized(dstr_t *dstrp, size_t pos, size_t u
 	return _dstr_replace(dstrp, pos, 0, uninit_len);
 }
 
-__AD_LINKAGE void dstr_replace_chars(dstr_t *dstrp, size_t pos, size_t len, const char *chars, size_t n)
+static _attr_always_inline _attr_unused void _dstr_replace_chars(dstr_t *dstrp, size_t pos, size_t len,
+								 const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, pos, len, n);
 	memcpy(p, chars, n);
 }
 
+__AD_LINKAGE void (dstr_replace_chars)(dstr_t *dstrp, size_t pos, size_t len, const char *chars, size_t n)
+{
+	_dstr_replace_chars(dstrp, pos, len, chars, n);
+}
+
 __AD_LINKAGE void dstr_replace_dstr(dstr_t *dstrp, size_t pos, size_t len, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	dstr_replace_chars(dstrp, pos, len, dstr, dstr_length(dstr));
+	_dstr_replace_chars(dstrp, pos, len, dstr, dstr_length(dstr));
 }
 
 __AD_LINKAGE void dstr_replace_cstr(dstr_t *dstrp, size_t pos, size_t len, const char *cstr)
 {
-	dstr_replace_chars(dstrp, pos, len, cstr, strlen(cstr));
+	_dstr_replace_chars(dstrp, pos, len, cstr, strlen(cstr));
 }
 
 __AD_LINKAGE void dstr_replace_view(dstr_t *dstrp, size_t pos, size_t len, struct strview view)
 {
-	dstr_replace_chars(dstrp, pos, len, view.characters, view.length);
+	_dstr_replace_chars(dstrp, pos, len, view.characters, view.length);
 }
 
 __AD_LINKAGE size_t dstr_replace_fmt(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, ...)
@@ -951,21 +973,26 @@ __AD_LINKAGE void dstr_rstrip(dstr_t *dstrp, const char *strip)
 	_dstr_strip(*dstrp, strip, false, true);
 }
 
-__AD_LINKAGE dstr_t dstr_from_chars(const char *chars, size_t n)
+static _attr_always_inline _attr_unused dstr_t _dstr_from_chars(const char *chars, size_t n)
 {
 	dstr_t dstr = dstr_new();
-	dstr_append_chars(&dstr, chars, n);
+	_dstr_append_chars(&dstr, chars, n);
 	return dstr;
+}
+
+__AD_LINKAGE dstr_t (dstr_from_chars)(const char *chars, size_t n)
+{
+	return _dstr_from_chars(chars, n);
 }
 
 __AD_LINKAGE dstr_t dstr_from_cstr(const char *cstr)
 {
-	return dstr_from_chars(cstr, strlen(cstr));
+	return _dstr_from_chars(cstr, strlen(cstr));
 }
 
 __AD_LINKAGE dstr_t dstr_from_view(struct strview view)
 {
-	return dstr_from_chars(view.characters, view.length);
+	return _dstr_from_chars(view.characters, view.length);
 }
 
 __AD_LINKAGE dstr_t dstr_from_fmt(const char *fmt, ...)
@@ -1047,7 +1074,7 @@ __AD_LINKAGE dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 
 __AD_LINKAGE dstr_t dstr_copy(const dstr_t dstr)
 {
-	return dstr_from_chars(dstr, dstr_length(dstr));
+	return _dstr_from_chars(dstr, dstr_length(dstr));
 }
 
 __AD_LINKAGE char *dstr_to_cstr(dstr_t *dstrp)
@@ -1091,7 +1118,8 @@ __AD_LINKAGE void dstr_substring(dstr_t *dstrp, size_t start, size_t length)
 
 __AD_LINKAGE dstr_t dstr_substring_copy(const dstr_t dstr, size_t start, size_t length)
 {
-	return dstr_from_view(dstr_substring_view(dstr, start, length));
+	struct strview view = dstr_substring_view(dstr, start, length);
+	return _dstr_from_chars(view.characters, view.length);
 }
 
 __AD_LINKAGE int dstr_compare_dstr(const dstr_t dstr1, const dstr_t dstr2)

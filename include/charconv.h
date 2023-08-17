@@ -37,6 +37,8 @@ enum to_chars_flags {
 	TO_CHARS_UPPERCASE = 512, // %x -> %X
 };
 
+// TODO fortify these functions?
+// pass NULL for 'buf' to get the required size
 __AD_LINKAGE size_t to_chars_char(char *buf, char val, unsigned int flags) _attr_unused;
 __AD_LINKAGE size_t to_chars_schar(char *buf, signed char val, unsigned int flags) _attr_unused;
 __AD_LINKAGE size_t to_chars_uchar(char *buf, unsigned char val, unsigned int flags) _attr_unused;

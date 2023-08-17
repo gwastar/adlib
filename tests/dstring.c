@@ -4970,3 +4970,42 @@ SIMPLE_TEST(dstring)
 
 	return true;
 }
+
+NEGATIVE_SIMPLE_TEST(fortify_from_chars)
+{
+	char chars[16] = {0};
+	dstr_t dstr = dstr_from_chars(chars, sizeof(chars) + 1);
+	dstr_free(&dstr);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_append_chars)
+{
+	dstr_t dstr = dstr_new();
+	char chars[16] = {0};
+	dstr_append_chars(&dstr, chars, sizeof(chars) + 1);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_insert_chars)
+{
+	dstr_t dstr = dstr_new();
+	char chars[16] = {0};
+	dstr_insert_chars(&dstr, 0, chars, sizeof(chars) + 1);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_replace_chars)
+{
+	dstr_t dstr = dstr_new();
+	char chars[16] = {0};
+	dstr_replace_chars(&dstr, 0, 0, chars, sizeof(chars) + 1);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_strview_from_chars)
+{
+	char chars[16] = {0};
+	strview_from_chars(chars, sizeof(chars) + 1);
+	return true;
+}

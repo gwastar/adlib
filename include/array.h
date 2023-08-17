@@ -43,7 +43,6 @@
 // Alignment: The first array element is aligned to 8/16 bytes on 32/64-bit architectures (2*sizeof(size_t))
 
 // TODO array_set_all, array_addn_repeat, array_at, array_map, array_filter, array_byte_size, array_copy_to/from
-// TODO harden some functions with builtin_object_size?
 
 #ifndef __ARRAY_INCLUDE__
 #define __ARRAY_INCLUDE__
@@ -53,14 +52,7 @@
 #include <string.h>
 #include "config.h"
 #include "compiler.h"
-
-#ifdef NDEBUG
-# undef ARRAY_SAFETY_CHECKS
-#endif
-
-#ifdef ARRAY_SAFETY_CHECKS
-# include <assert.h>
-#endif
+#include "fortify.h"
 
 #ifndef HAVE_TYPEOF
 _Static_assert(0, "the array implementation requires typeof");
@@ -338,21 +330,19 @@ _Static_assert(ARRAY_GROWTH_FACTOR_NUMERATOR > ARRAY_GROWTH_FACTOR_DENOMINATOR,
 typedef struct {
 	size_t length;
 	size_t capacity;
-#ifdef ARRAY_SAFETY_CHECKS
+#ifdef __FORTIFY_ENABLED
 	size_t magic1;
 	size_t magic2;
 #endif
 } _arr;
 
-#ifdef ARRAY_SAFETY_CHECKS
-# define _arrhead_unchecked(a) ((_arr *)(a) - 1)
-# define _arrhead(a) (assert((a) &&					\
-			     _arrhead_unchecked(a)->magic1 == ARRAY_MAGIC1 && \
-			     _arrhead_unchecked(a)->magic2 == ARRAY_MAGIC2), \
-		      _arrhead_unchecked(a))
-#else
-# define _arrhead(a) ((_arr *)(a) - 1)
-#endif
+static _attr_always_inline _attr_unused _attr_nonnull(1) _arr *_arrhead(const void *p)
+{
+	_arr *arr = (_arr *)p - 1;
+	_fortify_check(arr->magic1 == ARRAY_MAGIC1 &&
+		       arr->magic2 == ARRAY_MAGIC2);
+	return arr;
+}
 
 #define _arrhead_const(a) ((const _arr *)_arrhead(a))
 
@@ -386,9 +376,7 @@ static inline _attr_unused _attr_pure size_t _arr_length(const void *arr)
 static inline _attr_unused _attr_nonnull(1) _attr_pure size_t _arr_lasti(const void *arr)
 {
 	size_t len = _arr_length(arr);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(len != 0);
-#endif
+	_fortify_check(len != 0);
 	return len - 1;
 }
 
@@ -456,9 +444,7 @@ static inline _attr_unused void *_arr_insertn_zero(void **arrp, size_t elem_size
 
 static inline _attr_unused void _arr_popn(void *arr, size_t n)
 {
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(n <= _arr_length(arr));
-#endif
+	_fortify_check(n <= _arr_length(arr));
 	_arrhead(arr)->length -= n;
 }
 
@@ -472,18 +458,18 @@ size_t _arr_index_of(const void *arr, size_t elem_size, const void *ptr)
 {
 	size_t diff = (char *)ptr - (char *)arr;
 	size_t index = diff / elem_size;
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(diff % elem_size == 0);
-	assert(index < _arr_length(arr));
-#endif
+	_fortify_check(diff % elem_size == 0);
+	_fortify_check(index < _arr_length(arr));
 	return index;
 }
 
-static inline _attr_unused void _arr_add_arrayn(void **arrp, size_t elem_size, const void *arr2, size_t n)
+static _attr_always_inline _attr_unused void _arr_add_arrayn(void **arrp, size_t elem_size,
+							     const void *arr2, size_t n)
 {
 	if (unlikely(n == 0 || !arr2)) {
 		return;
 	}
+	_fortify_check(_fortify_bos(arr2) >= n);
 	void *dst = _arr_addn(arrp, elem_size, n);
 	memcpy(dst, arr2, n * elem_size);
 }
@@ -506,10 +492,8 @@ void _arr_swap_elements_unchecked(void *arr, size_t elem_size, unsigned char *bu
 static inline _attr_unused _attr_nonnull(1, 3)
 void _arr_swap_elements(void *arr, size_t elem_size, unsigned char *buf, size_t i, size_t j)
 {
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(i < array_length(arr));
-	assert(j < array_length(arr));
-#endif
+	_fortify_check(i < array_length(arr));
+	_fortify_check(j < array_length(arr));
 	if (likely(i != j)) {
 		_arr_swap_elements_unchecked(arr, elem_size, buf, i, j);
 	}
@@ -574,9 +558,7 @@ static inline _attr_unused _attr_nonnull(1) _attr_pure void *_arr_last_pointer(v
 #define _arr_pop(a) (*(typeof(a))_arr_pop_and_return_pointer((a), sizeof((a)[0])))
 static inline _attr_nonnull(1) _attr_unused void *_arr_pop_and_return_pointer(void *arr, size_t elem_size)
 {
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(!array_empty(arr));
-#endif
+	_fortify_check(!array_empty(arr));
 	_arrhead(arr)->length--;
 	return (char *)arr + _arr_length(arr) * elem_size;
 }

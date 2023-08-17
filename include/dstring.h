@@ -30,6 +30,7 @@
 #include <stdbool.h> // bool
 #include <stddef.h> // size_t
 #include "compiler.h"
+#include "fortify.h"
 
 #define STRVIEW_NPOS ((size_t)-1)
 #define DSTR_NPOS    STRVIEW_NPOS
@@ -124,6 +125,7 @@ __AD_LINKAGE size_t dstr_find_replace_cstr(dstr_t *haystackp, const char *needle
 __AD_LINKAGE size_t dstr_rfind_replace_dstr(dstr_t *haystackp, const dstr_t needle, const dstr_t dstr, size_t max) _attr_unused;
 __AD_LINKAGE size_t dstr_rfind_replace_view(dstr_t *haystackp, struct strview needle_view, struct strview view, size_t max) _attr_unused;
 __AD_LINKAGE size_t dstr_rfind_replace_cstr(dstr_t *haystackp, const char *needle_cstr, const char *cstr, size_t max) _attr_unused;
+// TODO should the accept/reject characters be a strview?
 __AD_LINKAGE size_t dstr_find_first_of(const dstr_t dstr, const char *accept, size_t pos) _attr_unused;
 __AD_LINKAGE size_t dstr_find_last_of(const dstr_t dstr, const char *accept, size_t pos) _attr_unused;
 __AD_LINKAGE size_t dstr_find_first_not_of(const dstr_t dstr, const char *reject, size_t pos) _attr_unused;
@@ -134,6 +136,7 @@ __AD_LINKAGE bool dstr_startswith_cstr(const dstr_t dstr, const char *prefix) _a
 __AD_LINKAGE bool dstr_endswith_dstr(const dstr_t dstr, const dstr_t suffix) _attr_unused _attr_pure;
 __AD_LINKAGE bool dstr_endswith_view(const dstr_t dstr, struct strview suffix) _attr_unused _attr_pure;
 __AD_LINKAGE bool dstr_endswith_cstr(const dstr_t dstr, const char *suffix) _attr_unused _attr_pure;
+// TODO should these take multiple delimiters?
 __AD_LINKAGE struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max) _attr_unused _attr_nodiscard;
 __AD_LINKAGE struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max) _attr_unused _attr_nodiscard;
 __AD_LINKAGE struct strview_list dstr_split_views(const dstr_t dstr, char c, size_t max) _attr_unused _attr_nodiscard;
@@ -171,5 +174,49 @@ __AD_LINKAGE void strview_list_free(struct strview_list *list) _attr_unused;
 
 
 __AD_LINKAGE void *_dstr_debug_get_head_ptr(const dstr_t dstr) _attr_unused _attr_pure;
+
+#ifdef __FORTIFY_ENABLED
+
+static _attr_always_inline _attr_unused dstr_t _dstr_from_chars_fortified(const char *chars, size_t n)
+{
+	_fortify_check(_fortify_bos(chars) >= n);
+	return dstr_from_chars(chars, n);
+}
+#define dstr_from_chars(chars, n) _dstr_from_chars_fortified(chars, n)
+
+static _attr_always_inline _attr_unused void _dstr_append_chars_fortified(dstr_t *dstrp, const char *chars,
+									  size_t n)
+{
+	_fortify_check(_fortify_bos(chars) >= n);
+	return dstr_append_chars(dstrp, chars, n);
+}
+#define dstr_append_chars(dstrp, chars, n) _dstr_append_chars_fortified(dstrp, chars, n)
+
+static _attr_always_inline _attr_unused void _dstr_insert_chars_fortified(dstr_t *dstrp, size_t pos,
+									  const char *chars, size_t n)
+{
+	_fortify_check(_fortify_bos(chars) >= n);
+	return dstr_insert_chars(dstrp, pos, chars, n);
+}
+#define dstr_insert_chars(dstrp, pos, chars, n) _dstr_insert_chars_fortified(dstrp, pos, chars, n)
+
+static _attr_always_inline _attr_unused void _dstr_replace_chars_fortified(dstr_t *dstrp, size_t pos,
+									   size_t len, const char *chars,
+									   size_t n)
+{
+	_fortify_check(_fortify_bos(chars) >= n);
+	return dstr_replace_chars(dstrp, pos, len, chars, n);
+}
+#define dstr_replace_chars(dstrp, pos, len, chars, n) _dstr_replace_chars_fortified(dstrp, pos, len, chars, n)
+
+static _attr_always_inline _attr_unused struct strview _strview_from_chars_fortified(const char *chars,
+										     size_t n)
+{
+	_fortify_check(_fortify_bos(chars) >= n);
+	return strview_from_chars(chars, n);
+}
+#define strview_from_chars(chars, n) _strview_from_chars_fortified(chars, n)
+
+#endif
 
 #endif

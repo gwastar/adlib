@@ -35,6 +35,10 @@ set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 # set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -march=native -mtune=native")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+if (NOT uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+  add_compile_definitions(_FORTIFY_SOURCE=3)
+endif()
 
 option(ENABLE_ASAN "enable address sanitizer" OFF)
 if(${ENABLE_ASAN})
@@ -67,6 +71,9 @@ else()
   check_c_source_compiles("int main() { __builtin_ctz(1); return 0; }" HAVE_BUILTIN_CTZ)
   check_c_source_compiles("int main() { int i; __builtin_mul_overflow(0, 0, &i); return 0; }" HAVE_BUILTIN_MUL_OVERFLOW)
   check_c_source_compiles("int main() { char buf[1]; __builtin_object_size(buf, 0); return 0; }" HAVE_BUILTIN_OBJECT_SIZE)
+  check_c_source_compiles("int main() { char buf[1]; __builtin_dynamic_object_size(buf, 0); return 0; }" HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE)
+  check_c_source_compiles("int main() { __builtin_choose_expr(1, 2, 3); return 0; }" HAVE_BUILTIN_CHOOSE_EXPR)
+  check_c_source_compiles("int main() { __builtin_constant_p(1); return 0; }" HAVE_BUILTIN_CONSTANT_P)
   check_c_source_compiles("int main() { int i; __builtin_sub_overflow(0, 0, &i); return 0; }" HAVE_BUILTIN_SUB_OVERFLOW)
   check_c_source_compiles("int main() { __builtin_popcount(1); return 0; }" HAVE_BUILTIN_POPCOUNT)
   check_c_source_compiles("int main() { if (0) __builtin_unreachable(); return 0; }" HAVE_BUILTIN_UNREACHABLE)
@@ -128,6 +135,7 @@ set(SOURCES
   config.c
   dbuf.c
   dstring.c
+  fortify.c
   hash.c
   hashtable.c
   macros.c

@@ -24,6 +24,7 @@
 #include "compiler.h"
 
 // TODO rename dbuf_add* to dbuf_append_* ?
+// TODO fortify some functions
 
 struct dbuf {
 	// do not access these fields directly

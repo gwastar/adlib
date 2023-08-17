@@ -17,6 +17,9 @@
  * SOFTWARE.
  */
 
+// TODO now that tests always run in a subprocess we no longer need the work queue to be multi-threaded
+
+#define _GNU_SOURCE
 #include <assert.h>
 #include <bits/time.h>
 #include <inttypes.h>
@@ -26,7 +29,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/random.h>
+#include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -65,7 +70,6 @@ struct test {
 	} type;
 	bool enabled;
 	bool should_succeed;
-	bool need_subprocess;
 	const char *file;
 	const char *name;
 	union {
@@ -81,6 +85,42 @@ static struct test *tests;
 static size_t num_tests;
 static size_t tests_capacity;
 
+static void mutex_lock(mtx_t *mutex)
+{
+	int rv = mtx_lock(mutex);
+	if (rv != thrd_success) {
+		fputs("mtx_lock failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void mutex_unlock(mtx_t *mutex)
+{
+	int rv = mtx_unlock(mutex);
+	if (rv != thrd_success) {
+		fputs("mtx_unlock failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void condition_signal(cnd_t *condition)
+{
+	int rv = cnd_signal(condition);
+	if (rv != thrd_success) {
+		fputs("cnd_signal failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void condition_wait(cnd_t *condition, mtx_t *mutex)
+{
+	int rv = cnd_wait(condition, mutex);
+	if (rv != thrd_success) {
+		fputs("cnd_wait failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+}
+
 static void add_test(struct test test)
 {
 	if (tests_capacity == num_tests) {
@@ -90,8 +130,8 @@ static void add_test(struct test test)
 		}
 		tests = realloc(tests, tests_capacity * sizeof(tests[0]));
 		if (!tests) {
-			fputs("realloc failed", stderr);
-			abort();
+			perror("realloc failed");
+			exit(EXIT_FAILURE);
 		}
 	}
 	const char *file = strrchr(test.file, '/');
@@ -102,14 +142,13 @@ static void add_test(struct test test)
 }
 
 void register_simple_test(const char *file, const char *name,
-			  bool (*f)(void), bool should_succeed, bool need_subprocess)
+			  bool (*f)(void), bool should_succeed)
 {
 	add_test((struct test){
 			.type = TEST_TYPE_SIMPLE,
 			.file = file,
 			.name = name,
 			.should_succeed = should_succeed,
-			.need_subprocess = need_subprocess,
 			.simple_test = (struct simple_test){
 				.f = f,
 			}
@@ -117,14 +156,13 @@ void register_simple_test(const char *file, const char *name,
 }
 
 void register_range_test(const char *file, const char *name, uint64_t start, uint64_t end,
-			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed, bool need_subprocess)
+			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed)
 {
 	add_test((struct test){
 			.type = TEST_TYPE_RANGE,
 			.file = file,
 			.name = name,
 			.should_succeed = should_succeed,
-			.need_subprocess = need_subprocess,
 			.range_test = (struct range_test){
 				.start = start,
 				.end = end,
@@ -134,15 +172,13 @@ void register_range_test(const char *file, const char *name, uint64_t start, uin
 }
 
 void register_random_test(const char *file, const char *name, uint64_t num_values, uint64_t min_value,
-			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed,
-			  bool need_subprocess)
+			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed)
 {
 	add_test((struct test){
 			.type = TEST_TYPE_RANDOM,
 			.file = file,
 			.name = name,
 			.should_succeed = should_succeed,
-			.need_subprocess = need_subprocess,
 			.random_test = (struct random_test){
 				.num_values = num_values,
 				.min_value = min_value,
@@ -165,6 +201,8 @@ struct work {
 struct test_work {
 	struct work work;
 	const struct test *test;
+	int stdout_fd;
+	int stderr_fd;
 	bool passed;
 	bool completed;
 	uint64_t runtime;
@@ -242,25 +280,25 @@ static void run_test(struct work *_work)
 	struct timespec start, end;
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
-	pid_t pid = 0;
-	if (test->need_subprocess) {
-		pid = fork();
-		if (pid == -1) {
-			fputs("fork failed\n", stderr);
-			exit(EXIT_FAILURE);
-		}
+	pid_t pid = fork();
+	if (pid == -1) {
+		perror("fork failed");
+		exit(EXIT_FAILURE);
 	}
 
 	bool success = false;
 	if (pid == 0) {
-		success = run_test_helper(work);
-		if (test->need_subprocess) {
-			exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
+		if (dup2(work->stdout_fd, STDOUT_FILENO) == -1 ||
+		    dup2(work->stderr_fd, STDERR_FILENO) == -1) {
+			perror("dup2 failed");
+			exit(EXIT_FAILURE);
 		}
+		success = run_test_helper(work);
+		exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
 	} else {
 		int status;
 		if (waitpid(pid, &status, 0) != pid) {
-			fputs("waitpid failed\n", stderr);
+			perror("waitpid failed");
 			exit(EXIT_FAILURE);
 		}
 		success = status == EXIT_SUCCESS;
@@ -270,11 +308,10 @@ static void run_test(struct work *_work)
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
 	work->runtime = ns_elapsed(start, end);
 
-	// TODO error checking
-	mtx_lock(&work->mutex);
+	mutex_lock(&work->mutex);
 	work->completed = true;
-	cnd_signal(&work->cond);
-	mtx_unlock(&work->mutex);
+	condition_signal(&work->cond);
+	mutex_unlock(&work->mutex);
 }
 
 struct work_queue {
@@ -300,25 +337,25 @@ static void work_queue_init(struct work_queue *queue)
 
 static void work_queue_push_work(struct work_queue *queue, struct work *work)
 {
-	mtx_lock(&queue->mutex); // TODO error checking
+	mutex_lock(&queue->mutex);
 	*queue->pnext = work;
 	queue->pnext = &work->next;
-	cnd_signal(&queue->cond);
-	mtx_unlock(&queue->mutex);
+	condition_signal(&queue->cond);
+	mutex_unlock(&queue->mutex);
 }
 
 static struct work *work_queue_pop_work(struct work_queue *queue)
 {
-	mtx_lock(&queue->mutex); // TODO error checking
+	mutex_lock(&queue->mutex);
 	while (!queue->first) {
-		cnd_wait(&queue->cond, &queue->mutex);
+		condition_wait(&queue->cond, &queue->mutex);
 	}
 	struct work *work = queue->first;
 	queue->first = work->next;
 	if (!queue->first) {
 		queue->pnext = &queue->first;
 	}
-	mtx_unlock(&queue->mutex);
+	mutex_unlock(&queue->mutex);
 	return work;
 }
 
@@ -340,6 +377,16 @@ static struct test_work *test_add_work(struct test *test, size_t n)
 		}
 		if (cnd_init(&test_work[i].cond) != thrd_success) {
 			fputs("cnd_init failed\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+		test_work[i].stdout_fd = memfd_create("test stdout", MFD_CLOEXEC);
+		if (test_work[i].stdout_fd == -1) {
+			perror("memfd_create failed");
+			exit(EXIT_FAILURE);
+		}
+		test_work[i].stderr_fd = memfd_create("test stderr", MFD_CLOEXEC);
+		if (test_work[i].stderr_fd == -1) {
+			perror("memfd_create failed");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -490,14 +537,55 @@ static void print_time(uint64_t ns, FILE *file)
 	fprintf(file, "%.1f %s", t, unit);
 }
 
+static void print_test_output(const char *name, int fd)
+{
+	struct stat stat;
+	if (fstat(fd, &stat) != 0) {
+		perror("fstat failed");
+		exit(EXIT_FAILURE);
+	}
+	if (stat.st_size == 0) {
+		return;
+	}
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		perror("lseek failed");
+		exit(EXIT_FAILURE);
+	}
+	FILE *f = fdopen(fd, "r");
+	if (!f) {
+		perror("fdopen failed");
+		exit(EXIT_FAILURE);
+	}
+	printf("    %s:\n", name);
+	bool newline = true;
+	for (;;) {
+		char buf[4096];
+		if (!fgets(buf, sizeof(buf), f)) {
+			if (ferror(f)) {
+				perror("fgets failed");
+				exit(EXIT_FAILURE);
+			}
+			break;
+		}
+		if (newline) {
+			fputs("      ", stdout);
+		}
+		fputs(buf, stdout);
+		newline = buf[strlen(buf) - 1] == '\n';
+	}
+	putchar('\n');
+	fclose(f);
+}
+
 static void print_results(void)
 {
-#define GREEN "\033[32m"
 #define RED "\033[31m"
+#define GREEN "\033[32m"
 #define CLEAR_LINE "\033[2K\r"
 #define RESET "\033[0m"
-	const char *passed = GREEN "passed" RESET;
-	const char *failed = RED "failed" RESET;
+
+#define PASSED GREEN "passed" RESET
+#define FAILED RED "FAILED" RESET
 
 	struct timespec start, end;
 	clock_gettime(CLOCK_REALTIME, &start);
@@ -512,12 +600,11 @@ static void print_results(void)
 		bool test_failed = false;
 		for (size_t j = 0; j < test->num_work; j++) {
 			struct test_work *work = &test->work[j];
-			// TODO error checking
-			mtx_lock(&work->mutex);
+			mutex_lock(&work->mutex);
 			while (!work->completed) {
-				cnd_wait(&work->cond, &work->mutex);
+				condition_wait(&work->cond, &work->mutex);
 			}
-			mtx_unlock(&work->mutex);
+			mutex_unlock(&work->mutex);
 			runtime += work->runtime;
 			if (!work->passed) {
 				test_failed = true;
@@ -527,7 +614,7 @@ static void print_results(void)
 			num_failed++;
 		}
 		fputs(CLEAR_LINE, stderr);
-		printf("[%s/%s] %s (", test->file, test->name, test_failed ? failed : passed);
+		printf("[%s/%s] %s (", test->file, test->name, test_failed ? FAILED : PASSED);
 		print_time(runtime, stdout);
 		puts(")");
 		if (!test_failed) {
@@ -542,15 +629,17 @@ static void print_results(void)
 			case TEST_TYPE_SIMPLE:
 				break;
 			case TEST_TYPE_RANGE: {
-				printf("    failed on range: [%" PRIu64 ", %" PRIu64 "]\n",
+				printf("  " FAILED " on range: [%" PRIu64 ", %" PRIu64 "]\n",
 				       work->range.start, work->range.end);
 				break;
 			}
 			case TEST_TYPE_RANDOM: {
-				printf("    failed on value: %" PRIu64 "\n", work->random.failed_value);
+				printf("  " FAILED " on value: %" PRIu64 "\n", work->random.failed_value);
 				break;
 			}
 			}
+			print_test_output("STDOUT", work->stdout_fd);
+			print_test_output("STDERR", work->stderr_fd);
 		}
 	}
 	clock_gettime(CLOCK_REALTIME, &end);
@@ -561,7 +650,7 @@ static void print_results(void)
 	puts(")");
 }
 
-NEGATIVE_SIMPLE_TEST_SUBPROCESS(selftest1)
+NEGATIVE_SIMPLE_TEST(selftest1)
 {
 	raise(SIGABRT);
 	return true;
@@ -578,12 +667,25 @@ RANDOM_TEST(selftest3, 1000, 13, 42)
 	return true;
 }
 
-RANGE_TEST_SUBPROCESS(selftest4, 13, 17)
+RANGE_TEST(selftest4, 13, 17)
 {
 	CHECK(start <= end);
 	CHECK(13 <= start && end <= 17);
 	return true;
 }
+
+// RANGE_TEST(selftest5, 1, 999)
+// {
+// 	for (uint64_t x = start; x <= end; x++) {
+// 		if (x == 12 || x == 419 || x == 665) {
+// 			puts("DANGER!!!");
+// 		}
+// 		CHECK(x != 13);
+// 		CHECK(x != 420);
+// 		CHECK(x != 666);
+// 	}
+// 	return true;
+// }
 
 static int compare_tests(const void *_a, const void *_b)
 {
@@ -684,7 +786,7 @@ int main(int argc, char **argv)
 	if (!seed_initialized) {
 		if (getrandom(&global_seed, sizeof(global_seed), 0) == -1) {
 			perror("getrandom failed");
-			abort();
+			exit(EXIT_FAILURE);
 		}
 	}
 

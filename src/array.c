@@ -32,9 +32,8 @@ __AD_LINKAGE void *_arr_resize_internal(void *arr, size_t elem_size, size_t capa
 		return NULL;
 	}
 	size_t new_size = sizeof(_arr) + (capacity * elem_size);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(((capacity * elem_size) / elem_size == capacity) && new_size > sizeof(_arr));
-#endif
+	// TODO should this check always be enabled even without fortify?
+	_fortify_check(((capacity * elem_size) / elem_size == capacity) && new_size > sizeof(_arr));
 	_arr *head;
 	if (unlikely(!arr)) {
 		head = malloc(new_size);
@@ -42,7 +41,7 @@ __AD_LINKAGE void *_arr_resize_internal(void *arr, size_t elem_size, size_t capa
 			abort();
 		}
 		head->length = 0;
-#ifdef ARRAY_SAFETY_CHECKS
+#ifdef __FORTIFY_ENABLED
 		head->magic1 = ARRAY_MAGIC1;
 		head->magic2 = ARRAY_MAGIC2;
 #endif
@@ -93,9 +92,8 @@ __AD_LINKAGE void _arr_grow(void **arrp, size_t elem_size, size_t n)
 		return;
 	}
 	size_t capacity = _arr_capacity(*arrp);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(SIZE_MAX - n >= capacity);
-#endif
+	// TODO should this check always be enabled even without fortify?
+	_fortify_check(SIZE_MAX - n >= capacity);
 	const size_t numerator = ARRAY_GROWTH_FACTOR_NUMERATOR;
 	const size_t denominator = ARRAY_GROWTH_FACTOR_DENOMINATOR;
 	size_t new_capacity = (capacity + denominator - 1) / denominator * numerator;
@@ -143,9 +141,7 @@ __AD_LINKAGE void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t 
 {
 	void *arr = *arrp;
 	size_t len = _arr_length(arr);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(i <= len);
-#endif
+	_fortify_check(i <= len);
 	if (unlikely(n == 0)) {
 		return NULL;
 	}
@@ -163,9 +159,7 @@ __AD_LINKAGE void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t 
 __AD_LINKAGE void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, size_t n)
 {
 	size_t len = _arr_length(arr);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(i < len && n <= len && (i + n) <= len);
-#endif
+	_fortify_check(i < len && n <= len && (i + n) <= len);
 	char *src = (char *)arr + (i + n) * elem_size;
 	char *dst = (char *)arr + i * elem_size;
 	memmove(dst, src, (len - (i + n)) * elem_size);
@@ -175,9 +169,7 @@ __AD_LINKAGE void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, si
 __AD_LINKAGE void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_t n)
 {
 	size_t len = _arr_length(arr);
-#ifdef ARRAY_SAFETY_CHECKS
-	assert(i < len && n <= len && (i + n) <= len);
-#endif
+	_fortify_check(i < len && n <= len && (i + n) <= len);
 	size_t k = len - (i + n);
 	if (k > n) {
 		k = n;

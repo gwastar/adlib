@@ -73,6 +73,9 @@
 #if __has_attribute(noinline)
 # define HAVE_ATTR_NOINLINE 1
 #endif
+#if __has_attribute(noreturn)
+# define HAVE_ATTR_NORETURN 1
+#endif
 #if __has_attribute(constructor)
 # define HAVE_ATTR_CONSTRUCTOR 1
 #endif
@@ -106,6 +109,15 @@
 #endif
 #if !defined(HAVE_BUILTIN_OBJECT_SIZE) && __has_builtin(__builtin_object_size)
 # define HAVE_BUILTIN_OBJECT_SIZE 1
+#endif
+#if !defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) && __has_builtin(__builtin_dynamic_object_size)
+# define HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE 1
+#endif
+#if !defined(HAVE_BUILTIN_CONSTANT_P) && __has_builtin(__builtin_constant_p)
+# define HAVE_BUILTIN_CONSTANT_P 1
+#endif
+#if !defined(HAVE_BUILTIN_CHOOSE_EXPR) && __has_builtin(__builtin_choose_expr)
+# define HAVE_BUILTIN_CHOOSE_EXPR 1
 #endif
 #if !defined(HAVE_BUILTIN_SUB_OVERFLOW) && __has_builtin(__builtin_sub_overflow)
 # define HAVE_BUILTIN_SUB_OVERFLOW 1
@@ -202,6 +214,12 @@
 # define _attr_noinline
 #endif
 
+#ifdef HAVE_ATTR_NORETURN
+# define _attr_noreturn                      __attribute__((noreturn))
+#else
+# define _attr_noinline
+#endif
+
 #ifdef HAVE_ATTR_CONSTRUCTOR
 # define _attr_constructor                   __attribute__((constructor))
 #endif
@@ -232,6 +250,12 @@
 # define _bos(ptr, type)                     __builtin_object_size(ptr, type)
 #else
 # define _bos(ptr, type)                     ((size_t)-1)
+#endif
+
+#ifdef HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE
+# define _bdos(ptr, type)                    __builtin_dynamic_object_size(ptr, type)
+#else
+# define _bdos(ptr, type)                    _bos(ptr, type)
 #endif
 
 #endif
