@@ -26,9 +26,6 @@
 
 _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
-// TODO CHECK should do exit(EXIT_FAILURE) instead of return false now that tests always run in a subprocess
-//      and tests should no longer return a bool to indicate success
-
 #define CHECK(cond)							\
 	do {								\
 		if (unlikely(!(cond)))  {				\

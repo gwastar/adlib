@@ -127,6 +127,9 @@ static bool check_tree_recursive(struct rb_node *node, int cur_black_depth, int 
 
 static bool check_tree(struct rb_root *root)
 {
+	if (!root->node) {
+		return true;
+	}
 	int black_depth = -1;
 	CHECK(rb_is_black(root->node));
 	CHECK(!rb_parent(root->node));

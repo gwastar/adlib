@@ -17,11 +17,10 @@
  * SOFTWARE.
  */
 
-// TODO now that tests always run in a subprocess we no longer need the work queue to be multi-threaded
-
 #define _GNU_SOURCE
 #include <assert.h>
 #include <bits/time.h>
+#include <errno.h>
 #include <inttypes.h>
 #include <signal.h>
 #include <stdatomic.h>
@@ -43,6 +42,7 @@
 #include "random.h"
 #include "testing.h"
 
+static uint64_t initial_seed = 0;
 static uint64_t global_seed = 0;
 
 struct simple_test {
@@ -69,7 +69,7 @@ struct test {
 		TEST_TYPE_RANDOM,
 	} type;
 	bool enabled;
-	bool should_succeed;
+	bool should_succeed; // TODO rename this to "expect_error"?
 	const char *file;
 	const char *name;
 	union {
@@ -278,34 +278,40 @@ static void run_test(struct work *_work)
 	const struct test *test = work->test;
 
 	struct timespec start, end;
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+	clock_gettime(CLOCK_MONOTONIC, &start);
 
-	pid_t pid = fork();
-	if (pid == -1) {
-		perror("fork failed");
-		exit(EXIT_FAILURE);
-	}
+	const bool DO_FORK = true; // TODO turn this into a cmdline option
 
 	bool success = false;
-	if (pid == 0) {
-		if (dup2(work->stdout_fd, STDOUT_FILENO) == -1 ||
-		    dup2(work->stderr_fd, STDERR_FILENO) == -1) {
-			perror("dup2 failed");
+	if (DO_FORK) {
+		pid_t pid = fork();
+		if (pid == -1) {
+			perror("fork failed");
 			exit(EXIT_FAILURE);
 		}
-		success = run_test_helper(work);
-		exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
+
+		if (pid == 0) {
+			if (dup2(work->stdout_fd, STDOUT_FILENO) == -1 ||
+			    dup2(work->stderr_fd, STDERR_FILENO) == -1) {
+				perror("dup2 failed");
+				exit(EXIT_FAILURE);
+			}
+			success = run_test_helper(work);
+			exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
+		} else {
+			int status;
+			if (waitpid(pid, &status, 0) != pid) {
+				perror("waitpid failed");
+				exit(EXIT_FAILURE);
+			}
+			success = status == EXIT_SUCCESS;
+		}
 	} else {
-		int status;
-		if (waitpid(pid, &status, 0) != pid) {
-			perror("waitpid failed");
-			exit(EXIT_FAILURE);
-		}
-		success = status == EXIT_SUCCESS;
+		success = run_test_helper(work);
 	}
 	work->passed = test->should_succeed ? success : !success;
 
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+	clock_gettime(CLOCK_MONOTONIC, &end);
 	work->runtime = ns_elapsed(start, end);
 
 	mutex_lock(&work->mutex);
@@ -647,7 +653,7 @@ static void print_results(void)
 	printf("Summary: %s%zu/%zu failed" RESET " (",
 	       num_failed == 0 ? GREEN : RED, num_failed, num_tests);
 	print_time(ns_elapsed(start, end), stdout);
-	puts(")");
+	printf(") (random seed: %" PRIu64 ")\n", initial_seed);
 }
 
 NEGATIVE_SIMPLE_TEST(selftest1)
@@ -768,7 +774,16 @@ int main(int argc, char **argv)
 			}
 			break;
 		case 's':
-			global_seed = atoi(optarg);
+			errno = 0;
+			char *endptr;
+			initial_seed = strtoull(optarg, &endptr, 0);
+			if (endptr == optarg && errno == 0) {
+				errno = EINVAL;
+			}
+			if (errno != 0) {
+				perror("failed to parse random seed");
+				exit(EXIT_FAILURE);
+			}
 			seed_initialized = true;
 			break;
 		}
@@ -784,11 +799,12 @@ int main(int argc, char **argv)
 	}
 
 	if (!seed_initialized) {
-		if (getrandom(&global_seed, sizeof(global_seed), 0) == -1) {
+		if (getrandom(&initial_seed, sizeof(initial_seed), 0) == -1) {
 			perror("getrandom failed");
 			exit(EXIT_FAILURE);
 		}
 	}
+	global_seed = initial_seed;
 
 	struct work_queue queue;
 	work_queue_init(&queue);
