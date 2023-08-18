@@ -593,7 +593,7 @@ __AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashta
 	return false;
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, size_t start,
+__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
 						  const struct _hashtable_info *info)
 {
 	for (_hashtable_idx_t index = start; index < table->capacity; index++) {
@@ -1049,7 +1049,7 @@ __AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashta
 	return false;
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, size_t start,
+__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
 						  const struct _hashtable_info *info)
 {
 	for (_hashtable_idx_t index = start; index < table->capacity; index++) {
