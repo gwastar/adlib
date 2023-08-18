@@ -136,14 +136,6 @@ static bool btree_find(struct btree *tree, btree_key_t key)
 	return false;
 }
 
-static void btree_swap(btree_key_t *key1, btree_key_t *key2)
-{
-	btree_key_t tmp;
-	memcpy(&tmp, key1, sizeof(*key1));
-	memcpy(key1, key2, sizeof(*key1));
-	memcpy(key2, &tmp, sizeof(*key1));
-}
-
 static void btree_node_shift_keys_right(struct btree_node *node, size_t idx)
 {
 	assert(node->num_keys < BTREE_2K);
@@ -158,6 +150,112 @@ static void btree_node_shift_children_right(struct btree_node *node, size_t idx)
 	memmove(node->children + idx + 1,
 		node->children + idx,
 		(node->num_keys + 1 - idx) * sizeof(node->children[0]));
+}
+
+static void btree_node_shift_keys_left(struct btree_node *node, size_t idx)
+{
+	assert(node->num_keys <= BTREE_2K);
+	assert(idx < node->num_keys);
+	memmove(node->keys + idx, node->keys + idx + 1, (node->num_keys - idx - 1) * sizeof(node->keys[0]));
+}
+
+static void btree_node_shift_children_left(struct btree_node *node, size_t idx)
+{
+	assert(node->num_keys <= BTREE_2K);
+	assert(idx < node->num_keys + 1);
+	memmove(node->children + idx,
+		node->children + idx + 1,
+		(node->num_keys - idx) * sizeof(node->children[0]));
+}
+
+enum btree_deletion_mode {
+	DELETE_MIN,
+	DELETE_MAX,
+	DELETE_KEY,
+};
+
+static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode mode, btree_key_t key,
+				  btree_key_t *ret_key)
+{
+	if (!tree->root) {
+		return false;
+	}
+	struct btree_node *node = tree->root;
+	unsigned int cur_height = 0;
+	struct btree_pos path[32];
+	size_t idx;
+	bool leaf = false;
+	for (;;) {
+		leaf = cur_height == tree->height;
+		bool found = false;
+		switch (mode) {
+		case DELETE_KEY:
+			if (btree_bsearch(node, &key, &idx)) {
+				found = true;
+			} else if (leaf) {
+				// at leaf and not found
+				return false;
+			}
+			break;
+		case DELETE_MIN:
+			idx = 0;
+			break;
+		case DELETE_MAX:
+			idx = node->num_keys - 1;
+			break;
+		}
+		if (leaf) {
+			break;
+		}
+		if (found) {
+			// we found the key in an internal node
+			// now return it and then replace it with the max value of the left subtree
+			// TODO evaluate whether it's better to take the min value of the right subtree
+			//      if the right child has more items than the left
+			*ret_key = node->keys[idx];
+			ret_key = &node->keys[idx];
+			mode = DELETE_MAX;
+		}
+		path[cur_height].idx = idx;
+		path[cur_height].node = node;
+		cur_height++;
+		node = node->children[idx];
+	}
+
+	// we are at the leaf and have found the item to delete
+	// return the item and rebalance
+	*ret_key = node->keys[idx];
+
+	while (cur_height != 0) {
+		if (node->num_keys >= BTREE_K) {
+			return true;
+		}
+		// TODO rebalance
+		assert(false);
+		// either:
+		// - move left -> right
+		// - move right -> left
+		// - merge
+	}
+
+	assert(node == tree->root); // TODO this will probably be true and should simplify the code below
+
+	if (tree->root->num_keys == 0) {
+		struct btree_node *old_root = tree->root;
+		tree->root = NULL;
+		if (tree->height > 0) {
+			tree->root = old_root->children[0];
+			tree->height--;
+		}
+		free(old_root);
+	}
+
+	return true;
+}
+
+static bool btree_delete(struct btree *tree, btree_key_t key, btree_key_t *ret_key)
+{
+	return btree_delete_internal(tree, DELETE_KEY, key, ret_key);
 }
 
 static struct btree_node *btree_node_split_and_insert(struct btree_node *node, size_t idx, btree_key_t key,
