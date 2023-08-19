@@ -17,7 +17,7 @@ struct btree_node {
 	// TODO store the parent pointer and index in parent and benchmark
 	unsigned int num_keys;
 	btree_key_t keys[BTREE_2K];
-	struct btree_node *children[BTREE_2K + 1]; // TODO most nodes are leafs and don't habe children
+	struct btree_node *children[];
 };
 
 struct btree {
@@ -87,7 +87,8 @@ static int compare(const btree_key_t *key1, const btree_key_t *key2)
 
 static struct btree_node *btree_new_node(bool leaf)
 {
-	struct btree_node *node = calloc(1, sizeof(*node));
+	struct btree_node *node = calloc(1, sizeof(*node) +
+					 (leaf ? 0 : (BTREE_2K + 1) * sizeof(node->children[0])));
 	return node;
 }
 
@@ -160,14 +161,18 @@ static bool btree_bsearch(const struct btree_node *node, const btree_key_t *key,
 
 static bool btree_find(const struct btree *tree, btree_key_t key)
 {
-	const struct btree_node *node = tree->root;
-	if (!node) {
+	if (tree->height == 0) {
 		return false;
 	}
-	for (unsigned int depth = 0; depth < tree->height; depth++) {
+	const struct btree_node *node = tree->root;
+	unsigned int depth = 0;
+	for (;;) {
 		size_t idx;
 		if (btree_bsearch(node, &key, &idx)) {
 			return true;
+		}
+		if (++depth == tree->height) {
+			break;
 		}
 		node = node->children[idx];
 	}
@@ -219,12 +224,12 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 		return false;
 	}
 	struct btree_node *node = tree->root;
-	unsigned int depth = 0;
+	unsigned int depth = 1;
 	struct btree_pos path[32];
 	size_t idx;
 	bool leaf = false;
 	for (;;) {
-		leaf = depth == tree->height - 1;
+		leaf = depth == tree->height;
 		bool found = false;
 		switch (mode) {
 		case DELETE_KEY:
@@ -254,8 +259,8 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 			ret_key = &node->keys[idx];
 			mode = DELETE_MAX;
 		}
-		path[depth].idx = idx;
-		path[depth].node = node;
+		path[depth - 1].idx = idx;
+		path[depth - 1].node = node;
 		depth++;
 		node = node->children[idx];
 	}
@@ -267,13 +272,13 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 	assert(node->num_keys != 0);
 	node->num_keys--;
 
-	while (depth-- > 0) {
+	while (--depth > 0) {
 		if (node->num_keys >= BTREE_K) {
 			return true;
 		}
 		// TODO evaluate the strategy from https://github.com/tidwall/btree.c/blob/master/btree.c#L560
-		struct btree_node *parent = path[depth].node;
-		idx = path[depth].idx;
+		struct btree_node *parent = path[depth - 1].node;
+		idx = path[depth - 1].idx;
 
 		// try to borrow an item from the immediate left sibling
 		struct btree_node *left = NULL;
@@ -417,7 +422,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		tree->height = 1;
 	}
 	struct btree_node *node = tree->root;
-	size_t depth = 0;
+	size_t depth = 1;
 	size_t idx;
 	struct {
 		struct btree_node *node;
@@ -427,11 +432,11 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		if (btree_bsearch(node, &key, &idx)) {
 			return false;
 		}
-		if (depth == tree->height - 1) {
+		if (depth == tree->height) {
 			break;
 		}
-		path[depth].idx = idx;
-		path[depth].node = node;
+		path[depth - 1].idx = idx;
+		path[depth - 1].node = node;
 		depth++;
 		node = node->children[idx];
 	}
@@ -450,11 +455,11 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 
 		right = btree_node_split_and_insert(node, idx, key, right, &key);
 
-		if (depth-- == 0) {
+		if (--depth == 0) {
 			break;
 		}
-		idx = path[depth].idx;
-		node = path[depth].node;
+		idx = path[depth - 1].idx;
+		node = path[depth - 1].node;
 	}
 	struct btree_node *new_root = btree_new_node(false);
 	new_root->keys[0] = key;
