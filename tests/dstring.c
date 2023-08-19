@@ -4971,6 +4971,8 @@ SIMPLE_TEST(dstring)
 	return true;
 }
 
+#ifdef _FORTIFY_SOURCE
+
 NEGATIVE_SIMPLE_TEST(fortify_from_chars)
 {
 	char chars[16] = {0};
@@ -5009,3 +5011,5 @@ NEGATIVE_SIMPLE_TEST(fortify_strview_from_chars)
 	strview_from_chars(chars, sizeof(chars) + 1);
 	return true;
 }
+
+#endif
