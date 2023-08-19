@@ -138,13 +138,14 @@ static void btree_destroy(struct btree *tree)
 	}
 }
 
-static bool btree_bsearch(const struct btree_node *node, const btree_key_t *key, size_t *ret_idx)
+static bool btree_bsearch(const struct btree_node *node, const btree_key_t *key, unsigned int *ret_idx)
 {
-	// TODO optimize
-	size_t start = 0;
-	size_t end = node->num_keys;
+	// TODO optimize: try moving the equality check out of the loop,
+	//                linear search when the range is short (and compare is cheap)
+	unsigned int start = 0;
+	unsigned int end = node->num_keys;
 	while (end > start) {
-		size_t idx = start + (end - start) / 2;
+		unsigned int idx = start + (end - start) / 2;
 		int cmp = compare(key, &node->keys[idx]);
 		if (cmp < 0) {
 			end = idx;
@@ -167,7 +168,7 @@ static bool btree_find(const struct btree *tree, btree_key_t key)
 	const struct btree_node *node = tree->root;
 	unsigned int depth = 0;
 	for (;;) {
-		size_t idx;
+		unsigned int idx;
 		if (btree_bsearch(node, &key, &idx)) {
 			return true;
 		}
@@ -179,14 +180,14 @@ static bool btree_find(const struct btree *tree, btree_key_t key)
 	return false;
 }
 
-static void btree_node_shift_keys_right(struct btree_node *node, size_t idx)
+static void btree_node_shift_keys_right(struct btree_node *node, unsigned int idx)
 {
 	assert(node->num_keys < BTREE_2K);
 	assert(idx <= node->num_keys);
 	memmove(node->keys + idx + 1, node->keys + idx, (node->num_keys - idx) * sizeof(node->keys[0]));
 }
 
-static void btree_node_shift_children_right(struct btree_node *node, size_t idx)
+static void btree_node_shift_children_right(struct btree_node *node, unsigned int idx)
 {
 	assert(node->num_keys <= BTREE_2K);
 	assert(idx <= node->num_keys + 1);
@@ -195,14 +196,14 @@ static void btree_node_shift_children_right(struct btree_node *node, size_t idx)
 		(node->num_keys + 1 - idx) * sizeof(node->children[0]));
 }
 
-static void btree_node_shift_keys_left(struct btree_node *node, size_t idx)
+static void btree_node_shift_keys_left(struct btree_node *node, unsigned int idx)
 {
 	assert(node->num_keys <= BTREE_2K);
 	assert(idx < node->num_keys);
 	memmove(node->keys + idx, node->keys + idx + 1, (node->num_keys - idx - 1) * sizeof(node->keys[0]));
 }
 
-static void btree_node_shift_children_left(struct btree_node *node, size_t idx)
+static void btree_node_shift_children_left(struct btree_node *node, unsigned int idx)
 {
 	assert(node->num_keys <= BTREE_2K);
 	assert(idx < node->num_keys + 1);
@@ -226,7 +227,7 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 	struct btree_node *node = tree->root;
 	unsigned int depth = 1;
 	struct btree_pos path[32];
-	size_t idx;
+	unsigned int idx;
 	bool leaf = false;
 	for (;;) {
 		leaf = depth == tree->height;
@@ -367,7 +368,7 @@ static bool btree_delete(struct btree *tree, btree_key_t key, btree_key_t *ret_k
 	return btree_delete_internal(tree, DELETE_KEY, key, ret_key);
 }
 
-static struct btree_node *btree_node_split_and_insert(struct btree_node *node, size_t idx, btree_key_t key,
+static struct btree_node *btree_node_split_and_insert(struct btree_node *node, unsigned int idx, btree_key_t key,
 						      struct btree_node *right, btree_key_t *median)
 {
 	assert(node->num_keys == BTREE_2K);
@@ -422,8 +423,8 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		tree->height = 1;
 	}
 	struct btree_node *node = tree->root;
-	size_t depth = 1;
-	size_t idx;
+	unsigned int depth = 1;
+	unsigned int idx;
 	struct {
 		struct btree_node *node;
 		unsigned int idx;
@@ -487,7 +488,7 @@ static bool btree_check_children(struct btree_node *node, unsigned int height)
 	if (height == 1) {
 		return true;
 	}
-	for (size_t i = 0; i < node->num_keys + 1; i++) {
+	for (unsigned int i = 0; i < node->num_keys + 1; i++) {
 		if (!btree_check_node(node->children[i], height - 1)) {
 			return false;
 		}
@@ -497,7 +498,7 @@ static bool btree_check_children(struct btree_node *node, unsigned int height)
 
 static bool btree_check_node_sorted(struct btree_node *node)
 {
-	for (size_t i = 1; i < node->num_keys; i++) {
+	for (unsigned int i = 1; i < node->num_keys; i++) {
 		CHECK(compare(&node->keys[i - 1], &node->keys[i]) < 0);
 	}
 	return true;
