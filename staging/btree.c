@@ -6,7 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "compiler.h"
 #include "hashtable.h"
 #include "random.h"
 
@@ -35,7 +34,7 @@ struct btree {
 };
 
 struct btree_iter {
-	struct btree *tree;
+	const struct btree *tree;
 	unsigned int depth;
 	struct btree_pos {
 		struct btree_node *node;
@@ -43,7 +42,7 @@ struct btree_iter {
 	} path[32];
 };
 
-static struct btree_iter btree_iter_start(struct btree *tree)
+static struct btree_iter btree_iter_start(const struct btree *tree)
 {
 	struct btree_iter iter;
 	iter.tree = tree;
@@ -220,6 +219,7 @@ static bool btree_find(const struct btree *tree, btree_key_t key)
 
 static void btree_node_shift_keys_right(struct btree_node *node, unsigned int idx)
 {
+	// TODO turn this asserts into assumes?
 	assert(node->num_keys < BTREE_2K);
 	assert(idx <= node->num_keys);
 	memmove(node->keys + idx + 1, node->keys + idx, (node->num_keys - idx) * sizeof(node->keys[0]));
@@ -515,9 +515,9 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		}							\
 	} while (0)
 
-static bool btree_check_node(struct btree_node *node, unsigned int height);
+static bool btree_check_node(const struct btree_node *node, unsigned int height);
 
-static bool btree_check_children(struct btree_node *node, unsigned int height)
+static bool btree_check_children(const struct btree_node *node, unsigned int height)
 {
 	CHECK(height != 0);
 	if (height == 1) {
@@ -531,7 +531,7 @@ static bool btree_check_children(struct btree_node *node, unsigned int height)
 	return true;
 }
 
-static bool btree_check_node_sorted(struct btree_node *node)
+static bool btree_check_node_sorted(const struct btree_node *node)
 {
 	for (unsigned int i = 1; i < node->num_keys; i++) {
 		CHECK(compare(node->keys[i - 1], node->keys[i]) < 0);
@@ -539,13 +539,13 @@ static bool btree_check_node_sorted(struct btree_node *node)
 	return true;
 }
 
-static bool btree_check_node(struct btree_node *node, unsigned int height)
+static bool btree_check_node(const struct btree_node *node, unsigned int height)
 {
 	CHECK(node->num_keys >= BTREE_K && node->num_keys <= BTREE_2K);
 	return btree_check_node_sorted(node) && btree_check_children(node, height);
 }
 
-static bool btree_check(struct btree *btree)
+static bool btree_check(const struct btree *btree)
 {
 	struct btree_node *root = btree->root;
 	if (btree->height == 0) {
@@ -669,7 +669,7 @@ static double get_median(double *values, size_t n)
 	return (1 - fract) * values[idx0] + fract * values[idx1];
 }
 
-static struct btree_node *btree_node_copy(struct btree_node *node, unsigned int depth)
+static struct btree_node *btree_node_copy(const struct btree_node *node, unsigned int depth)
 {
 	struct btree_node *copy = btree_new_node(depth == 0);
 	memcpy(copy->keys, node->keys, node->num_keys * sizeof(node->keys[0]));
