@@ -146,6 +146,8 @@ __AD_LINKAGE uint32_t random_next_u32_in_range(struct random_state *state, uint3
 __AD_LINKAGE uint64_t random_next_u64_in_range(struct random_state *state, uint64_t min, uint64_t max)
 {
 	assert(min <= max);
+	// TODO this should produce the same result whether or not 128 bit integers are available
+	// TODO fast path for powers of 2 (maybe using __builtin_constant_p)?
 #ifdef __SIZEOF_INT128__
 	// https://arxiv.org/pdf/1805.10941.pdf
 	typedef unsigned __int128 uint128_t;

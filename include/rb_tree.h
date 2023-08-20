@@ -42,6 +42,7 @@ struct rb_node {
 	};
 };
 
+// TODO rename this to rb_tree?
 struct rb_root {
 	struct rb_node *node;
 };

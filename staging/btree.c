@@ -1,10 +1,13 @@
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "hashtable.h"
+#include "random.h"
 
 // TODO implement APIs with hints for optimized bulk operations
 // TODO implement API for inserting sequential items quickly
@@ -14,7 +17,7 @@
 #define BTREE_K 7
 #define BTREE_2K (2 * BTREE_K)
 
-typedef long btree_key_t;
+typedef int64_t btree_key_t;
 
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
@@ -97,10 +100,11 @@ static struct btree_node *btree_new_node(bool leaf)
 	return node;
 }
 
+#define BTREE_EMPTY ((struct btree){.root = NULL, .height = 0})
+
 static void btree_init(struct btree *tree)
 {
-	tree->root = NULL;
-	tree->height = 0;
+	*tree = BTREE_EMPTY;
 }
 
 static void btree_destroy(struct btree *tree)
@@ -557,7 +561,19 @@ static void test(void)
 	}
 	btree_key_t key;
 	for (struct btree_iter iter = btree_iter_start(&btree); btree_iter_get_next(&iter, &key);) {
+
+	}
+	{
+		btree_key_t prev_key, key;
+		struct btree_iter iter = btree_iter_start(&btree);
+		btree_iter_get_next(&iter, &key);
 		assert(btable_lookup(&btable, key, (btable_hash_t)key));
+		prev_key = key;
+		while (btree_iter_get_next(&iter, &key)) {
+			assert(btable_lookup(&btable, key, (btable_hash_t)key));
+			assert(compare(&prev_key, &key) < 0);
+			prev_key = key;
+		}
 	}
 	for (size_t i = LIMIT; i < LIMIT + 1000; i++) {
 		assert(!btree_find(&btree, i));
@@ -603,7 +619,247 @@ static void test(void)
 	btable_destroy(&btable);
 }
 
+static double ns_elapsed(struct timespec start, struct timespec end)
+{
+	double s = end.tv_sec - start.tv_sec;
+	double ns = end.tv_nsec - start.tv_nsec;
+	return ns + 1000000000 * s;
+}
+
+static int compare_doubles(const void *_a, const void *_b)
+{
+	double a = *(const double *)_a;
+	double b = *(const double *)_b;
+	return a < b ? -1 : (a == b ? 0 : 1);
+}
+
+static double get_median(double *values, size_t n)
+{
+	qsort(values, n, sizeof(values[0]), compare_doubles);
+	double x = 0.5 * (n - 1);
+	size_t idx0 = (size_t)x;
+	size_t idx1 = idx0 + (n != 1);
+	double fract = x - idx0;
+	return (1 - fract) * values[idx0] + fract * values[idx1];
+}
+
+static struct btree_node *btree_node_copy(struct btree_node *node, unsigned int depth)
+{
+	struct btree_node *copy = btree_new_node(depth == 0);
+	memcpy(copy->keys, node->keys, node->num_keys * sizeof(node->keys[0]));
+	copy->num_keys = node->num_keys;
+	if (depth == 0) {
+		return copy;
+	}
+	for (unsigned int i = 0; i < node->num_keys + 1; i++) {
+		copy->children[i] = btree_node_copy(node->children[i], depth - 1);
+	}
+	return copy;
+}
+
+static struct btree btree_copy(struct btree *btree)
+{
+	struct btree copy;
+	copy.height = btree->height;
+	copy.root = btree->height == 0 ? NULL : btree_node_copy(btree->root, btree->height - 1);
+	return copy;
+}
+
+static void benchmark(void)
+{
+	const size_t N = 1 << 18;
+#define ITERATIONS 15
+	double inorder_insert[ITERATIONS];
+	double revorder_insert[ITERATIONS];
+	double random_insert[ITERATIONS];
+	double inorder_find[ITERATIONS];
+	double revorder_find[ITERATIONS];
+	double randorder_find[ITERATIONS];
+	double random_find[ITERATIONS];
+	double iteration[ITERATIONS];
+	double inorder_deletion[ITERATIONS];
+	double revorder_deletion[ITERATIONS];
+	double randorder_deletion[ITERATIONS];
+	double destruction[ITERATIONS];
+
+	uint32_t *random_numbers = malloc(2 * N * sizeof(random_numbers[0]));
+	uint32_t *random_numbers2 = random_numbers + N;
+	{
+		struct random_state rng;
+		random_state_init(&rng, 0xdeadbeef);
+		for (size_t i = 0; i < N; i++) {
+			random_numbers[i] = random_next_u32(&rng);
+		}
+
+		random_state_init(&rng, 0xcafebabe);
+		for (size_t i = 0; i < N; i++) {
+			random_numbers2[i] = random_next_u32(&rng);
+		}
+	}
+
+	for (size_t k = 0; k < ITERATIONS; k++) {
+		struct btree btree;
+		btree_init(&btree);
+
+		struct timespec start_tp, end_tp;
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)i;
+			btree_insert(&btree, key);
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		inorder_insert[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_check(&btree);
+		btree_destroy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)(N - 1 - i);
+			btree_insert(&btree, key);
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		revorder_insert[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_check(&btree);
+		btree_destroy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[i];
+			btree_insert(&btree, key);
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		random_insert[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_check(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[i];
+			bool found = btree_find(&btree, key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		inorder_find[k] = ns_elapsed(start_tp, end_tp);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[N - 1 - i];
+			bool found = btree_find(&btree, key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		revorder_find[k] = ns_elapsed(start_tp, end_tp);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[random_numbers2[i] % N];
+			bool found = btree_find(&btree, key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		randorder_find[k] = ns_elapsed(start_tp, end_tp);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers2[i];
+			bool found = btree_find(&btree, key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		random_find[k] = ns_elapsed(start_tp, end_tp);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		{
+			btree_key_t prev_key, key;
+			struct btree_iter iter = btree_iter_start(&btree);
+			btree_iter_get_next(&iter, &prev_key);
+			while (btree_iter_get_next(&iter, &key)) {
+				assert(compare(&prev_key, &key) < 0);
+				prev_key = key;
+			}
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		iteration[k] = ns_elapsed(start_tp, end_tp);
+
+		struct btree copy = btree_copy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[i];
+			bool found = btree_delete(&btree, key, &key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		inorder_deletion[k] = ns_elapsed(start_tp, end_tp);
+
+		btree = copy;
+		copy = btree_copy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[N - 1 - i];
+			bool found = btree_delete(&btree, key, &key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		revorder_deletion[k] = ns_elapsed(start_tp, end_tp);
+
+		btree = copy;
+		copy = btree_copy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)random_numbers[random_numbers2[i] % N];
+			bool found = btree_delete(&btree, key, &key);
+			asm volatile("" :: "g" (found) : "memory");
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		randorder_deletion[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_destroy(&btree);
+		btree = copy;
+		copy = btree_copy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		btree_destroy(&btree);
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		destruction[k] = ns_elapsed(start_tp, end_tp);
+	}
+	// TODO print more statistics
+	double t;
+	t = get_median(inorder_insert, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "in-order insertion", t / N);
+	t = get_median(revorder_insert, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "reverse-order insertion", t / N);
+	t = get_median(random_insert, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "random insertion", t / N);
+	t = get_median(inorder_find, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "in-order find", t / N);
+	t = get_median(revorder_find, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "reverse-order find", t / N);
+	t = get_median(randorder_find, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "random-order find", t / N);
+	t = get_median(random_find, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "random find", t / N);
+	t = get_median(iteration, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "iteration", t / N);
+	t = get_median(inorder_deletion, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "in-order deletion", t / N);
+	t = get_median(revorder_deletion, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "reverse-order deletion", t / N);
+	t = get_median(randorder_deletion, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "random-order deletion", t / N);
+	t = get_median(destruction, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "destruction", t / N);
+
+	free(random_numbers);
+}
+
 int main(int argc, char **argv)
 {
-	test();
+	// test();
+	benchmark();
 }
