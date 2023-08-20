@@ -6,6 +6,11 @@
 
 #include "hashtable.h"
 
+// TODO implement APIs with hints for optimized bulk operations
+// TODO implement API for inserting sequential items quickly
+// TODO implement APIs for getting/deleting the min/max item
+
+// TODO make these configurable per instance
 #define BTREE_K 7
 #define BTREE_2K (2 * BTREE_K)
 
@@ -14,7 +19,7 @@ typedef long btree_key_t;
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
 struct btree_node {
-	// TODO store the parent pointer and index in parent and benchmark
+	// TODO store the parent pointer and index in parent and benchmark (also bool leaf?)
 	unsigned int num_keys;
 	btree_key_t keys[BTREE_2K];
 	struct btree_node *children[];
@@ -145,7 +150,7 @@ static bool btree_bsearch(const struct btree_node *node, const btree_key_t *key,
 	unsigned int start = 0;
 	unsigned int end = node->num_keys;
 	while (end > start) {
-		unsigned int idx = start + (end - start) / 2;
+		unsigned int idx = start + (end - start) / 2; // TODO this can probably just be (start + end) / 2
 		int cmp = compare(key, &node->keys[idx]);
 		if (cmp < 0) {
 			end = idx;
@@ -521,7 +526,7 @@ static bool btree_check(struct btree *btree)
 	return btree_check_children(root, btree->height);
 }
 
-int main(int argc, char **argv)
+static void test(void)
 {
 	// srand(1234);
 
@@ -596,4 +601,9 @@ int main(int argc, char **argv)
 	assert(btree_check(&btree));
 
 	btable_destroy(&btable);
+}
+
+int main(int argc, char **argv)
+{
+	test();
 }
