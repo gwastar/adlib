@@ -11,9 +11,9 @@
 
 // TODO implement APIs with hints for optimized bulk operations
 // TODO implement API for inserting sequential items quickly
-// TODO implement APIs for getting/deleting the min/max item
+// TODO implement benchmarks for getting/deleting the min/max item
 
-// TODO make these configurable per instance
+// TODO make these configurable per instance and benchmark
 #define BTREE_K 7
 #define BTREE_2K (2 * BTREE_K)
 
@@ -217,9 +217,38 @@ static bool btree_find(const struct btree *tree, btree_key_t key)
 	return false;
 }
 
+static bool btree_get_minmax_internal(const struct btree *tree, btree_key_t *key, bool min)
+{
+	if (tree->height == 0) {
+		return false;
+	}
+	const struct btree_node *node = tree->root;
+	unsigned int depth = 0;
+	for (;;) {
+		if (++depth == tree->height) {
+			break;
+		}
+		unsigned int idx = min ? 0 : node->num_keys;
+		node = node->children[idx];
+	}
+	unsigned int idx = min ? 0 : node->num_keys - 1;
+	*key = node->keys[idx];
+	return true;
+}
+
+static bool btree_get_min(const struct btree *tree, btree_key_t *key)
+{
+	return btree_get_minmax_internal(tree, key, true);
+}
+
+static bool btree_get_max(const struct btree *tree, btree_key_t *key)
+{
+	return btree_get_minmax_internal(tree, key, false);
+}
+
 static void btree_node_shift_keys_right(struct btree_node *node, unsigned int idx)
 {
-	// TODO turn this asserts into assumes?
+	// TODO turn these asserts into assumes?
 	assert(node->num_keys < BTREE_2K);
 	assert(idx <= node->num_keys);
 	memmove(node->keys + idx + 1, node->keys + idx, (node->num_keys - idx) * sizeof(node->keys[0]));
@@ -401,6 +430,18 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 static bool btree_delete(struct btree *tree, btree_key_t key, btree_key_t *ret_key)
 {
 	return btree_delete_internal(tree, DELETE_KEY, key, ret_key);
+}
+
+static bool btree_delete_min(struct btree *tree, btree_key_t *ret_key)
+{
+	btree_key_t dummy = 0;
+	return btree_delete_internal(tree, DELETE_MIN, dummy, ret_key);
+}
+
+static bool btree_delete_max(struct btree *tree, btree_key_t *ret_key)
+{
+	btree_key_t dummy = 0;
+	return btree_delete_internal(tree, DELETE_MAX, dummy, ret_key);
 }
 
 static struct btree_node *btree_node_split_and_insert(struct btree_node *node, unsigned int idx, btree_key_t key,
@@ -643,6 +684,44 @@ static void test(void)
 	assert(btree_check(&btree));
 
 	btable_destroy(&btable);
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t key = (btree_key_t)i;
+		bool inserted = btree_insert(&btree, key);
+		assert(inserted);
+	}
+
+	assert(btree_check(&btree));
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t min;
+		bool found = btree_get_min(&btree, &min);
+		assert(found);
+		assert(min == (btree_key_t)i);
+		bool removed = btree_delete_min(&btree, &min);
+		assert(removed);
+		assert(min == (btree_key_t)i);
+	}
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t key = (btree_key_t)i;
+		bool inserted = btree_insert(&btree, key);
+		assert(inserted);
+	}
+
+	assert(btree_check(&btree));
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t max;
+		bool found = btree_get_max(&btree, &max);
+		assert(found);
+		assert(max == (btree_key_t)(N - 1 - i));
+		bool removed = btree_delete_max(&btree, &max);
+		assert(removed);
+		assert(max == (btree_key_t)(N - 1 - i));
+	}
+
+	assert(btree.height == 0);
 }
 
 static double ns_elapsed(struct timespec start, struct timespec end)
@@ -886,6 +965,6 @@ static void benchmark(void)
 
 int main(int argc, char **argv)
 {
-	// test();
-	benchmark();
+	test();
+	// benchmark();
 }
