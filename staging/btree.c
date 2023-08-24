@@ -11,7 +11,6 @@
 
 // TODO implement APIs with hints for optimized bulk operations
 // TODO implement API for inserting sequential items quickly
-// TODO implement benchmarks for getting/deleting the min/max item
 
 // TODO make these configurable per instance and benchmark
 #define BTREE_K 7
@@ -22,7 +21,7 @@ typedef int64_t btree_key_t;
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
 struct btree_node {
-	// TODO store the parent pointer and index in parent and benchmark (also bool leaf?)
+	unsigned int _padding[3]; // why does this make find 10% faster?? (and insertion slightly slower)
 	unsigned int num_keys;
 	btree_key_t keys[BTREE_2K];
 	struct btree_node *children[];
@@ -342,74 +341,54 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 		if (node->num_keys >= BTREE_K) {
 			return true;
 		}
-		// TODO evaluate the strategy from https://github.com/tidwall/btree.c/blob/master/btree.c#L560
-		struct btree_node *parent = path[depth - 1].node;
+
+		node = path[depth - 1].node;
 		idx = path[depth - 1].idx;
 
-		// try to borrow an item from the immediate left sibling
-		struct btree_node *left = NULL;
-		struct btree_node *right = NULL;
-		// TODO would it improve to code to readjust idx here?
-		//      idx = idx == 0 ? 1 : (idx == parent->num_items ? idx = parent->num_items - 1 : idx)
-		if (idx != 0) {
-			left = parent->children[idx - 1];
-			if (left->num_keys > BTREE_K) {
-				btree_node_shift_keys_right(node, 0);
-				node->keys[0] = parent->keys[idx - 1];
-				parent->keys[idx - 1] = left->keys[left->num_keys - 1];
-				if (!leaf) {
-					btree_node_shift_children_right(node, 0);
-					node->children[0] = left->children[left->num_keys];
-				}
-				left->num_keys--;
-				node->num_keys++;
-				goto next;
-			}
-		}
-		// try to borrow an item from the immediate right sibling
-		if (idx != parent->num_keys) {
-			right = parent->children[idx + 1];
-			if (right->num_keys > BTREE_K) {
-				node->keys[node->num_keys] = parent->keys[idx];
-				parent->keys[idx] = right->keys[0];
-				btree_node_shift_keys_left(right, 0);
-				if (!leaf) {
-					node->children[node->num_keys + 1] = right->children[0];
-					btree_node_shift_children_left(right, 0);
-				}
-				right->num_keys--;
-				node->num_keys++;
-				goto next;
-			}
-		}
-
-	        // merge with left or right node
-		// left will now refer to parent->children[idx] and right to parent->children[idx + 1]
-		if (right) {
-			left = node;
-		} else {
+		// eagerly merging with the left child slightly improves performance for delete-only benchmarks
+		if (idx == node->num_keys ||
+		    (idx != 0 && node->children[idx - 1]->num_keys + node->children[idx]->num_keys < BTREE_2K)) {
 			idx--;
-			right = node;
+		}
+		struct btree_node *left = node->children[idx];
+		struct btree_node *right = node->children[idx + 1];
+
+		if (left->num_keys + right->num_keys < BTREE_2K) {
+			left->keys[left->num_keys] = node->keys[idx];
+			btree_node_shift_keys_left(node, idx);
+			btree_node_shift_children_left(node, idx + 1);
+			node->num_keys--;
+			left->num_keys++;
+			memcpy(left->keys + left->num_keys, right->keys, right->num_keys * sizeof(right->keys[0]));
+			if (!leaf) {
+				memcpy(left->children + left->num_keys,
+				       right->children,
+				       (right->num_keys + 1) * sizeof(right->children[0]));
+			}
+			left->num_keys += right->num_keys;
+			free(right);
+		} else if (left->num_keys > right->num_keys) {
+			btree_node_shift_keys_right(right, 0);
+			right->keys[0] = node->keys[idx];
+			node->keys[idx] = left->keys[left->num_keys - 1];
+			if (!leaf) {
+				btree_node_shift_children_right(right, 0);
+				right->children[0] = left->children[left->num_keys];
+			}
+			left->num_keys--;
+			right->num_keys++;
+		} else {
+			left->keys[left->num_keys] = node->keys[idx];
+			node->keys[idx] = right->keys[0];
+			btree_node_shift_keys_left(right, 0);
+			if (!leaf) {
+				left->children[left->num_keys + 1] = right->children[0];
+				btree_node_shift_children_left(right, 0);
+			}
+			right->num_keys--;
+			left->num_keys++;
 		}
 
-		assert(left->num_keys + right->num_keys + 1 <= BTREE_2K);
-
-		left->keys[left->num_keys] = parent->keys[idx];
-		btree_node_shift_keys_left(parent, idx);
-		btree_node_shift_children_left(parent, idx + 1);
-		parent->num_keys--;
-		left->num_keys++;
-		memcpy(left->keys + left->num_keys, right->keys, right->num_keys * sizeof(right->keys[0]));
-		if (!leaf) {
-			memcpy(left->children + left->num_keys,
-			       right->children,
-			       (right->num_keys + 1) * sizeof(right->children[0]));
-		}
-		left->num_keys += right->num_keys;
-		free(right);
-
-	next:
-		node = parent;
 		leaf = false;
 	}
 
@@ -965,6 +944,6 @@ static void benchmark(void)
 
 int main(int argc, char **argv)
 {
-	test();
-	// benchmark();
+	// test();
+	benchmark();
 }
