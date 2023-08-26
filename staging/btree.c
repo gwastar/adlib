@@ -496,6 +496,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		depth++;
 		node = node->children[idx];
 	}
+	// TODO evaluate "split first, insert after" strategy
 	struct btree_node *right = NULL;
 	for (;;) {
 		if (node->num_keys < BTREE_2K) {
@@ -749,6 +750,19 @@ static struct btree btree_copy(struct btree *btree)
 	return copy;
 }
 
+static size_t next_pow2(size_t x)
+{
+	x--;
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	x |= x >> (sizeof(x) * 4);
+	x++;
+	return x;
+}
+
 static void benchmark(void)
 {
 	const size_t N = 1 << 18;
@@ -765,19 +779,17 @@ static void benchmark(void)
 	double revorder_deletion[ITERATIONS];
 	double randorder_deletion[ITERATIONS];
 	double destruction[ITERATIONS];
+	double inorder_mixed[ITERATIONS];
+	double revorder_mixed[ITERATIONS];
+	double random_mixed[ITERATIONS];
 
 	uint32_t *random_numbers = malloc(2 * N * sizeof(random_numbers[0]));
 	uint32_t *random_numbers2 = random_numbers + N;
 	{
 		struct random_state rng;
 		random_state_init(&rng, 0xdeadbeef);
-		for (size_t i = 0; i < N; i++) {
+		for (size_t i = 0; i < 2 * N; i++) {
 			random_numbers[i] = random_next_u32(&rng);
-		}
-
-		random_state_init(&rng, 0xcafebabe);
-		for (size_t i = 0; i < N; i++) {
-			random_numbers2[i] = random_next_u32(&rng);
 		}
 	}
 
@@ -905,12 +917,95 @@ static void benchmark(void)
 
 		btree_destroy(&btree);
 		btree = copy;
-		copy = btree_copy(&btree);
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		btree_destroy(&btree);
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		destruction[k] = ns_elapsed(start_tp, end_tp);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N / 4; i++) {
+			const size_t INSERTIONS = 5;
+			const size_t FINDS = 10;
+			const size_t DELETIONS = 2;
+			for (size_t j = 0; j < INSERTIONS; j++) {
+				btree_key_t key = (btree_key_t)((i * INSERTIONS + j) % (2 * N));
+				btree_insert(&btree, key);
+			}
+			size_t n = next_pow2((i + 1) * INSERTIONS);
+			if (n > 2 * N) {
+				n = 2 * N;
+			}
+			for (size_t j = 0; j < FINDS; j++) {
+				btree_key_t key = (btree_key_t)((i * FINDS + j) & (n - 1));
+				bool found = btree_find(&btree, key);
+				asm volatile("" :: "g" (found) : "memory");
+			}
+			for (size_t j = 0; j < DELETIONS; j++) {
+				btree_key_t key = (btree_key_t)((i * DELETIONS + 2 * j) & (n - 1));
+				btree_delete(&btree, key, &key);
+			}
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		inorder_mixed[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_destroy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N / 4; i++) {
+			const size_t INSERTIONS = 5;
+			const size_t FINDS = 10;
+			const size_t DELETIONS = 2;
+			for (size_t j = 0; j < INSERTIONS; j++) {
+				btree_key_t key = -(btree_key_t)((i * INSERTIONS + j) % (2 * N));
+				btree_insert(&btree, key);
+			}
+			size_t n = next_pow2((i + 1) * INSERTIONS);
+			if (n > 2 * N) {
+				n = 2 * N;
+			}
+			for (size_t j = 0; j < FINDS; j++) {
+				btree_key_t key = -(btree_key_t)((i * FINDS + j) & (n - 1));
+				bool found = btree_find(&btree, key);
+				asm volatile("" :: "g" (found) : "memory");
+			}
+			for (size_t j = 0; j < DELETIONS; j++) {
+				btree_key_t key = -(btree_key_t)((i * DELETIONS + 2 * j) & (n - 1));
+				btree_delete(&btree, key, &key);
+			}
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		revorder_mixed[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_destroy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N / 4; i++) {
+			const size_t INSERTIONS = 5;
+			const size_t FINDS = 10;
+			const size_t DELETIONS = 2;
+			for (size_t j = 0; j < INSERTIONS; j++) {
+				btree_key_t key = (btree_key_t)random_numbers[(i * INSERTIONS + j) % (2 * N)];
+				btree_insert(&btree, key);
+			}
+			size_t n = next_pow2((i + 1) * INSERTIONS);
+			if (n > 2 * N) {
+				n = 2 * N;
+			}
+			for (size_t j = 0; j < FINDS; j++) {
+				btree_key_t key = (btree_key_t)random_numbers[(i * FINDS + j) & (n - 1)];
+				bool found = btree_find(&btree, key);
+				asm volatile("" :: "g" (found) : "memory");
+			}
+			for (size_t j = 0; j < DELETIONS; j++) {
+				btree_key_t key = (btree_key_t)random_numbers[(i * DELETIONS + 2 * j) & (n - 1)];
+				btree_delete(&btree, key, &key);
+			}
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		random_mixed[k] = ns_elapsed(start_tp, end_tp);
+
+		btree_destroy(&btree);
 	}
 	// TODO print more statistics
 	double t;
@@ -938,6 +1033,12 @@ static void benchmark(void)
 	printf("%-32s %8.1f ns\n", "random-order deletion", t / N);
 	t = get_median(destruction, ITERATIONS);
 	printf("%-32s %8.1f ns\n", "destruction", t / N);
+	t = get_median(inorder_mixed, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "in-order mixed", t / (N / 4));
+	t = get_median(revorder_mixed, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "reverse-order mixed", t / (N / 4));
+	t = get_median(random_mixed, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "random-order mixed", t / (N / 4));
 
 	free(random_numbers);
 }

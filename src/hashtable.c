@@ -60,6 +60,7 @@ size_t collisions2;
 size_t num_inserts;
 #endif
 
+// TODO put this into utils
 static _attr_unused _hashtable_uint_t _hashtable_round_capacity(_hashtable_uint_t capacity)
 {
 	// round to next power of 2
