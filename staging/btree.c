@@ -12,9 +12,11 @@
 // TODO implement APIs with hints for optimized bulk operations
 // TODO implement API for inserting sequential items quickly
 
-// TODO make these configurable per instance and benchmark
-#define BTREE_K 7
-#define BTREE_2K (2 * BTREE_K)
+#define MAX_ITEMS 16
+#define MIN_ITEMS (MAX_ITEMS / 2)
+#define MAX_CHILDREN (MAX_ITEMS + 1)
+
+_Static_assert(MAX_ITEMS >= 2, "use an AVL or RB tree for 1 item per node");
 
 typedef int64_t btree_key_t;
 
@@ -23,7 +25,7 @@ DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 struct btree_node {
 	unsigned int _padding[3]; // why does this make find 10% faster?? (and insertion slightly slower)
 	unsigned int num_keys;
-	btree_key_t keys[BTREE_2K];
+	btree_key_t keys[MAX_ITEMS];
 	struct btree_node *children[];
 };
 
@@ -95,7 +97,7 @@ static int compare(const btree_key_t a, const btree_key_t b)
 static struct btree_node *btree_new_node(bool leaf)
 {
 	struct btree_node *node = calloc(1, sizeof(*node) +
-					 (leaf ? 0 : (BTREE_2K + 1) * sizeof(node->children[0])));
+					 (leaf ? 0 : MAX_CHILDREN * sizeof(node->children[0])));
 	return node;
 }
 
@@ -248,14 +250,14 @@ static bool btree_get_max(const struct btree *tree, btree_key_t *key)
 static void btree_node_shift_keys_right(struct btree_node *node, unsigned int idx)
 {
 	// TODO turn these asserts into assumes?
-	assert(node->num_keys < BTREE_2K);
+	assert(node->num_keys < MAX_ITEMS);
 	assert(idx <= node->num_keys);
 	memmove(node->keys + idx + 1, node->keys + idx, (node->num_keys - idx) * sizeof(node->keys[0]));
 }
 
 static void btree_node_shift_children_right(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= BTREE_2K);
+	assert(node->num_keys <= MAX_ITEMS);
 	assert(idx <= node->num_keys + 1);
 	memmove(node->children + idx + 1,
 		node->children + idx,
@@ -264,14 +266,14 @@ static void btree_node_shift_children_right(struct btree_node *node, unsigned in
 
 static void btree_node_shift_keys_left(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= BTREE_2K);
+	assert(node->num_keys <= MAX_ITEMS);
 	assert(idx < node->num_keys);
 	memmove(node->keys + idx, node->keys + idx + 1, (node->num_keys - idx - 1) * sizeof(node->keys[0]));
 }
 
 static void btree_node_shift_children_left(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= BTREE_2K);
+	assert(node->num_keys <= MAX_ITEMS);
 	assert(idx < node->num_keys + 1);
 	memmove(node->children + idx,
 		node->children + idx + 1,
@@ -338,7 +340,7 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 	node->num_keys--;
 
 	while (--depth > 0) {
-		if (node->num_keys >= BTREE_K) {
+		if (node->num_keys >= MIN_ITEMS) {
 			return true;
 		}
 
@@ -347,13 +349,13 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 
 		// eagerly merging with the left child slightly improves performance for delete-only benchmarks
 		if (idx == node->num_keys ||
-		    (idx != 0 && node->children[idx - 1]->num_keys + node->children[idx]->num_keys < BTREE_2K)) {
+		    (idx != 0 && node->children[idx - 1]->num_keys + node->children[idx]->num_keys < MAX_ITEMS)) {
 			idx--;
 		}
 		struct btree_node *left = node->children[idx];
 		struct btree_node *right = node->children[idx + 1];
 
-		if (left->num_keys + right->num_keys < BTREE_2K) {
+		if (left->num_keys + right->num_keys < MAX_ITEMS) {
 			left->keys[left->num_keys] = node->keys[idx];
 			btree_node_shift_keys_left(node, idx);
 			btree_node_shift_children_left(node, idx + 1);
@@ -423,50 +425,52 @@ static bool btree_delete_max(struct btree *tree, btree_key_t *ret_key)
 	return btree_delete_internal(tree, DELETE_MAX, dummy, ret_key);
 }
 
+#if MAX_ITEMS % 2 == 0
+
 static struct btree_node *btree_node_split_and_insert(struct btree_node *node, unsigned int idx, btree_key_t key,
 						      struct btree_node *right, btree_key_t *median)
 {
-	assert(node->num_keys == BTREE_2K);
+	assert(node->num_keys == MAX_ITEMS);
 	struct btree_node *new_node = btree_new_node(!right);
-	node->num_keys = BTREE_K;
-	if (idx < BTREE_K) {
-		*median = node->keys[BTREE_K - 1];
-		memcpy(new_node->keys, node->keys + BTREE_K, BTREE_K * sizeof(node->keys[0]));
+	node->num_keys = MIN_ITEMS;
+	if (idx < MIN_ITEMS) {
+		*median = node->keys[MIN_ITEMS - 1];
+		memcpy(new_node->keys, node->keys + MIN_ITEMS, MIN_ITEMS * sizeof(node->keys[0]));
 		btree_node_shift_keys_right(node, idx);
 		node->keys[idx] = key;
 		if (right) {
 			memcpy(new_node->children,
-			       node->children + BTREE_K,
-			       (BTREE_K + 1) * sizeof(node->children[0]));
+			       node->children + MIN_ITEMS,
+			       (MIN_ITEMS + 1) * sizeof(node->children[0]));
 			btree_node_shift_children_right(node, idx + 1);
 			node->children[idx + 1] = right;
 		}
-	} else if (idx == BTREE_K) {
+	} else if (idx == MIN_ITEMS) {
 		*median = key; // TODO could avoid this copy... but is it even worth it?
-		memcpy(new_node->keys, node->keys + BTREE_K, BTREE_K * sizeof(node->keys[0]));
+		memcpy(new_node->keys, node->keys + MIN_ITEMS, MIN_ITEMS * sizeof(node->keys[0]));
 		if (right) {
 			memcpy(new_node->children + 1,
-			       node->children + BTREE_K + 1,
-			       BTREE_K * sizeof(node->children[0]));
+			       node->children + MIN_ITEMS + 1,
+			       MIN_ITEMS * sizeof(node->children[0]));
 			new_node->children[0] = right;
 		}
 	} else {
-		idx -= BTREE_K + 1;
-		*median = node->keys[BTREE_K];
-		new_node->num_keys = BTREE_K - 1;
+		idx -= MIN_ITEMS + 1;
+		*median = node->keys[MIN_ITEMS];
+		new_node->num_keys = MIN_ITEMS - 1;
 		// it is not worth splitting the memcpys here in two to avoid the shifts
-		memcpy(new_node->keys, node->keys + BTREE_K + 1, (BTREE_K - 1) * sizeof(node->keys[0]));
+		memcpy(new_node->keys, node->keys + MIN_ITEMS + 1, (MIN_ITEMS - 1) * sizeof(node->keys[0]));
 		btree_node_shift_keys_right(new_node, idx);
 		new_node->keys[idx] = key;
 		if (right) {
 			memcpy(new_node->children,
-			       node->children + BTREE_K + 1,
-			       BTREE_K * sizeof(node->children[0]));
+			       node->children + MIN_ITEMS + 1,
+			       MIN_ITEMS * sizeof(node->children[0]));
 			btree_node_shift_children_right(new_node, idx + 1);
 			new_node->children[idx + 1] = right;
 		}
 	}
-	new_node->num_keys = BTREE_K;
+	new_node->num_keys = MIN_ITEMS;
 
 	return new_node;
 }
@@ -499,7 +503,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 	// TODO evaluate "split first, insert after" strategy
 	struct btree_node *right = NULL;
 	for (;;) {
-		if (node->num_keys < BTREE_2K) {
+		if (node->num_keys < MAX_ITEMS) {
 			btree_node_shift_keys_right(node, idx);
 			node->keys[idx] = key;
 			if (right) {
@@ -527,6 +531,95 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 	tree->height++;
 	return true;
 }
+
+#else
+
+static struct btree_node *btree_node_split(struct btree_node *node, btree_key_t *median, bool leaf)
+{
+	assert(node->num_keys == MAX_ITEMS);
+	struct btree_node *new_node = btree_new_node(leaf);
+	node->num_keys = MIN_ITEMS;
+	*median = node->keys[MIN_ITEMS];
+	memcpy(new_node->keys, node->keys + MIN_ITEMS + 1, (MIN_ITEMS) * sizeof(node->keys[0]));
+	if (!leaf) {
+		memcpy(new_node->children,
+		       node->children + MIN_ITEMS + 1,
+		       (MIN_ITEMS + 1) * sizeof(node->children[0]));
+	}
+	new_node->num_keys = MIN_ITEMS;
+	return new_node;
+}
+
+static bool btree_insert(struct btree *tree, btree_key_t key)
+{
+	if (tree->height == 0) {
+		tree->root = btree_new_node(true);
+		tree->height = 1;
+	}
+	struct btree_node *node = tree->root;
+	unsigned int depth = 1;
+	unsigned int idx = 0;
+	struct {
+		struct btree_node *node;
+		unsigned int idx;
+	} path[32];
+	unsigned int last_nonfull_node_depth = 0;
+	for (;;) {
+		if (btree_node_search(node, key, &idx)) {
+			return false;
+		}
+		if (node->num_keys < MAX_ITEMS) {
+			last_nonfull_node_depth = depth;
+		}
+		path[depth - 1].idx = idx;
+		path[depth - 1].node = node;
+		if (depth == tree->height) {
+			break;
+		}
+		depth++;
+		node = node->children[idx];
+	}
+
+	if (last_nonfull_node_depth != depth) {
+		unsigned int d = last_nonfull_node_depth;
+		if (d == 0) {
+			struct btree_node *new_root = btree_new_node(false);
+			new_root->children[0] = tree->root;
+			tree->root = new_root;
+			tree->height++;
+			idx = 0;
+			node = new_root;
+		} else {
+			node = path[d - 1].node;
+			idx = path[d - 1].idx;
+		}
+
+		do {
+			d++;
+			btree_key_t median;
+			struct btree_node *right = btree_node_split(node->children[idx], &median, d == depth);
+			btree_node_shift_keys_right(node, idx);
+			node->keys[idx] = median;
+			btree_node_shift_children_right(node, idx + 1);
+			node->children[idx + 1] = right;
+			node->num_keys++;
+			if (key < median) {
+				node = node->children[idx];
+				idx = path[d - 1].idx;
+			} else {
+				node = node->children[idx + 1];
+				idx = path[d - 1].idx - MIN_ITEMS - 1;
+			}
+		} while (d != depth);
+	}
+
+	btree_node_shift_keys_right(node, idx);
+	node->keys[idx] = key;
+	node->num_keys++;
+	return true;
+}
+
+#endif
 
 #define CHECK(cond)							\
 	do {								\
@@ -562,7 +655,7 @@ static bool btree_check_node_sorted(const struct btree_node *node)
 
 static bool btree_check_node(const struct btree_node *node, unsigned int height)
 {
-	CHECK(node->num_keys >= BTREE_K && node->num_keys <= BTREE_2K);
+	CHECK(node->num_keys >= MIN_ITEMS && node->num_keys <= MAX_ITEMS);
 	return btree_check_node_sorted(node) && btree_check_children(node, height);
 }
 
@@ -573,7 +666,7 @@ static bool btree_check(const struct btree *btree)
 		CHECK(!root);
 		return true;
 	}
-	CHECK(root->num_keys >= 1 && root->num_keys <= BTREE_2K);
+	CHECK(root->num_keys >= 1 && root->num_keys <= MAX_ITEMS);
 	return btree_check_children(root, btree->height);
 }
 
@@ -1006,6 +1099,8 @@ static void benchmark(void)
 		random_mixed[k] = ns_elapsed(start_tp, end_tp);
 
 		btree_destroy(&btree);
+
+		// TODO find with cold cache?
 	}
 	// TODO print more statistics
 	double t;
