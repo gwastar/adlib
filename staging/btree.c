@@ -6,9 +6,11 @@
 #include <string.h>
 #include <time.h>
 
+#include "compiler.h"
 #include "hashtable.h"
 #include "random.h"
 
+// TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
 // TODO implement API for inserting sequential items quickly
 
@@ -23,7 +25,7 @@ typedef int64_t btree_key_t;
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
 struct btree_node {
-	// unsigned int _padding[3]; // why does this make find 10% faster?? (and insertion slightly slower)
+	// unsigned int _padding[3]; // why does this make find 10% faster with gcc?? (and insertion slightly slower)
 	unsigned int num_keys;
 	btree_key_t keys[MAX_ITEMS];
 	struct btree_node *children[];
@@ -249,16 +251,11 @@ static bool btree_get_max(const struct btree *tree, btree_key_t *key)
 
 static void btree_node_shift_keys_right(struct btree_node *node, unsigned int idx)
 {
-	// TODO turn these asserts into assumes?
-	assert(node->num_keys < MAX_ITEMS);
-	assert(idx <= node->num_keys);
 	memmove(node->keys + idx + 1, node->keys + idx, (node->num_keys - idx) * sizeof(node->keys[0]));
 }
 
 static void btree_node_shift_children_right(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= MAX_ITEMS);
-	assert(idx <= node->num_keys + 1);
 	memmove(node->children + idx + 1,
 		node->children + idx,
 		(node->num_keys + 1 - idx) * sizeof(node->children[0]));
@@ -266,15 +263,11 @@ static void btree_node_shift_children_right(struct btree_node *node, unsigned in
 
 static void btree_node_shift_keys_left(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= MAX_ITEMS);
-	assert(idx < node->num_keys);
 	memmove(node->keys + idx, node->keys + idx + 1, (node->num_keys - idx - 1) * sizeof(node->keys[0]));
 }
 
 static void btree_node_shift_children_left(struct btree_node *node, unsigned int idx)
 {
-	assert(node->num_keys <= MAX_ITEMS);
-	assert(idx < node->num_keys + 1);
 	memmove(node->children + idx,
 		node->children + idx + 1,
 		(node->num_keys - idx) * sizeof(node->children[0]));

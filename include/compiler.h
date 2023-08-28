@@ -85,6 +85,9 @@
 #if __has_attribute(cleanup)
 # define HAVE_ATTR_CLEANUP 1
 #endif
+#if __has_attribute(assume)
+# define HAVE_ATTR_ASSUME 1
+#endif
 
 #ifndef __DISABLE_FUNCTION_DETECTION
 
@@ -127,6 +130,10 @@
 #endif
 #if !defined(HAVE_BUILTIN_UNREACHABLE) && __has_builtin(__builtin_unreachable)
 # define HAVE_BUILTIN_UNREACHABLE 1
+#endif
+
+#if __has_builtin(__builtin_assume)
+# define HAVE_BUILTIN_ASSUME 1
 #endif
 
 #endif // __DISABLE_FUNCTION_DETECTION
@@ -243,7 +250,7 @@
 #ifdef HAVE_BUILTIN_UNREACHABLE
 # define unreachable()                       __builtin_unreachable()
 #else
-# define unreachable()                       do {} while (0)
+# define unreachable()                       ((void)0)
 #endif
 
 #ifdef HAVE_BUILTIN_OBJECT_SIZE
@@ -256,6 +263,14 @@
 # define _bdos(ptr, type)                    __builtin_dynamic_object_size(ptr, type)
 #else
 # define _bdos(ptr, type)                    _bos(ptr, type)
+#endif
+
+#ifdef HAVE_BUILTIN_ASSUME
+# define compiler_assume(cond)               __builtin_assume(cond)
+#elif HAVE_ATTR_ASSUME
+# define compiler_assume(cond)               __attribute__((assume(cond)))
+#else
+# define compiler_assume(cond)               ((void)0)
 #endif
 
 #endif

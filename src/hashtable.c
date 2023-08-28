@@ -361,7 +361,9 @@ static _attr_unused void _hashtable_resize_common(struct _hashtable *table, _has
 	}
 
 	void *entry = alloca(info->entry_size);
+#ifdef __HASHTABLE_PROFILING
 	_hashtable_uint_t num_rehashed = 0;
+#endif
 	for (_hashtable_idx_t index = 0; index < old_capacity; index++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, index, info);
 		if (m->hash < __HASHTABLE_MIN_VALID_HASH) {
@@ -375,7 +377,9 @@ static _attr_unused void _hashtable_resize_common(struct _hashtable *table, _has
 		_hashtable_idx_t optimal_index = _hashtable_hash_to_index(table, hash);
 		if (optimal_index == index) {
 			_hashtable_slot_clear_needs_rehash(bitmap, index);
+#ifdef __HASHTABLE_PROFILING
 			num_rehashed++;
+#endif
 			continue;
 		}
 		m->hash = __HASHTABLE_EMPTY_HASH;
@@ -384,7 +388,9 @@ static _attr_unused void _hashtable_resize_common(struct _hashtable *table, _has
 		bool need_rehash;
 		do {
 			need_rehash = _hashtable_insert_during_resize(table, &hash, entry, bitmap, info);
+#ifdef __HASHTABLE_PROFILING
 			num_rehashed++;
+#endif
 		} while (need_rehash);
 	}
 

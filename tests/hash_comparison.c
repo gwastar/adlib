@@ -1,6 +1,6 @@
 #include <assert.h>
+#include <gnutls/gnutls.h>
 #include <inttypes.h>
-#include <openssl/evp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,10 +9,11 @@
 #ifdef HAVE_XXHASH
 #include <xxhash.h>
 #endif
-#ifdef HAVE_OPENSSL
-#include <openssl/md5.h>
-#include <openssl/sha.h>
-#include <openssl/hmac.h>
+#ifdef HAVE_GCRYPT
+#include <gcrypt.h>
+#endif
+#ifdef HAVE_GNUTLS
+#include <gnutls/crypto.h>
 #endif
 #include "array.h"
 #include "compiler.h"
@@ -147,6 +148,7 @@ static uint32_t sdbm(const char *str)
 }
 
 #ifdef HAVE_XXHASH
+
 static uint32_t xxh32(const char *str)
 {
 	return XXH32(str, strlen(str), 0);
@@ -161,58 +163,102 @@ static uint32_t xxh3_64(const char *str)
 {
 	return XXH3_64bits(str, strlen(str));
 }
+
 #endif
 
-#ifdef HAVE_OPENSSL
-static _attr_unused uint32_t md5(const char *str)
-{
-	union {
-		uint32_t u32;
-		unsigned char bytes[MD5_DIGEST_LENGTH];
-	} hash;
-	MD5((const unsigned char *)str, strlen(str), hash.bytes);
-	return hash.u32;
-}
+#ifdef HAVE_GNUTLS
 
-static _attr_unused uint32_t sha1(const char *str)
-{
-	union {
-		uint32_t u32;
-		unsigned char bytes[SHA_DIGEST_LENGTH];
-	} hash;
-	SHA1((const unsigned char *)str, strlen(str), hash.bytes);
-	return hash.u32;
-}
-
-static _attr_unused uint32_t sha256(const char *str)
+static _attr_unused uint32_t gnutls_md5(const char *str)
 {
 	union {
 		uint32_t u32;
 		unsigned char bytes[32];
 	} hash;
-	SHA256((const unsigned char *)str, strlen(str), hash.bytes);
+	gnutls_hash_fast(GNUTLS_DIG_MD5, str, strlen(str), &hash);
 	return hash.u32;
 }
 
-static _attr_unused uint32_t blake2(const char *str)
+static _attr_unused uint32_t gnutls_sha1(const char *str)
 {
 	union {
 		uint32_t u32;
 		unsigned char bytes[32];
 	} hash;
-	unsigned int md_len = sizeof(hash);
-	EVP_Digest((const unsigned char *)str, strlen(str), hash.bytes, &md_len, EVP_blake2s256(), NULL);
+	gnutls_hash_fast(GNUTLS_DIG_SHA1, str, strlen(str), &hash);
 	return hash.u32;
 }
 
-static _attr_unused uint32_t sha3(const char *str)
+static _attr_unused uint32_t gnutls_sha256(const char *str)
 {
 	union {
 		uint32_t u32;
 		unsigned char bytes[32];
 	} hash;
-	unsigned int md_len = sizeof(hash);
-	EVP_Digest((const unsigned char *)str, strlen(str), hash.bytes, &md_len, EVP_sha3_224(), NULL);
+	gnutls_hash_fast(GNUTLS_DIG_SHA256, str, strlen(str), &hash);
+	return hash.u32;
+}
+
+static _attr_unused uint32_t gnutls_sha3(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gnutls_hash_fast(GNUTLS_DIG_SHA3_224, str, strlen(str), &hash);
+	return hash.u32;
+}
+
+#endif
+
+#ifdef HAVE_GCRYPT
+
+static _attr_unused uint32_t gcrypt_md5(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gcry_md_hash_buffer(GCRY_MD_MD5, &hash, str, strlen(str));
+	return hash.u32;
+}
+
+static _attr_unused uint32_t gcrypt_sha1(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gcry_md_hash_buffer(GCRY_MD_SHA1, &hash, str, strlen(str));
+	return hash.u32;
+}
+
+static _attr_unused uint32_t gcrypt_sha256(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gcry_md_hash_buffer(GCRY_MD_SHA256, &hash, str, strlen(str));
+	return hash.u32;
+}
+
+static _attr_unused uint32_t gcrypt_blake2(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gcry_md_hash_buffer(GCRY_MD_BLAKE2S_128, &hash, str, strlen(str));
+	return hash.u32;
+}
+
+static _attr_unused uint32_t gcrypt_sha3(const char *str)
+{
+	union {
+		uint32_t u32;
+		unsigned char bytes[32];
+	} hash;
+	gcry_md_hash_buffer(GCRY_MD_SHA3_224, &hash, str, strlen(str));
 	return hash.u32;
 }
 
@@ -270,13 +316,19 @@ int main(int argc, char **argv)
 		B(xxh64),
 		B(xxh3_64),
 #endif
-// #ifdef HAVE_OPENSSL
-// 		B(md5),
-// 		B(sha1),
-// 		B(sha256),
-// 		B(blake2),
-// 		B(sha3),
-// #endif
+#ifdef HAVE_GNUTLS
+		B(gnutls_md5),
+		B(gnutls_sha1),
+		B(gnutls_sha256),
+		B(gnutls_sha3),
+#endif
+#ifdef HAVE_GCRYPT
+		B(gcrypt_md5),
+		B(gcrypt_sha1),
+		B(gcrypt_sha256),
+		B(gcrypt_blake2),
+		B(gcrypt_sha3),
+#endif
 #undef B
 	};
 
