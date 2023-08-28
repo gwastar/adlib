@@ -12,7 +12,6 @@
 
 // TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
-// TODO implement API for inserting sequential items quickly
 
 #define MAX_ITEMS 16
 #define MIN_ITEMS (MAX_ITEMS / 2)
@@ -468,28 +467,11 @@ static struct btree_node *btree_node_split_and_insert(struct btree_node *node, u
 	return new_node;
 }
 
-static bool btree_insert(struct btree *tree, btree_key_t key)
+static bool _btree_insert(struct btree *tree, btree_key_t key, unsigned int idx, struct btree_node *node,
+			  struct btree_pos path[static 32], unsigned int depth,
+			  unsigned int last_nonfull_node_depth)
 {
-	if (tree->height == 0) {
-		tree->root = btree_new_node(true);
-		tree->height = 1;
-	}
-	struct btree_node *node = tree->root;
-	unsigned int depth = 1;
-	unsigned int idx;
-	struct btree_pos path[32];
-	for (;;) {
-		if (btree_node_search(node, key, &idx)) {
-			return false;
-		}
-		if (depth == tree->height) {
-			break;
-		}
-		path[depth - 1].idx = idx;
-		path[depth - 1].node = node;
-		depth++;
-		node = node->children[idx];
-	}
+	(void)last_nonfull_node_depth;
 	struct btree_node *right = NULL;
 	for (;;) {
 		if (node->num_keys < MAX_ITEMS) {
@@ -539,33 +521,10 @@ static struct btree_node *btree_node_split(struct btree_node *node, btree_key_t 
 	return new_node;
 }
 
-static bool btree_insert(struct btree *tree, btree_key_t key)
+static bool _btree_insert(struct btree *tree, btree_key_t key, unsigned int idx, struct btree_node *node,
+			  struct btree_pos path[static 32], unsigned int depth,
+			  unsigned int last_nonfull_node_depth)
 {
-	if (tree->height == 0) {
-		tree->root = btree_new_node(true);
-		tree->height = 1;
-	}
-	struct btree_node *node = tree->root;
-	unsigned int depth = 1;
-	unsigned int idx = 0;
-	struct btree_pos path[32];
-	unsigned int last_nonfull_node_depth = 0;
-	for (;;) {
-		if (btree_node_search(node, key, &idx)) {
-			return false;
-		}
-		if (node->num_keys < MAX_ITEMS) {
-			last_nonfull_node_depth = depth;
-		}
-		path[depth - 1].idx = idx;
-		path[depth - 1].node = node;
-		if (depth == tree->height) {
-			break;
-		}
-		depth++;
-		node = node->children[idx];
-	}
-
 	if (last_nonfull_node_depth != depth) {
 		unsigned int d = last_nonfull_node_depth;
 		if (d == 0) {
@@ -606,6 +565,64 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 }
 
 #endif
+
+static bool btree_insert(struct btree *tree, btree_key_t key)
+{
+	if (tree->height == 0) {
+		tree->root = btree_new_node(true);
+		tree->height = 1;
+	}
+	struct btree_node *node = tree->root;
+	struct btree_pos path[32];
+	unsigned int depth = 1;
+	unsigned int idx;
+	unsigned int last_nonfull_node_depth = 0;
+	for (;;) {
+		if (btree_node_search(node, key, &idx)) {
+			return false;
+		}
+		if (node->num_keys < MAX_ITEMS) {
+			last_nonfull_node_depth = depth;
+		}
+		path[depth - 1].idx = idx;
+		path[depth - 1].node = node;
+		if (depth == tree->height) {
+			break;
+		}
+		depth++;
+		node = node->children[idx];
+	}
+	return _btree_insert(tree, key, idx, node, path, depth, last_nonfull_node_depth);
+}
+
+static bool btree_insert_sequential(struct btree *tree, btree_key_t key)
+{
+	if (tree->height == 0) {
+		return btree_insert(tree, key);
+	}
+	struct btree_node *node = tree->root;
+	struct btree_pos path[32];
+	unsigned int depth = 1;
+	unsigned int idx;
+	unsigned int last_nonfull_node_depth = 0;
+	for (;;) {
+		idx = node->num_keys;
+		if (unlikely(compare(key, node->keys[idx - 1]) <= 0)) {
+			return btree_insert(tree, key);
+		}
+		if (node->num_keys < MAX_ITEMS) {
+			last_nonfull_node_depth = depth;
+		}
+		path[depth - 1].idx = idx;
+		path[depth - 1].node = node;
+		if (depth == tree->height) {
+			break;
+		}
+		depth++;
+		node = node->children[idx];
+	}
+	return _btree_insert(tree, key, idx, node, path, depth, last_nonfull_node_depth);
+}
 
 #define CHECK(cond)							\
 	do {								\
@@ -685,10 +702,6 @@ static void test(void)
 	     btable_iter_advance(&iter)) {
 		assert(btree_find(&btree, *iter.entry));
 	}
-	btree_key_t key;
-	for (struct btree_iter iter = btree_iter_start(&btree); btree_iter_get_next(&iter, &key);) {
-
-	}
 	{
 		btree_key_t prev_key, key;
 		struct btree_iter iter = btree_iter_start(&btree);
@@ -721,10 +734,24 @@ static void test(void)
 		btree_key_t key;
 		assert(btree_delete(&btree, *iter.entry, &key));
 		assert(key == *iter.entry);
+		assert(btree_check(&btree));
 	}
 	btable_clear(&btable);
 
 	assert(!btree.root && btree.height == 0);
+
+	for (size_t i = 0; i < N; i++) {
+		btree_insert_sequential(&btree, (btree_key_t)i);
+		assert(btree_check(&btree));
+	}
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t key = rand() % LIMIT;
+		btree_insert_sequential(&btree, key);
+		assert(btree_check(&btree));
+	}
+
+	btree_destroy(&btree);
 
 	for (size_t i = 0; i < N; i++) {
 		btree_key_t key = rand() % LIMIT;
@@ -846,6 +873,7 @@ static void benchmark(void)
 {
 	const size_t N = 1 << 18;
 #define ITERATIONS 15
+	double inorder_fast_insert[ITERATIONS];
 	double inorder_insert[ITERATIONS];
 	double revorder_insert[ITERATIONS];
 	double random_insert[ITERATIONS];
@@ -891,13 +919,24 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
+			btree_key_t key = (btree_key_t)i;
+			btree_insert_sequential(&btree, key);
+		}
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
+		inorder_fast_insert[k] = ns_elapsed(start_tp, end_tp);
+
+		assert(btree_check(&btree));
+		btree_destroy(&btree);
+
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
+		for (size_t i = 0; i < N; i++) {
 			btree_key_t key = (btree_key_t)(N - 1 - i);
 			btree_insert(&btree, key);
 		}
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		revorder_insert[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_check(&btree);
+		assert(btree_check(&btree));
 		btree_destroy(&btree);
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
@@ -908,7 +947,7 @@ static void benchmark(void)
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		random_insert[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_check(&btree);
+		assert(btree_check(&btree));
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
@@ -1090,6 +1129,8 @@ static void benchmark(void)
 	double t;
 	t = get_median(inorder_insert, ITERATIONS);
 	printf("%-32s %8.1f ns\n", "in-order insertion", t / N);
+	t = get_median(inorder_fast_insert, ITERATIONS);
+	printf("%-32s %8.1f ns\n", "in-order insertion (fastpath)", t / N);
 	t = get_median(revorder_insert, ITERATIONS);
 	printf("%-32s %8.1f ns\n", "reverse-order insertion", t / N);
 	t = get_median(random_insert, ITERATIONS);
