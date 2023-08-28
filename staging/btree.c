@@ -23,7 +23,7 @@ typedef int64_t btree_key_t;
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
 struct btree_node {
-	unsigned int _padding[3]; // why does this make find 10% faster?? (and insertion slightly slower)
+	// unsigned int _padding[3]; // why does this make find 10% faster?? (and insertion slightly slower)
 	unsigned int num_keys;
 	btree_key_t keys[MAX_ITEMS];
 	struct btree_node *children[];
@@ -484,10 +484,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 	struct btree_node *node = tree->root;
 	unsigned int depth = 1;
 	unsigned int idx;
-	struct {
-		struct btree_node *node;
-		unsigned int idx;
-	} path[32];
+	struct btree_pos path[32];
 	for (;;) {
 		if (btree_node_search(node, key, &idx)) {
 			return false;
@@ -500,7 +497,6 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		depth++;
 		node = node->children[idx];
 	}
-	// TODO evaluate "split first, insert after" strategy
 	struct btree_node *right = NULL;
 	for (;;) {
 		if (node->num_keys < MAX_ITEMS) {
@@ -559,10 +555,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 	struct btree_node *node = tree->root;
 	unsigned int depth = 1;
 	unsigned int idx = 0;
-	struct {
-		struct btree_node *node;
-		unsigned int idx;
-	} path[32];
+	struct btree_pos path[32];
 	unsigned int last_nonfull_node_depth = 0;
 	for (;;) {
 		if (btree_node_search(node, key, &idx)) {
@@ -1099,8 +1092,6 @@ static void benchmark(void)
 		random_mixed[k] = ns_elapsed(start_tp, end_tp);
 
 		btree_destroy(&btree);
-
-		// TODO find with cold cache?
 	}
 	// TODO print more statistics
 	double t;
