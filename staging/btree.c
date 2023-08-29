@@ -7,11 +7,17 @@
 #include <time.h>
 
 #include "compiler.h"
+#include "hash.h"
 #include "hashtable.h"
 #include "random.h"
 
+// TODO make the btree type generic and benchmark
 // TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
+//      (figure out why the initial implementation did not improve performance...)
+// TODO use the same tree search implementation for find, delete, and insert?
+
+#define STRING_KEYS
 
 #define MAX_ITEMS 16
 #define MIN_ITEMS (MAX_ITEMS / 2)
@@ -19,7 +25,20 @@
 
 _Static_assert(MAX_ITEMS >= 2, "use an AVL or RB tree for 1 item per node");
 
+#ifdef STRING_KEYS
+typedef char *btree_key_t;
+#else
 typedef int64_t btree_key_t;
+#endif
+
+static int compare(const btree_key_t a, const btree_key_t b)
+{
+#ifdef STRING_KEYS
+	return strcmp(a, b);
+#else
+	return (a < b) ? -1 : (a > b);
+#endif
+}
 
 DEFINE_HASHTABLE(btable, btree_key_t, btree_key_t, 8, *key == *entry)
 
@@ -90,11 +109,6 @@ static bool btree_iter_get_next(struct btree_iter *iter, btree_key_t *key)
 	return true;
 }
 
-static int compare(const btree_key_t a, const btree_key_t b)
-{
-	return (a < b) ? -1 : (a > b);
-}
-
 static struct btree_node *btree_new_node(bool leaf)
 {
 	struct btree_node *node = calloc(1, sizeof(*node) +
@@ -151,52 +165,55 @@ static void btree_destroy(struct btree *tree)
 
 static bool btree_node_search(const struct btree_node *node, const btree_key_t key, unsigned int *ret_idx)
 {
-	// TODO choose implementation based on how fast 'compare' is?
-#if 0
 	unsigned int start = 0;
 	unsigned int end = node->num_keys;
+	bool found = false;
+	unsigned int idx;
+	// TODO choose implementation based on how fast 'compare' is?
+#if 1
 	while (end > start) {
-		unsigned int idx = (start + end) / 2; // start + end should never overflow
-		int cmp = compare(key, node->keys[idx]);
+		unsigned int mid = (start + end) / 2; // start + end should never overflow
+		int cmp = compare(key, node->keys[mid]);
 		if (cmp == 0) {
-			*ret_idx = idx;
-			return true;
+			idx = mid;
+			found = true;
+			goto done;
 		} else if (cmp > 0) {
-			start = idx + 1;
+			start = mid + 1;
 		} else {
-			end = idx;
+			end = mid;
 		}
 	}
-	*ret_idx = start;
-	return false;
+	idx = start;
 #else
-	unsigned int i = 0;
-	unsigned int j = node->num_keys;
-
-	while (i < j) {
-		int cmp = compare(key, node->keys[i]);
+	while (start < end) {
+		int cmp = compare(key, node->keys[start]);
 		if (cmp == 0) {
-			*ret_idx = i;
-			return true;
+			idx = start;
+			found = true;
+			goto done;
 		}
 		if (cmp < 0) {
 			break;
 		}
-		i++;
-		j--;
-		cmp = compare(key, node->keys[j]);
+		start++;
+		end--;
+		cmp = compare(key, node->keys[end]);
 		if (cmp == 0) {
-			*ret_idx = j;
-			return true;
+			idx = end;
+			found = true;
+			goto done;
 		}
 		if (cmp > 0) {
-			i = j + 1;
+			start = end + 1;
 			break;
 		}
 	}
-	*ret_idx = i;
-	return false;
+	idx = start;
 #endif
+done:
+	*ret_idx = idx;
+	return found;
 }
 
 static bool btree_find(const struct btree *tree, btree_key_t key)
@@ -205,13 +222,13 @@ static bool btree_find(const struct btree *tree, btree_key_t key)
 		return false;
 	}
 	const struct btree_node *node = tree->root;
-	unsigned int depth = 0;
+	unsigned int depth = 1;
 	for (;;) {
 		unsigned int idx;
 		if (btree_node_search(node, key, &idx)) {
 			return true;
 		}
-		if (++depth == tree->height) {
+		if (depth++ == tree->height) {
 			break;
 		}
 		node = node->children[idx];
@@ -467,9 +484,9 @@ static struct btree_node *btree_node_split_and_insert(struct btree_node *node, u
 	return new_node;
 }
 
-static bool _btree_insert(struct btree *tree, btree_key_t key, unsigned int idx, struct btree_node *node,
-			  struct btree_pos path[static 32], unsigned int depth,
-			  unsigned int last_nonfull_node_depth)
+static bool _btree_insert_and_rebalance(struct btree *tree, btree_key_t key, unsigned int idx,
+					struct btree_node *node, struct btree_pos path[static 32],
+					unsigned int depth, unsigned int last_nonfull_node_depth)
 {
 	(void)last_nonfull_node_depth;
 	struct btree_node *right = NULL;
@@ -521,9 +538,9 @@ static struct btree_node *btree_node_split(struct btree_node *node, btree_key_t 
 	return new_node;
 }
 
-static bool _btree_insert(struct btree *tree, btree_key_t key, unsigned int idx, struct btree_node *node,
-			  struct btree_pos path[static 32], unsigned int depth,
-			  unsigned int last_nonfull_node_depth)
+static bool _btree_insert_and_rebalance(struct btree *tree, btree_key_t key, unsigned int idx,
+					struct btree_node *node, struct btree_pos path[static 32],
+					unsigned int depth, unsigned int last_nonfull_node_depth)
 {
 	if (last_nonfull_node_depth != depth) {
 		unsigned int d = last_nonfull_node_depth;
@@ -592,7 +609,7 @@ static bool btree_insert(struct btree *tree, btree_key_t key)
 		depth++;
 		node = node->children[idx];
 	}
-	return _btree_insert(tree, key, idx, node, path, depth, last_nonfull_node_depth);
+	return _btree_insert_and_rebalance(tree, key, idx, node, path, depth, last_nonfull_node_depth);
 }
 
 static bool btree_insert_sequential(struct btree *tree, btree_key_t key)
@@ -621,7 +638,7 @@ static bool btree_insert_sequential(struct btree *tree, btree_key_t key)
 		depth++;
 		node = node->children[idx];
 	}
-	return _btree_insert(tree, key, idx, node, path, depth, last_nonfull_node_depth);
+	return _btree_insert_and_rebalance(tree, key, idx, node, path, depth, last_nonfull_node_depth);
 }
 
 #define CHECK(cond)							\
@@ -673,12 +690,108 @@ static bool btree_check(const struct btree *btree)
 	return btree_check_children(root, btree->height);
 }
 
+#ifdef STRING_KEYS
+static char **keys;
+static size_t num_keys;
+#define __KEY_SIZE 15
+#define KEY_SIZE (__KEY_SIZE + 1)
+#define KEY_FORMAT __KEY_FORMAT(__KEY_SIZE)
+#define __KEY_FORMAT(S) ___KEY_FORMAT(S)
+#define ___KEY_FORMAT(S) "%0" #S "zu"
+
+static void init_keys(size_t N)
+{
+	num_keys = N;
+	keys = malloc(N * sizeof(keys[0]));
+	for (size_t i = 0; i < N; i++) {
+		keys[i] = malloc(KEY_SIZE);
+		snprintf(keys[i], KEY_SIZE, KEY_FORMAT, i);
+	}
+}
+
+static void destroy_keys(void)
+{
+	for (size_t i = 0; i < num_keys; i++) {
+		free(keys[i]);
+	}
+	free(keys);
+	num_keys = 0;
+	keys = NULL;
+}
+
+static _attr_pure btable_hash_t get_hash(const char *key)
+{
+	return murmurhash3_x64_64(key, KEY_SIZE, 0).u64;
+}
+
+static char *get_key(size_t x)
+{
+	assert(x < num_keys);
+	return keys[x];
+}
+
+static char **random_keys;
+static size_t num_random_keys;
+
+static void init_random_keys(uint32_t *random_numbers, size_t N)
+{
+	num_random_keys = N;
+	random_keys = malloc(N * sizeof(random_keys[0]));
+	for (size_t i = 0; i < N; i++) {
+		random_keys[i] = malloc(KEY_SIZE);
+		snprintf(random_keys[i], KEY_SIZE, KEY_FORMAT, (size_t)random_numbers[i]);
+	}
+}
+
+static void destroy_random_keys(void)
+{
+	for (size_t i = 0; i < num_random_keys; i++) {
+		free(random_keys[i]);
+	}
+	free(random_keys);
+	num_random_keys = 0;
+	random_keys = NULL;
+}
+
+static char *get_random_key(size_t i)
+{
+	assert(i < num_random_keys);
+	return random_keys[i];
+}
+#else
+static uint32_t *random_keys;
+static void init_keys(size_t N) {}
+static void destroy_keys(void) {}
+static btable_hash_t get_hash(btree_key_t key)
+{
+	return (btable_hash_t)key;
+}
+static btree_key_t get_key(size_t x)
+{
+	return (btree_key_t)x;
+}
+static void init_random_keys(uint32_t *random_numbers, size_t N)
+{
+	random_keys = random_numbers;
+}
+static void destroy_random_keys(void)
+{
+	random_keys = NULL;
+}
+static btree_key_t get_random_key(size_t i)
+{
+	return (btree_key_t)random_keys[i];
+}
+#endif
+
 static void test(void)
 {
 	// srand(1234);
 
 	const size_t N = 1 << 14;
 	const size_t LIMIT = 1 << 16;
+
+	init_keys(2 * (N > LIMIT ? N : LIMIT));
 
 	struct btree btree;
 	btree_init(&btree);
@@ -687,10 +800,10 @@ static void test(void)
 	btable_init(&btable, N);
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = rand() % LIMIT;
-		bool exists = btable_lookup(&btable, key, (btable_hash_t)key);
+		btree_key_t key = get_key(rand() % LIMIT);
+		bool exists = btable_lookup(&btable, key, get_hash(key));
 		if (!exists) {
-			*btable_insert(&btable, key, (btable_hash_t)key) = key;
+			*btable_insert(&btable, key, get_hash(key)) = key;
 		}
 		bool inserted = btree_insert(&btree, key);
 		assert(exists ? !inserted : inserted);
@@ -706,20 +819,20 @@ static void test(void)
 		btree_key_t prev_key, key;
 		struct btree_iter iter = btree_iter_start(&btree);
 		btree_iter_get_next(&iter, &key);
-		assert(btable_lookup(&btable, key, (btable_hash_t)key));
+		assert(btable_lookup(&btable, key, get_hash(key)));
 		prev_key = key;
 		while (btree_iter_get_next(&iter, &key)) {
-			assert(btable_lookup(&btable, key, (btable_hash_t)key));
+			assert(btable_lookup(&btable, key, get_hash(key)));
 			assert(compare(prev_key, key) < 0);
 			prev_key = key;
 		}
 	}
 	for (size_t i = LIMIT; i < LIMIT + 1000; i++) {
-		assert(!btree_find(&btree, i));
+		assert(!btree_find(&btree, get_key(i)));
 	}
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = rand() % LIMIT;
-		bool exists = btable_remove(&btable, key, (btable_hash_t)key, NULL);
+		btree_key_t key = get_key(rand() % LIMIT);
+		bool exists = btable_remove(&btable, key, get_hash(key), NULL);
 		btree_key_t k;
 		bool removed = btree_delete(&btree, key, &k);
 		assert(exists == removed);
@@ -741,12 +854,12 @@ static void test(void)
 	assert(!btree.root && btree.height == 0);
 
 	for (size_t i = 0; i < N; i++) {
-		btree_insert_sequential(&btree, (btree_key_t)i);
+		btree_insert_sequential(&btree, get_key(i));
 		assert(btree_check(&btree));
 	}
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = rand() % LIMIT;
+		btree_key_t key = get_key(rand() % LIMIT);
 		btree_insert_sequential(&btree, key);
 		assert(btree_check(&btree));
 	}
@@ -754,10 +867,10 @@ static void test(void)
 	btree_destroy(&btree);
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = rand() % LIMIT;
-		bool exists = btable_lookup(&btable, key, (btable_hash_t)key);
+		btree_key_t key = get_key(rand() % LIMIT);
+		bool exists = btable_lookup(&btable, key, get_hash(key));
 		if (!exists) {
-			*btable_insert(&btable, key, (btable_hash_t)key) = key;
+			*btable_insert(&btable, key, get_hash(key)) = key;
 		}
 		bool inserted = btree_insert(&btree, key);
 		assert(exists ? !inserted : inserted);
@@ -772,7 +885,7 @@ static void test(void)
 	btable_destroy(&btable);
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = (btree_key_t)i;
+		btree_key_t key = get_key(i);
 		bool inserted = btree_insert(&btree, key);
 		assert(inserted);
 	}
@@ -783,14 +896,14 @@ static void test(void)
 		btree_key_t min;
 		bool found = btree_get_min(&btree, &min);
 		assert(found);
-		assert(min == (btree_key_t)i);
+		assert(compare(min, get_key(i)) == 0);
 		bool removed = btree_delete_min(&btree, &min);
 		assert(removed);
-		assert(min == (btree_key_t)i);
+		assert(compare(min, get_key(i)) == 0);
 	}
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = (btree_key_t)i;
+		btree_key_t key = get_key(i);
 		bool inserted = btree_insert(&btree, key);
 		assert(inserted);
 	}
@@ -801,13 +914,15 @@ static void test(void)
 		btree_key_t max;
 		bool found = btree_get_max(&btree, &max);
 		assert(found);
-		assert(max == (btree_key_t)(N - 1 - i));
+		assert(compare(max, get_key(N - 1 - i)) == 0);
 		bool removed = btree_delete_max(&btree, &max);
 		assert(removed);
-		assert(max == (btree_key_t)(N - 1 - i));
+		assert(compare(max, get_key(N - 1 - i)) == 0);
 	}
 
 	assert(btree.height == 0);
+
+	destroy_keys();
 }
 
 static double ns_elapsed(struct timespec start, struct timespec end)
@@ -871,7 +986,12 @@ static size_t next_pow2(size_t x)
 
 static void benchmark(void)
 {
+#ifdef STRING_KEYS
+	const size_t N = 1 << 16;
+#else
 	const size_t N = 1 << 18;
+#endif
+
 #define ITERATIONS 15
 	double inorder_fast_insert[ITERATIONS];
 	double inorder_insert[ITERATIONS];
@@ -900,6 +1020,9 @@ static void benchmark(void)
 		}
 	}
 
+	init_keys(2 * N);
+	init_random_keys(random_numbers, 2 * N);
+
 	for (size_t k = 0; k < ITERATIONS; k++) {
 		struct btree btree;
 		btree_init(&btree);
@@ -908,7 +1031,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)i;
+			btree_key_t key = get_key(i);
 			btree_insert(&btree, key);
 		}
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
@@ -919,7 +1042,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)i;
+			btree_key_t key = get_key(i);
 			btree_insert_sequential(&btree, key);
 		}
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
@@ -930,7 +1053,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)(N - 1 - i);
+			btree_key_t key = get_key(N - 1 - i);
 			btree_insert(&btree, key);
 		}
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
@@ -941,7 +1064,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[i];
+			btree_key_t key = get_random_key(i);
 			btree_insert(&btree, key);
 		}
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
@@ -951,7 +1074,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[i];
+			btree_key_t key = get_random_key(i);
 			bool found = btree_find(&btree, key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -960,7 +1083,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[N - 1 - i];
+			btree_key_t key = get_random_key(N - 1 - i);
 			bool found = btree_find(&btree, key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -969,7 +1092,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[random_numbers2[i] % N];
+			btree_key_t key = get_random_key(random_numbers2[i] % N);
 			bool found = btree_find(&btree, key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -978,7 +1101,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers2[i];
+			btree_key_t key = get_random_key(N + i);
 			bool found = btree_find(&btree, key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -1002,7 +1125,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[i];
+			btree_key_t key = get_random_key(i);
 			bool found = btree_delete(&btree, key, &key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -1014,7 +1137,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[N - 1 - i];
+			btree_key_t key = get_random_key(N - 1 - i);
 			bool found = btree_delete(&btree, key, &key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -1026,7 +1149,7 @@ static void benchmark(void)
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
-			btree_key_t key = (btree_key_t)random_numbers[random_numbers2[i] % N];
+			btree_key_t key = get_random_key(random_numbers2[i] % N);
 			bool found = btree_delete(&btree, key, &key);
 			asm volatile("" :: "g" (found) : "memory");
 		}
@@ -1047,7 +1170,7 @@ static void benchmark(void)
 			const size_t FINDS = 10;
 			const size_t DELETIONS = 2;
 			for (size_t j = 0; j < INSERTIONS; j++) {
-				btree_key_t key = (btree_key_t)((i * INSERTIONS + j) % (2 * N));
+				btree_key_t key = get_key((i * INSERTIONS + j) % (2 * N));
 				btree_insert(&btree, key);
 			}
 			size_t n = next_pow2((i + 1) * INSERTIONS);
@@ -1055,12 +1178,12 @@ static void benchmark(void)
 				n = 2 * N;
 			}
 			for (size_t j = 0; j < FINDS; j++) {
-				btree_key_t key = (btree_key_t)((i * FINDS + j) & (n - 1));
+				btree_key_t key = get_key((i * FINDS + j) & (n - 1));
 				bool found = btree_find(&btree, key);
 				asm volatile("" :: "g" (found) : "memory");
 			}
 			for (size_t j = 0; j < DELETIONS; j++) {
-				btree_key_t key = (btree_key_t)((i * DELETIONS + 2 * j) & (n - 1));
+				btree_key_t key = get_key((i * DELETIONS + 2 * j) & (n - 1));
 				btree_delete(&btree, key, &key);
 			}
 		}
@@ -1075,7 +1198,7 @@ static void benchmark(void)
 			const size_t FINDS = 10;
 			const size_t DELETIONS = 2;
 			for (size_t j = 0; j < INSERTIONS; j++) {
-				btree_key_t key = -(btree_key_t)((i * INSERTIONS + j) % (2 * N));
+				btree_key_t key = get_key(2 * N - 1 - ((i * INSERTIONS + j) % (2 * N)));
 				btree_insert(&btree, key);
 			}
 			size_t n = next_pow2((i + 1) * INSERTIONS);
@@ -1083,12 +1206,12 @@ static void benchmark(void)
 				n = 2 * N;
 			}
 			for (size_t j = 0; j < FINDS; j++) {
-				btree_key_t key = -(btree_key_t)((i * FINDS + j) & (n - 1));
+				btree_key_t key = get_key(2 * N - 1 - ((i * FINDS + j) & (n - 1)));
 				bool found = btree_find(&btree, key);
 				asm volatile("" :: "g" (found) : "memory");
 			}
 			for (size_t j = 0; j < DELETIONS; j++) {
-				btree_key_t key = -(btree_key_t)((i * DELETIONS + 2 * j) & (n - 1));
+				btree_key_t key = get_key(2 * N - 1 - ((i * DELETIONS + 2 * j) & (n - 1)));
 				btree_delete(&btree, key, &key);
 			}
 		}
@@ -1103,7 +1226,7 @@ static void benchmark(void)
 			const size_t FINDS = 10;
 			const size_t DELETIONS = 2;
 			for (size_t j = 0; j < INSERTIONS; j++) {
-				btree_key_t key = (btree_key_t)random_numbers[(i * INSERTIONS + j) % (2 * N)];
+				btree_key_t key = get_random_key((i * INSERTIONS + j) % (2 * N));
 				btree_insert(&btree, key);
 			}
 			size_t n = next_pow2((i + 1) * INSERTIONS);
@@ -1111,12 +1234,12 @@ static void benchmark(void)
 				n = 2 * N;
 			}
 			for (size_t j = 0; j < FINDS; j++) {
-				btree_key_t key = (btree_key_t)random_numbers[(i * FINDS + j) & (n - 1)];
+				btree_key_t key = get_random_key((i * FINDS + j) & (n - 1));
 				bool found = btree_find(&btree, key);
 				asm volatile("" :: "g" (found) : "memory");
 			}
 			for (size_t j = 0; j < DELETIONS; j++) {
-				btree_key_t key = (btree_key_t)random_numbers[(i * DELETIONS + 2 * j) & (n - 1)];
+				btree_key_t key = get_random_key((i * DELETIONS + 2 * j) & (n - 1));
 				btree_delete(&btree, key, &key);
 			}
 		}
@@ -1160,6 +1283,8 @@ static void benchmark(void)
 	t = get_median(random_mixed, ITERATIONS);
 	printf("%-32s %8.1f ns\n", "random-order mixed", t / (N / 4));
 
+	destroy_keys();
+	destroy_random_keys();
 	free(random_numbers);
 }
 
