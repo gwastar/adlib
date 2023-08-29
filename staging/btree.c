@@ -11,7 +11,7 @@
 #include "hashtable.h"
 #include "random.h"
 
-// TODO make the btree type generic and benchmark
+// TODO figure out the API
 // TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
@@ -112,8 +112,8 @@ static bool btree_iter_get_next(struct btree_iter *iter, btree_key_t *key)
 
 static struct btree_node *btree_new_node(bool leaf)
 {
-	struct btree_node *node = calloc(1, sizeof(*node) +
-					 (leaf ? 0 : MAX_CHILDREN * sizeof(node->children[0])));
+	struct btree_node *node = malloc(sizeof(*node) + (leaf ? 0 : MAX_CHILDREN * sizeof(node->children[0])));
+	node->num_keys = 0;
 	return node;
 }
 
