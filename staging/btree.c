@@ -16,10 +16,11 @@
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
 // TODO use the same tree search implementation for find, delete, and insert?
+// TODO change height/depth semantics? (height == 0 means root is null OR leaf)
 
 #define STRING_KEYS
 
-#define MAX_ITEMS 16
+#define MAX_ITEMS 15
 #define MIN_ITEMS (MAX_ITEMS / 2)
 #define MAX_CHILDREN (MAX_ITEMS + 1)
 
@@ -169,8 +170,8 @@ static bool btree_node_search(const struct btree_node *node, const btree_key_t k
 	unsigned int end = node->num_keys;
 	bool found = false;
 	unsigned int idx;
-	// TODO choose implementation based on how fast 'compare' is?
-#if 1
+	// TODO choose implementation based on how fast 'compare' is and how big MAX_ITEMS is?
+#if 0
 	while (end > start) {
 		unsigned int mid = (start + end) / 2; // start + end should never overflow
 		int cmp = compare(key, node->keys[mid]);
@@ -565,7 +566,7 @@ static bool _btree_insert_and_rebalance(struct btree *tree, btree_key_t key, uns
 			btree_node_shift_children_right(node, idx + 1);
 			node->children[idx + 1] = right;
 			node->num_keys++;
-			if (key < median) {
+			if (compare(key, median) < 0) {
 				node = node->children[idx];
 				idx = path[d - 1].idx;
 			} else {
