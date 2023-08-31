@@ -80,7 +80,6 @@ elseif(${CMAKE_C_BYTE_ORDER} STREQUAL BIG_ENDIAN)
   set(BYTE_ORDER_IS_BIG_ENDIAN ON)
 endif()
 
-option(ARRAY_SAFETY_CHECKS "Enable safety assertions in the array implementation" ON)
 set(ARRAY_INITIAL_SIZE 8 CACHE STRING "Initial size of an array")
 # ARRAY_GROWTH_FACTOR=1.6 (~ golden ratio)
 set(ARRAY_GROWTH_FACTOR_NUMERATOR 8 CACHE STRING "Numerator of the array growth factor")
@@ -88,8 +87,7 @@ set(ARRAY_GROWTH_FACTOR_DENOMINATOR 5 CACHE STRING "Denominator of the array gro
 
 set(DBUF_INITIAL_SIZE 16 CACHE STRING "Initial size of a dynamic byte buffer (dbuf)")
 
-option(DSTRING_SAFETY_CHECKS "Enable safety assertions in the dstring implementation" ON)
-set(DSTRING_INITIAL_SIZE 8 CACHE STRING "Initial size of an dstring")
+set(DSTRING_INITIAL_SIZE 8 CACHE STRING "Initial size of a dstring")
 # DSTRING_GROWTH_FACTOR=1.6 (~ golden ratio)
 set(DSTRING_GROWTH_FACTOR_NUMERATOR 8 CACHE STRING "Numerator of the dstring growth factor")
 set(DSTRING_GROWTH_FACTOR_DENOMINATOR 5 CACHE STRING "Denominator of the dstring growth factor")

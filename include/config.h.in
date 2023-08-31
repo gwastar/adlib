@@ -1,6 +1,7 @@
 #ifndef __CONFIG_INCLUDE__
 #define __CONFIG_INCLUDE__
 
+// TODO remove this now that the single header build is gone
 #ifndef __AD_LINKAGE
 # define __AD_LINKAGE
 #endif
@@ -32,7 +33,6 @@
 
 // array
 
-#cmakedefine ARRAY_SAFETY_CHECKS 1
 #cmakedefine ARRAY_INITIAL_SIZE                 @ARRAY_INITIAL_SIZE@
 #cmakedefine ARRAY_GROWTH_FACTOR_NUMERATOR      @ARRAY_GROWTH_FACTOR_NUMERATOR@
 #cmakedefine ARRAY_GROWTH_FACTOR_DENOMINATOR    @ARRAY_GROWTH_FACTOR_DENOMINATOR@

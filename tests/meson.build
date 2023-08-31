@@ -1,0 +1,56 @@
+m_dep = cc.find_library('m', required : false)
+thread_dep = dependency('threads')
+
+hash_comparison_dependencies = [
+  ['xxhash', 'libxxhash', '>=0.8'],
+  ['gcrypt', 'libgcrypt', '>=1.10'],
+  ['gnutls', 'gnutls', '>=3.8'],
+]
+
+hash_comparison_c_args = []
+hash_comparison_deps = []
+foreach dep : hash_comparison_dependencies
+  d = dependency(dep[1], version : dep[2], required : false)
+  if d.found()
+     hash_comparison_deps += d
+     hash_comparison_c_args += '-DHAVE_' + dep[0].to_upper() + '=1'
+  endif
+endforeach
+
+tests_sources = [
+  'array.c',
+  'avl_tree.c',
+  'charconv.c',
+  'dbuf.c',
+  'dstring.c',
+  'hash.c',
+  'hashmap.c',
+  'hashset.c',
+  'json.c',
+  'random.c',
+  'rb_tree.c',
+  'utils.c',
+]
+
+targets = [
+  {'name': 'array_benchmark', 'sources': 'array_benchmark.c',},
+  {'name': 'hash_benchmark', 'sources': 'hash_benchmark.c',},
+  {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
+  {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
+  {'name': 'random_benchmark', 'sources': 'random_benchmark.c',},
+  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': [m_dep, thread_dep]},
+]
+
+foreach target : targets
+  if 'deps' in target
+    deps = target['deps']
+  else
+    deps = []
+  endif
+  if 'c_args' in target
+    c_args = target['c_args']
+  else
+    c_args = []
+  endif
+  executable(target['name'], target['sources'], dependencies : deps, c_args : c_args, link_with : adlib, include_directories : adlib_inc)
+endforeach
