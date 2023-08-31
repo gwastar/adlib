@@ -20,11 +20,13 @@
 
 #define STRING_KEYS
 
-#define MAX_ITEMS 15
+#define MAX_ITEMS 127
 #define MIN_ITEMS (MAX_ITEMS / 2)
 #define MAX_CHILDREN (MAX_ITEMS + 1)
 
 _Static_assert(MAX_ITEMS >= 2, "use an AVL or RB tree for 1 item per node");
+
+#define LINEAR_SEARCH_THRESHOLD 0
 
 #ifdef STRING_KEYS
 typedef char *btree_key_t;
@@ -168,11 +170,10 @@ static bool btree_node_search(const struct btree_node *node, const btree_key_t k
 {
 	unsigned int start = 0;
 	unsigned int end = node->num_keys;
+	compiler_assume(end <= MAX_ITEMS);
 	bool found = false;
 	unsigned int idx;
-	// TODO choose implementation based on how fast 'compare' is and how big MAX_ITEMS is?
-#if 0
-	while (end > start) {
+	while (start + LINEAR_SEARCH_THRESHOLD < end) {
 		unsigned int mid = (start + end) / 2; // start + end should never overflow
 		int cmp = compare(key, node->keys[mid]);
 		if (cmp == 0) {
@@ -185,8 +186,12 @@ static bool btree_node_search(const struct btree_node *node, const btree_key_t k
 			end = mid;
 		}
 	}
-	idx = start;
-#else
+
+	if (LINEAR_SEARCH_THRESHOLD == 0) {
+		idx = start;
+		goto done;
+	}
+
 	while (start < end) {
 		int cmp = compare(key, node->keys[start]);
 		if (cmp == 0) {
@@ -211,7 +216,6 @@ static bool btree_node_search(const struct btree_node *node, const btree_key_t k
 		}
 	}
 	idx = start;
-#endif
 done:
 	*ret_idx = idx;
 	return found;

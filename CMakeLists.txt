@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 project(adlib)
 
 include(CheckCSourceCompiles)
@@ -6,13 +6,7 @@ include(CheckIPOSupported)
 include(CheckSymbolExists)
 include(GNUInstallDirs)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17.0" AND ${CMAKE_GENERATOR} STREQUAL "Ninja Multi-Config")
-  set(CMAKE_DEFAULT_BUILD_TYPE Release)
-endif()
+set(CMAKE_DEFAULT_BUILD_TYPE Release)
 
 check_ipo_supported(RESULT lto_supported)
 if(${lto_supported})
@@ -80,20 +74,10 @@ else()
   list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 endif()
 
-if(${CMAKE_VERSION} VERSION_LESS "3.20.0")
-  include(TestBigEndian)
-  test_big_endian(IS_BIG_ENDIAN)
-  if(${IS_BIG_ENDIAN})
-    set(BYTE_ORDER_IS_BIG_ENDIAN ON)
-  else()
-    set(BYTE_ORDER_IS_LITTLE_ENDIAN ON)
-  endif()
-else()
-  if (${CMAKE_C_BYTE_ORDER} STREQUAL LITTLE_ENDIAN)
-    set(BYTE_ORDER_IS_LITTLE_ENDIAN ON)
-  elseif(${CMAKE_C_BYTE_ORDER} STREQUAL BIG_ENDIAN)
-    set(BYTE_ORDER_IS_BIG_ENDIAN ON)
-  endif()
+if (${CMAKE_C_BYTE_ORDER} STREQUAL LITTLE_ENDIAN)
+  set(BYTE_ORDER_IS_LITTLE_ENDIAN ON)
+elseif(${CMAKE_C_BYTE_ORDER} STREQUAL BIG_ENDIAN)
+  set(BYTE_ORDER_IS_BIG_ENDIAN ON)
 endif()
 
 option(ARRAY_SAFETY_CHECKS "Enable safety assertions in the array implementation" ON)
@@ -159,14 +143,11 @@ list(TRANSFORM SOURCES PREPEND src/)
 
 set(SOURCE_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-option(BUILD_STATIC_LIBRARY "build static library" ON)
-if(${BUILD_STATIC_LIBRARY})
-  add_library(ad-static STATIC ${SOURCES})
-  target_include_directories(ad-static PUBLIC
-    $<BUILD_INTERFACE:${SOURCE_INCLUDE_DIRECTORY}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  )
-endif()
+add_library(ad-static STATIC ${SOURCES})
+target_include_directories(ad-static PUBLIC
+  $<BUILD_INTERFACE:${SOURCE_INCLUDE_DIRECTORY}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 option(BUILD_SHARED_LIBRARY "build shared library" OFF)
 if(${BUILD_SHARED_LIBRARY})
   add_library(ad-shared SHARED ${SOURCES})
@@ -176,75 +157,23 @@ if(${BUILD_SHARED_LIBRARY})
   )
 endif()
 
-option(BUILD_SINGLE_HEADER_LIBRARY "build single header library" OFF)
-if(${BUILD_SINGLE_HEADER_LIBRARY})
-  set(SINGLE_HEADER_GENERATOR ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_single_header.py)
-  set(SINGLE_HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/single_headers)
-  file(MAKE_DIRECTORY ${SINGLE_HEADERS_DIR})
-  # set(DEPDIR ${CMAKE_CURRENT_BINARY_DIR}/depfiles/)
-  # file(MAKE_DIRECTORY ${DEPDIR})
-  set(SINGLE_HEADER_FILES)
-  foreach(SOURCE IN LISTS SOURCES)
-    get_filename_component(BASENAME ${SOURCE} NAME_WLE)
-    set(DEST ${SINGLE_HEADERS_DIR}/${BASENAME}.h)
-    list(APPEND SINGLE_HEADER_FILES ${DEST})
-    # set(DEPFILE ${DEPDIR}/${BASENAME}.d)
-    # add_custom_command(
-    #   OUTPUT ${DEPFILE}
-    #   COMMAND ${CMAKE_C_COMPILER} -I${SOURCE_INCLUDE_DIRECTORY} -MM -MT ${DEST} -MF ${DEPFILE} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}
-    #   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}
-    #   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    # )
-    add_custom_command(
-      OUTPUT ${DEST}
-      COMMAND ${SINGLE_HEADER_GENERATOR} ${SOURCE} ${DEST}
-      COMMENT "Generating single header for ${SOURCE}"
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE} ${SINGLE_HEADER_GENERATOR} # ${DEPFILE}
-      IMPLICIT_DEPENDS C ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}
-      # DEPFILE ${DEPFILE}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-  endforeach()
-  add_custom_target(single_header_library ALL
-    SOURCES ${SINGLE_HEADER_GENERATOR}
-    DEPENDS ${SINGLE_HEADER_FILES}
-  )
-  set_property(TARGET single_header_library PROPERTY INCLUDE_DIRECTORIES ${SOURCE_INCLUDE_DIRECTORY})
-endif()
-
 if(${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME})
-  if(${BUILD_SINGLE_HEADER_LIBRARY})
-    install(DIRECTORY ${SINGLE_HEADERS_DIR}
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h")
-  endif()
-  if(${BUILD_STATIC_LIBRARY} OR ${BUILD_SHARED_LIBRARY})
-    install(DIRECTORY ${SOURCE_INCLUDE_DIRECTORY}/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h")
-  endif()
-  if(${BUILD_STATIC_LIBRARY})
-    install(TARGETS ad-static ARCHIVE)
-  endif()
+  install(DIRECTORY ${SOURCE_INCLUDE_DIRECTORY}/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          FILES_MATCHING PATTERN "*.h")
+  install(TARGETS ad-static ARCHIVE)
   if(${BUILD_SHARED_LIBRARY})
     install(TARGETS ad-shared LIBRARY)
   endif()
 endif()
 
-option(ENABLE_TESTS "enable tests" OFF)
-if(${ENABLE_TESTS} AND (${BUILD_STATIC_LIBRARY} OR ${BUILD_SINGLE_HEADER_LIBRARY}))
-  if(${BUILD_SINGLE_HEADER_LIBRARY})
-    if(${BUILD_STATIC_LIBRARY})
-      option(TESTS_USE_SINGLE_HEADERS "Use the single header library for the tests" OFF)
-    else()
-      set(TESTS_USE_SINGLE_HEADERS ON)
-    endif()
-  endif()
-
+option(ENABLE_TESTS "enable tests" ON)
+if(${ENABLE_TESTS})
+  enable_testing()
   add_subdirectory(tests)
 endif()
 
 option(ENABLE_STAGING "compile code in staging" OFF)
-if(${ENABLE_STAGING} AND ${BUILD_STATIC_LIBRARY})
+if(${ENABLE_STAGING})
   add_subdirectory(staging)
 endif()
