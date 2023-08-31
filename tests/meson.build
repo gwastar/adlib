@@ -52,5 +52,14 @@ foreach target : targets
   else
     c_args = []
   endif
-  executable(target['name'], target['sources'], dependencies : deps, c_args : c_args, link_with : adlib, include_directories : adlib_inc)
+  name = target['name']
+  e = executable(name, target['sources'], dependencies : deps, c_args : c_args, link_with : adlib, include_directories : adlib_inc)
+  set_variable(name, e)
 endforeach
+
+test('testsuite', tests, timeout : 600)
+benchmark('array_benchmark', array_benchmark)
+benchmark('hash_benchmark', hash_benchmark)
+benchmark('hash_comparison', hash_comparison)
+benchmark('hashtable_benchmark', hashtable_benchmark)
+benchmark('random_benchmark', random_benchmark)

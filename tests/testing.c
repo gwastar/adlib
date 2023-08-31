@@ -583,7 +583,7 @@ static void print_test_output(const char *name, int fd)
 	fclose(f);
 }
 
-static void print_results(void)
+static size_t summarize_results(void)
 {
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -654,6 +654,8 @@ static void print_results(void)
 	       num_failed == 0 ? GREEN : RED, num_failed, num_tests);
 	print_time(ns_elapsed(start, end), stdout);
 	printf(") (random seed: %" PRIu64 ")\n", initial_seed);
+
+	return num_failed;
 }
 
 NEGATIVE_SIMPLE_TEST(selftest1)
@@ -847,10 +849,11 @@ int main(int argc, char **argv)
 
 	struct thread_pool thread_pool;
 	thread_pool_start(&thread_pool, &queue, nthreads);
-	print_results();
+	size_t num_failed = summarize_results();
 	thread_pool_stop(&thread_pool);
 	for (size_t i = 0; i < num_tests; i++) {
 		free(tests[i].work);
 	}
 	free(tests);
+	return num_failed == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
