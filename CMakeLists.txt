@@ -104,7 +104,7 @@ else()
 endif()
 
 # TODO put the generated config.h in the build directory like meson
-configure_file(include/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h)
+configure_file(include/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 
 set(SOURCES
   array.c
@@ -139,23 +139,31 @@ endif()
 list(TRANSFORM SOURCES PREPEND src/)
 
 set(SOURCE_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(GENERATED_INCLUDE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 add_library(ad-static STATIC ${SOURCES})
 target_include_directories(ad-static PUBLIC
   $<BUILD_INTERFACE:${SOURCE_INCLUDE_DIRECTORY}>
+  $<BUILD_INTERFACE:${GENERATED_INCLUDE_DIRECTORY}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+set_target_properties(ad-static PROPERTIES OUTPUT_NAME adlib)
 option(BUILD_SHARED_LIBRARY "build shared library" OFF)
 if(${BUILD_SHARED_LIBRARY})
   add_library(ad-shared SHARED ${SOURCES})
   target_include_directories(ad-shared PUBLIC
     $<BUILD_INTERFACE:${SOURCE_INCLUDE_DIRECTORY}>
+    $<BUILD_INTERFACE:${GENERATED_INCLUDE_DIRECTORY}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
+  set_target_properties(ad-shared PROPERTIES OUTPUT_NAME adlib)
 endif()
 
 if(${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME})
   install(DIRECTORY ${SOURCE_INCLUDE_DIRECTORY}/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          FILES_MATCHING PATTERN "*.h")
+  install(DIRECTORY ${GENERATED_INCLUDE_DIRECTORY}/
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
           FILES_MATCHING PATTERN "*.h")
   install(TARGETS ad-static ARCHIVE)
