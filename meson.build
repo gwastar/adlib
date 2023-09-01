@@ -17,6 +17,7 @@ cc = meson.get_compiler('c')
 c_args = [
   '-Wformat=2',
   '-Wimplicit-fallthrough',
+  '-Wimplicit-fallthrough=5',
   '-Wno-language-extension-token',
   '-fstrict-flex-arrays=3',
   # TODO

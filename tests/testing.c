@@ -280,7 +280,10 @@ static void run_test(struct work *_work)
 	struct timespec start, end;
 	clock_gettime(CLOCK_MONOTONIC, &start);
 
-	const bool DO_FORK = true; // TODO turn this into a cmdline option
+	// TODO always forking makes LeakSanitizer produce lots of false positives
+	//      either go back to only forking for the tests that are supposed to crash or
+	//      install a signal handler with some kind of setjmp/longjmp trick to make those tests work
+	const bool DO_FORK = true;
 
 	bool success = false;
 	if (DO_FORK) {
