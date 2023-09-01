@@ -18,7 +18,6 @@ executables = [
 staging_c_args = [
   '-Wno-unused-function',
   '-Wno-unused-variable',
-  '-Wno-pedantic',
 ]
 
 foreach exe : executables

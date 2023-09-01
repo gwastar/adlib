@@ -41,19 +41,16 @@ targets = [
   {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': [m_dep, thread_dep]},
 ]
 
-tests_c_args = [
-  '-Wno-pedantic',
-]
-
 foreach target : targets
   if 'deps' in target
     deps = target['deps']
   else
     deps = []
   endif
-  c_args = tests_c_args
   if 'c_args' in target
-    c_args += target['c_args']
+    c_args = target['c_args']
+  else
+    c_args = []
   endif
   name = target['name']
   e = executable(name, target['sources'], dependencies : deps, c_args : c_args, link_with : adlib, include_directories : adlib_inc)

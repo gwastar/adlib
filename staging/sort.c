@@ -12,7 +12,7 @@
 #define N 5
 
 static size_t comparisons;
-static struct random_state global_rng = RANDOM_STATE_INIT(0xdeadbeef);
+static struct random_state global_rng = RANDOM_STATE_INITIALIZER(0xdeadbeef);
 
 static size_t random_size_t(void)
 {
