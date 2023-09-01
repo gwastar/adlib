@@ -2,7 +2,7 @@ project('adlib', 'c',
   version : '0.0.1',
   license : 'MIT',
   meson_version : '>= 0.64.0',
-  default_options : [ 'warning_level=1', # TODO increase warning level?
+  default_options : [ 'warning_level=2', # TODO increase warning level?
                       'default_library=static',
                       'c_std=gnu11',
                       'b_pie=true',
@@ -17,6 +17,7 @@ cc = meson.get_compiler('c')
 c_args = [
   '-Wformat=2',
   '-Wimplicit-fallthrough',
+  '-fstrict-flex-arrays=3',
   # TODO
 
   #'-march=native',

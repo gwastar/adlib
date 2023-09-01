@@ -65,7 +65,7 @@ static double elapsed(struct timespec *start, struct timespec *end)
 	return ns / 1000000000.0 + s;
 }
 
-int main(int argc, char **argv)
+int main()
 {
 #if 0
 	struct timespec tp;

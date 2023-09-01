@@ -401,6 +401,7 @@ static struct test_work *test_add_work(struct test *test, size_t n)
 
 static void queue_simple_test_work(struct work_queue *queue, struct test *test, unsigned int nthreads)
 {
+	(void)nthreads;
 	struct test_work *test_work = test_add_work(test, 1);
 	work_queue_push_work(queue, &test_work->work);
 }

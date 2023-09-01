@@ -297,8 +297,8 @@ _to_chars_impl(64, uint64_t, int64_t)
 #define __TO_CHARS_FUNC(name, type)					\
 	__AD_LINKAGE size_t to_chars_##name(char *buf, type val, unsigned int flags) \
 	{								\
-		return sizeof(type) <= 4 ? _to_chars32(buf, val, sizeof(type) * 8, flags, (type)-1 < 0) : \
-			_to_chars64(buf, val, sizeof(type) * 8, flags, (type)-1 < 0); \
+		return sizeof(type) <= 4 ? _to_chars32(buf, val, sizeof(type) * 8, flags, type_is_signed(type)) : \
+			_to_chars64(buf, val, sizeof(type) * 8, flags, type_is_signed(type)); \
 	}
 __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC

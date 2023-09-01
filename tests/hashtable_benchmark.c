@@ -731,7 +731,7 @@ static void ssstable_benchmark(size_t num_entries, enum insertion_order order, b
 	print_results(num_entries, order, bad_hash, insert, lookup1, lookup2, delete, mixed, mixed2);
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	size_t num_elements = 100000;
 

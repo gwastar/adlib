@@ -22,9 +22,12 @@
 
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "compiler.h"
 #include "config.h"
+
+// TODO prefix functions and macros here with util(s)?
 
 _Static_assert(CHAR_BIT == 8, "this implementation assumes 8-bit chars");
 #ifndef HAVE_TYPEOF
@@ -46,6 +49,7 @@ _Static_assert(0, "utils.h requires typeof");
 				  signed long : (unsigned long)val,	\
 				  signed long long : (unsigned long long)val)
 
+// TODO implement this with to_unsigned or vice versa?
 #define to_unsigned_type(type_or_expression) typeof(_Generic(*(typeof(type_or_expression) *)0, \
 							     char : (unsigned char)0, \
 							     unsigned char : (unsigned char)0, \
@@ -58,6 +62,27 @@ _Static_assert(0, "utils.h requires typeof");
 							     signed int : (unsigned int)0, \
 							     signed long : (unsigned long)0, \
 							     signed long long : (unsigned long long)0))
+
+#if CHAR_MIN < 0
+#define __UTILS_CHAR_IS_UNSIGNED false
+#else
+#define __UTILS_CHAR_IS_UNSIGNED true
+#endif
+
+#define type_is_unsigned(type_or_expression) _Generic(*(typeof(type_or_expression) *)0, \
+						      char : __UTILS_CHAR_IS_UNSIGNED, \
+						      unsigned char : true, \
+						      unsigned short : true, \
+						      unsigned int : true, \
+						      unsigned long : true, \
+						      unsigned long long : true, \
+						      signed char : false, \
+						      signed short : false, \
+						      signed int : false, \
+						      signed long : false, \
+						      signed long long : false)
+
+#define type_is_signed(type_or_expression) (!type_is_unsigned(type_or_expression))
 
 #define types_are_compatible(type_or_expression1, type_or_expression2)	\
 	_Generic(*(typeof(type_or_expression1) *)0, typeof(type_or_expression2): 1, default: 0)
@@ -145,15 +170,15 @@ __AD_LINKAGE unsigned int _ilog10ll(unsigned long long x) _attr_const _attr_unus
 #ifdef HAVE_BUILTIN_CTZ
 static _attr_always_inline _attr_const _attr_unused unsigned int _ctz(unsigned int x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_ctz(x);
+	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctz(x);
 }
 static _attr_always_inline _attr_const _attr_unused unsigned int _ctzl(unsigned long x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_ctzl(x);
+	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctzl(x);
 }
 static _attr_always_inline _attr_const _attr_unused unsigned int _ctzll(unsigned long long x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_ctzll(x);
+	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctzll(x);
 }
 #else
 __AD_LINKAGE unsigned int _ctz(unsigned int x) _attr_const _attr_unused;

@@ -1293,7 +1293,7 @@ static void benchmark(void)
 	free(random_numbers);
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	// test();
 	benchmark();

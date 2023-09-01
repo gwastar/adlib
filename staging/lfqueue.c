@@ -175,7 +175,7 @@ static void *consume(void *arg)
 	return NULL;
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	struct thread_data data;
 	lfqueue_init(&data.queue);

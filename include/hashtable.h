@@ -146,6 +146,7 @@
 									\
 	static _attr_unused entry_type *name##_insert(struct name *table, key_type key, name##_hash_t hash) \
 	{								\
+		(void)key;						\
 		_hashtable_idx_t index = _hashtable_insert(&table->impl, hash, &_##name##_info); \
 		return _hashtable_entry(&table->impl, index, &_##name##_info); \
 	}								\

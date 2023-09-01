@@ -174,6 +174,7 @@ static _attr_unused _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint
 static _attr_unused _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
 							       const struct _hashtable_info *info)
 {
+	(void)info;
 	return &table->metadata[index];
 }
 

@@ -80,7 +80,7 @@ static void benchmark_random32_range(void)
 	BENCHMARK(random_next_u32_in_range(&rng, 0, 100));
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	measure_overhead();
 
