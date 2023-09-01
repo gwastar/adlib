@@ -79,7 +79,7 @@ struct json_object_member {
 	char *name;
 	struct json_value *value;
 };
-DEFINE_HASHTABLE(json_object_members, char *, struct json_object_member, 8, strcmp(*key, entry->name) == 0);
+DEFINE_HASHTABLE(json_object_members, char *, struct json_object_member, 8, strcmp(*key, entry->name) == 0)
 
 struct json_value {
 	enum {

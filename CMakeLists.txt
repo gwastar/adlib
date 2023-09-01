@@ -110,8 +110,6 @@ set(SOURCES
   array.c
   avl_tree.c
   charconv.c
-  compiler.c
-  config.c
   dbuf.c
   dstring.c
   fortify.c

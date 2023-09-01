@@ -3,7 +3,7 @@
 #include <string.h>
 #include "mprintf.h"
 
-int main()
+int main(void)
 {
 #if 1
 	for (unsigned int i = 0; i < 1000000; i++) {

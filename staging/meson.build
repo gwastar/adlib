@@ -15,11 +15,12 @@ executables = [
   'sort',
 ]
 
-c_args = [
+staging_c_args = [
   '-Wno-unused-function',
   '-Wno-unused-variable',
+  '-Wno-pedantic',
 ]
 
 foreach exe : executables
-  executable(exe, exe + '.c', link_with : adlib, include_directories : adlib_inc, c_args : c_args)
+  executable(exe, exe + '.c', link_with : adlib, include_directories : adlib_inc, c_args : staging_c_args)
 endforeach

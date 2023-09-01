@@ -188,7 +188,7 @@ static _attr_always_inline _attr_unused void _dstr_append_chars_fortified(dstr_t
 									  size_t n)
 {
 	_fortify_check(_fortify_bos(chars) >= n);
-	return dstr_append_chars(dstrp, chars, n);
+	dstr_append_chars(dstrp, chars, n);
 }
 #define dstr_append_chars(dstrp, chars, n) _dstr_append_chars_fortified(dstrp, chars, n)
 
@@ -196,7 +196,7 @@ static _attr_always_inline _attr_unused void _dstr_insert_chars_fortified(dstr_t
 									  const char *chars, size_t n)
 {
 	_fortify_check(_fortify_bos(chars) >= n);
-	return dstr_insert_chars(dstrp, pos, chars, n);
+	dstr_insert_chars(dstrp, pos, chars, n);
 }
 #define dstr_insert_chars(dstrp, pos, chars, n) _dstr_insert_chars_fortified(dstrp, pos, chars, n)
 
@@ -205,7 +205,7 @@ static _attr_always_inline _attr_unused void _dstr_replace_chars_fortified(dstr_
 									   size_t n)
 {
 	_fortify_check(_fortify_bos(chars) >= n);
-	return dstr_replace_chars(dstrp, pos, len, chars, n);
+	dstr_replace_chars(dstrp, pos, len, chars, n);
 }
 #define dstr_replace_chars(dstrp, pos, len, chars, n) _dstr_replace_chars_fortified(dstrp, pos, len, chars, n)
 

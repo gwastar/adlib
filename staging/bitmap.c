@@ -31,7 +31,7 @@ static void assert_bitmap_contents(const void *bitmap, size_t nbits, const char 
 	}
 }
 
-int main()
+int main(void)
 {
 #if 0
 #define NBITS 123456789

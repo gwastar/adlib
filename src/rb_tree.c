@@ -44,7 +44,7 @@ static inline uintptr_t _rb__color(uintptr_t pc)
 	return (pc & 1);
 }
 
-__AD_LINKAGE inline struct rb_node *rb_parent(const struct rb_node *node)
+__AD_LINKAGE struct rb_node *rb_parent(const struct rb_node *node)
 {
 	return _rb__parent(node->_parent_color);
 }

@@ -175,10 +175,10 @@ static double get_avg_rate(unsigned long long nanoseconds[N], size_t num_entries
 
 static unsigned int benchmark_counter;
 
-DEFINE_HASHTABLE(itable, int, int, 8, (*key == *entry));
-DEFINE_HASHTABLE(stable, char *, char *, 8, (strcmp(*key, *entry) == 0));
-DEFINE_HASHTABLE(sstable, char *, struct short_string, 8, (strcmp(*key, entry->s) == 0));
-DEFINE_HASHTABLE(ssstable, struct short_string, struct short_string, 8, (strcmp(entry->s, key->s) == 0));
+DEFINE_HASHTABLE(itable, int, int, 8, (*key == *entry))
+DEFINE_HASHTABLE(stable, char *, char *, 8, (strcmp(*key, *entry) == 0))
+DEFINE_HASHTABLE(sstable, char *, struct short_string, 8, (strcmp(*key, entry->s) == 0))
+DEFINE_HASHTABLE(ssstable, struct short_string, struct short_string, 8, (strcmp(entry->s, key->s) == 0))
 
 #define BENCHMARK(name, hash, key_type, entry_type, keys1, values1, keys2, values2, keys3, values3, keys4, values4, ...) \
 	for (unsigned int n = 0, c = benchmark_counter++; n < N; n++) {	\
@@ -731,7 +731,7 @@ static void ssstable_benchmark(size_t num_entries, enum insertion_order order, b
 	print_results(num_entries, order, bad_hash, insert, lookup1, lookup2, delete, mixed, mixed2);
 }
 
-int main()
+int main(void)
 {
 	size_t num_elements = 100000;
 

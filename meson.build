@@ -2,7 +2,7 @@ project('adlib', 'c',
   version : '0.0.1',
   license : 'MIT',
   meson_version : '>= 0.64.0',
-  default_options : [ 'warning_level=2', # TODO increase warning level?
+  default_options : [ 'warning_level=3', # TODO increase warning level?
                       'default_library=static',
                       'c_std=gnu11',
                       'b_pie=true',
@@ -17,6 +17,7 @@ cc = meson.get_compiler('c')
 c_args = [
   '-Wformat=2',
   '-Wimplicit-fallthrough',
+  '-Wno-language-extension-token',
   '-fstrict-flex-arrays=3',
   # TODO
 
@@ -89,8 +90,6 @@ sources = [
   'array.c',
   'avl_tree.c',
   'charconv.c',
-  'compiler.c',
-  'config.c',
   'dbuf.c',
   'dstring.c',
   'fortify.c',

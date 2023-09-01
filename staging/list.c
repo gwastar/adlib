@@ -48,7 +48,7 @@ static void check(void)
 	}
 }
 
-int main()
+int main(void)
 {
 	list_head_init(&list);
 

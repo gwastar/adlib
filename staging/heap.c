@@ -17,7 +17,7 @@ bool int_less_than(int *a, int *b)
 	return *a < *b;
 }
 
-DEFINE_MINHEAP(intheap, int, int_less_than(a, b));
+DEFINE_MINHEAP(intheap, int, int_less_than(a, b))
 
 static void test(int *arr, size_t n)
 {
@@ -65,7 +65,7 @@ static double elapsed(struct timespec *start, struct timespec *end)
 	return ns / 1000000000.0 + s;
 }
 
-int main()
+int main(void)
 {
 #if 0
 	struct timespec tp;

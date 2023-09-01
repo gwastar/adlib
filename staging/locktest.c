@@ -155,7 +155,7 @@ static int thread_main(void *arg)
 }
 
 
-int main()
+int main(void)
 {
 	// {
 	// 	mutex_init(&mutex, true, true);

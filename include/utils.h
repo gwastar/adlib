@@ -286,12 +286,12 @@ __AD_LINKAGE unsigned int _popcountll(unsigned long long x) _attr_const _attr_un
 
 #define _utils_check_bits(suffix, type, bits, ...)			\
 	_Static_assert(sizeof(type) * 8 == bits, "wrong bit size for " #type);
-_utils_foreach_type(_utils_check_bits)
+_utils_foreach_type(_utils_check_bits, dummy)
 #undef _utils_check_bits
 
 #define _utils_check_multibytes(suffix, type, bits, ...)		\
 	_Static_assert(sizeof(type) > 1, "expected " #type " to have more than 1 byte");
-_utils_foreach_multibyte_type(_utils_check_multibytes)
+_utils_foreach_multibyte_type(_utils_check_multibytes, dummy)
 #undef _utils_check_multibytes
 
 #define _utils_min_function(suffix, type, bits, ...)			\
@@ -306,8 +306,8 @@ _utils_foreach_multibyte_type(_utils_check_multibytes)
 		return a > b ? a : b;					\
 	}
 
-_utils_foreach_type(_utils_min_function)
-_utils_foreach_type(_utils_max_function)
+_utils_foreach_type(_utils_min_function, dummy)
+_utils_foreach_type(_utils_max_function, dummy)
 
 #undef _utils_min_function
 #undef _utils_max_function
@@ -383,9 +383,9 @@ _utils_foreach_type(_utils_max_function)
 		return y != 0 && x > c / y;				\
 	}
 #endif
-_utils_foreach_type_no_bool(_utils_add_overflow_function)
-_utils_foreach_type_no_bool(_utils_sub_overflow_function)
-_utils_foreach_type_no_bool(_utils_mul_overflow_function)
+_utils_foreach_type_no_bool(_utils_add_overflow_function, dummy)
+_utils_foreach_type_no_bool(_utils_sub_overflow_function, dummy)
+_utils_foreach_type_no_bool(_utils_mul_overflow_function, dummy)
 #undef _utils_add_overflow_function
 #undef _utils_sub_overflow_function
 #undef _utils_mul_overflow_function
@@ -435,7 +435,7 @@ static _attr_always_inline _attr_const _attr_unused uint64_t _bswap64(uint64_t x
 		return _utils_concat(_bswap, bits)(x);			\
 	}
 
-_utils_foreach_multibyte_type(_utils_bswap_function)
+_utils_foreach_multibyte_type(_utils_bswap_function, dummy)
 
 #undef _utils_bswap_function
 
@@ -488,17 +488,17 @@ typedef union {
 
 static _attr_always_inline _attr_const _attr_unused be16_t cpu_to_be16(uint16_t x)
 {
-	return (be16_t)_bswap16(x);
+	return (be16_t){.val = _bswap16(x)};
 }
 
 static _attr_always_inline _attr_const _attr_unused be32_t cpu_to_be32(uint32_t x)
 {
-	return (be32_t)_bswap32(x);
+	return (be32_t){.val = _bswap32(x)};
 }
 
 static _attr_always_inline _attr_const _attr_unused be64_t cpu_to_be64(uint64_t x)
 {
-	return (be64_t)_bswap64(x);
+	return (be64_t){.val = _bswap64(x)};
 }
 
 static _attr_always_inline _attr_const _attr_unused uint16_t be16_to_cpu(be16_t x)
@@ -518,17 +518,17 @@ static _attr_always_inline _attr_const _attr_unused uint64_t be64_to_cpu(be64_t 
 
 static _attr_always_inline _attr_const _attr_unused le16_t cpu_to_le16(uint16_t x)
 {
-	return (le16_t)x;
+	return (le16_t){.val = x};
 }
 
 static _attr_always_inline _attr_const _attr_unused le32_t cpu_to_le32(uint32_t x)
 {
-	return (le32_t)x;
+	return (le32_t){.val = x};
 }
 
 static _attr_always_inline _attr_const _attr_unused le64_t cpu_to_le64(uint64_t x)
 {
-	return (le64_t)x;
+	return (le64_t){.val = x};
 }
 
 static _attr_always_inline _attr_const _attr_unused uint16_t le16_to_cpu(le16_t x)
@@ -617,16 +617,16 @@ static _attr_always_inline _attr_const _attr_unused uint64_t be64_to_cpu(be64_t 
 #define cpu_to_be(x) _Generic(x, uint16_t : cpu_to_be16(x), uint32_t : cpu_to_be32(x), \
 			      uint64_t : cpu_to_be64(x))
 
-#define be_to_cpu(x) _Generic(x, be16_t : be16_to_cpu((be16_t)(uint16_t)x.val), \
-			      be32_t : be32_to_cpu((be32_t)(uint32_t)x.val), \
-			      be64_t : be64_to_cpu((be64_t)(uint64_t)x.val))
+#define be_to_cpu(x) _Generic(x, be16_t : be16_to_cpu((be16_t){.val = (uint16_t)x.val}), \
+			      be32_t : be32_to_cpu((be32_t){.val = (uint32_t)x.val}), \
+			      be64_t : be64_to_cpu((be64_t){.val = (uint64_t)x.val}))
 
 #define cpu_to_le(x) _Generic(x, uint16_t : cpu_to_le16(x), uint32_t : cpu_to_le32(x), \
 			      uint64_t : cpu_to_le64(x))
 
-#define le_to_cpu(x) _Generic(x, le16_t : le16_to_cpu((le16_t)(uint16_t)x.val), \
-			      le32_t : le32_to_cpu((le32_t)(uint32_t)x.val), \
-			      le64_t : le64_to_cpu((le64_t)(uint64_t)x.val))
+#define le_to_cpu(x) _Generic(x, le16_t : le16_to_cpu((le16_t){.val = (uint16_t)x.val}), \
+			      le32_t : le32_to_cpu((le32_t){.val = (uint32_t)x.val}), \
+			      le64_t : le64_to_cpu((le64_t){.val = (uint64_t)x.val}))
 
 #endif
 

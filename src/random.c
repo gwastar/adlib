@@ -150,7 +150,7 @@ __AD_LINKAGE uint64_t random_next_u64_in_range(struct random_state *state, uint6
 	// TODO fast path for powers of 2 (maybe using __builtin_constant_p)?
 #ifdef __SIZEOF_INT128__
 	// https://arxiv.org/pdf/1805.10941.pdf
-	typedef unsigned __int128 uint128_t;
+	__extension__ typedef unsigned __int128 uint128_t;
 	uint64_t s = max - min + 1;
 	uint64_t x = random_next_u64(state);
 	if (unlikely(s == 0)) {

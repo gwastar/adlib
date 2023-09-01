@@ -1202,8 +1202,8 @@ RANDOM_TEST(overflow32_random, 1 << 18, 0, UINT64_MAX)
 #ifdef __SIZEOF_INT128__
 static bool check_overflow64(uint64_t a, uint64_t b)
 {
-	typedef __int128 int128_t;
-	typedef unsigned __int128 uint128_t;
+	__extension__ typedef __int128 int128_t;
+	__extension__ typedef unsigned __int128 uint128_t;
 	{
 		uint64_t x = a, y = b, r;
 		uint128_t sum = (uint128_t)x + (uint128_t)y;
