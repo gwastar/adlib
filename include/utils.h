@@ -51,6 +51,20 @@ _Static_assert(0, "utils.h requires typeof");
 				  signed long : (unsigned long)val,	\
 				  signed long long : (unsigned long long)val)
 
+// TODO write tests for this
+#define to_signed(val) _Generic(val,					\
+				char : (signed char)val,		\
+				unsigned char : (signed char)val,	\
+				unsigned short : (signed short)val,	\
+				unsigned int : (signed int)val,		\
+				unsigned long : (signed long)val,	\
+				unsigned long long : (signed long long)val, \
+				signed char : (signed char)val,		\
+				signed short : (signed short)val,	\
+				signed int : (signed int)val,		\
+				signed long : (signed long)val,		\
+				signed long long : (signed long long)val)
+
 // TODO implement this with to_unsigned or vice versa?
 #define to_unsigned_type(type_or_expression) typeof(_Generic(*(typeof(type_or_expression) *)0, \
 							     char : (unsigned char)0, \
@@ -64,6 +78,19 @@ _Static_assert(0, "utils.h requires typeof");
 							     signed int : (unsigned int)0, \
 							     signed long : (unsigned long)0, \
 							     signed long long : (unsigned long long)0))
+
+#define to_signed_type(type_or_expression) typeof(_Generic(*(typeof(type_or_expression) *)0, \
+							   char : (signed char)0, \
+							   unsigned char : (signed char)0, \
+							   unsigned short : (signed short)0, \
+							   unsigned int : (signed int)0, \
+							   unsigned long : (signed long)0, \
+							   unsigned long long : (signed long long)0, \
+							   signed char : (signed char)0, \
+							   signed short : (signed short)0, \
+							   signed int : (signed int)0, \
+							   signed long : (signed long)0, \
+							   signed long long : (signed long long)0))
 
 #if CHAR_MIN < 0
 #define __UTILS_CHAR_IS_UNSIGNED false
@@ -267,7 +294,7 @@ unsigned int _popcountll(unsigned long long x) _attr_const;
 #define _utils_concat(x, y) _utils_concat_helper(x, y)
 
 #define _utils_foreach_multibyte_type(f, ...)				\
-		f(ushort, unsigned short,     _SHORT_BITS, __VA_ARGS__)	\
+	f(ushort, unsigned short,     _SHORT_BITS, __VA_ARGS__)		\
 		f(sshort, signed short,       _SHORT_BITS, __VA_ARGS__)	\
 		f(uint,   unsigned int,       _INT_BITS,   __VA_ARGS__)	\
 		f(sint,   signed int,         _INT_BITS,   __VA_ARGS__)	\
@@ -277,13 +304,13 @@ unsigned int _popcountll(unsigned long long x) _attr_const;
 		f(sllong, signed long long,   _LLONG_BITS, __VA_ARGS__)
 
 #define _utils_foreach_type_no_bool(f, ...)			\
-		f(char,  char,          8, __VA_ARGS__)		\
+	f(char,  char,          8, __VA_ARGS__)			\
 		f(uchar, unsigned char, 8, __VA_ARGS__)		\
 		f(schar, signed char,   8, __VA_ARGS__)		\
 		_utils_foreach_multibyte_type(f, __VA_ARGS__)
 
 #define _utils_foreach_type(f, ...)				\
-		f(bool,  _Bool,         8, __VA_ARGS__)		\
+	f(bool,  _Bool,         8, __VA_ARGS__)			\
 		_utils_foreach_type_no_bool(f, __VA_ARGS__)
 
 #define _utils_check_bits(suffix, type, bits, ...)			\
@@ -342,7 +369,7 @@ _utils_foreach_type(_utils_max_function, dummy)
 	{								\
 		to_unsigned_type(type) x = a, y = b, r;			\
 		*result = r = x + y;					\
-		return ((type)-1 < 0) ? ((r ^ x) & (r ^ y)) >> (bits - 1) : r < x; \
+		return type_is_signed(type) ? ((r ^ x) & (r ^ y)) >> (bits - 1) : r < x; \
 	}
 #endif
 #ifdef HAVE_BUILTIN_SUB_OVERFLOW
@@ -357,7 +384,7 @@ _utils_foreach_type(_utils_max_function, dummy)
 	{								\
 		to_unsigned_type(type) x = a, y = b, r;			\
 		*result = r = x - y;					\
-		return ((type)-1 < 0) ? ((x ^ y) & (r ^ x)) >> (bits - 1) : r > x; \
+		return type_is_signed(type) ? ((x ^ y) & (r ^ x)) >> (bits - 1) : r > x; \
 	}
 #endif
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
@@ -376,10 +403,10 @@ _utils_foreach_type(_utils_max_function, dummy)
 		/* so we define mult_type to be 'unsigned int' for anything smaller than int */ \
 		typedef to_unsigned_type(x * y) mult_type;		\
 		*result = (type)((mult_type)x * (mult_type)y);		\
-		if ((type)-1 < 0) {					\
+		if (type_is_signed(type)) {				\
 			c = (unsigned_type)(~(a ^ b) >> (bits - 1)) + ((unsigned_type)1 << (bits - 1)); \
-			x = a < 0 ? -x : x;				\
-			y = b < 0 ? -y : y;				\
+			x = to_signed(a) < 0 ? -x : x;			\
+			y = to_signed(b) < 0 ? -y : y;			\
 		} else {						\
 			c = ~((type)0);					\
 		}							\

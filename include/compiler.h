@@ -88,6 +88,13 @@
 #if __has_attribute(assume)
 # define HAVE_ATTR_ASSUME 1
 #endif
+#if __has_attribute(error)
+# define HAVE_ATTR_ERROR 1
+#endif
+
+#if __has_builtin(__builtin_assume)
+# define HAVE_BUILTIN_ASSUME 1
+#endif
 
 #ifndef __DISABLE_FUNCTION_DETECTION
 
@@ -130,10 +137,6 @@
 #endif
 #if !defined(HAVE_BUILTIN_UNREACHABLE) && __has_builtin(__builtin_unreachable)
 # define HAVE_BUILTIN_UNREACHABLE 1
-#endif
-
-#if __has_builtin(__builtin_assume)
-# define HAVE_BUILTIN_ASSUME 1
 #endif
 
 #endif // __DISABLE_FUNCTION_DETECTION
@@ -237,6 +240,10 @@
 
 #ifdef HAVE_ATTR_CLEANUP
 # define _attr_cleanup(f)                    __attribute__((cleanup(f)))
+#endif
+
+#ifdef HAVE_ATTR_ERROR
+# define _attr_error(msg)                    __attribute__((error(msg)))
 #endif
 
 #ifdef HAVE_BUILTIN_EXPECT

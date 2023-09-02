@@ -350,7 +350,7 @@ static _attr_always_inline _attr_nonnull(1) _arr *_arrhead(const void *p)
 	_attr_assume_aligned(_Alignof(max_align_t), sizeof(_arr) % _Alignof(max_align_t))
 
 void *_arr_resize_internal(void *arr, size_t elem_size, size_t capacity) _attr_nodiscard _arr_attr_assume_aligned;
-void *_arr_copy(const void *arr, size_t elem_size) _attr_nodiscard _arr_attr_assume_aligned ;
+void *_arr_copy(const void *arr, size_t elem_size) _attr_nodiscard _arr_attr_assume_aligned;
 void _arr_grow(void **arrp, size_t elem_size, size_t n);
 void _arr_make_valid(void **arrp, size_t elem_size, size_t i);
 void *_arr_addn(void **arrp, size_t elem_size, size_t n);
@@ -364,7 +364,7 @@ bool _arr_bsearch_index(const void *arr, size_t elem_size,
 			const void *key,
 			int (*compare)(const void *, const void *),
 			size_t *ret_index) _attr_nonnull(4, 5);
-bool _arr_equal(const void *arr1, size_t elem_size, const void *arr2) _attr_nodiscard _attr_pure ;
+bool _arr_equal(const void *arr1, size_t elem_size, const void *arr2) _attr_nodiscard _attr_pure;
 
 static inline _attr_pure size_t _arr_length(const void *arr)
 {

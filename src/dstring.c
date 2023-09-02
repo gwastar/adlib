@@ -171,7 +171,7 @@ static _attr_always_inline void *_strview_memrchr(const void *s, unsigned char c
 	if (unlikely(n == 0)) {
 		return NULL;
 	}
-	const unsigned char *p = s + n - 1;
+	const unsigned char *p = (const unsigned char *)s + n - 1;
 	while (*p != c) {
 		if (p == s) {
 			return NULL;

@@ -4971,7 +4971,7 @@ SIMPLE_TEST(dstring)
 	return true;
 }
 
-#ifdef _FORTIFY_SOURCE
+#if defined(_FORTIFY_SOURCE) && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
 
 NEGATIVE_SIMPLE_TEST(fortify_from_chars)
 {
