@@ -37,7 +37,7 @@
 		struct _hashtable impl;					\
 	};								\
 									\
-	static _attr_unused bool _##name##_keys_match(const void *_key, const void *_entry) \
+	static bool _##name##_keys_match(const void *_key, const void *_entry) \
 	{								\
 		key_type const * const key = _key;			\
 		entry_type const * const entry = _entry;		\
@@ -56,7 +56,7 @@
 		.keys_match = _##name##_keys_match,			\
 	};								\
 									\
-	static _attr_unused void name##_init(struct name *table, name##_uint_t initial_capacity) \
+	static void name##_init(struct name *table, name##_uint_t initial_capacity) \
 	{								\
 		_hashtable_init(&table->impl, initial_capacity, &_##name##_info); \
 	}								\
@@ -64,19 +64,6 @@
 	static _attr_unused void name##_destroy(struct name *table)	\
 	{								\
 		_hashtable_destroy(&table->impl);			\
-	}								\
-									\
-	static _attr_unused struct name *name##_new(name##_uint_t initial_capacity) \
-	{								\
-		struct name *table = malloc(sizeof(*table));		\
-		name##_init(table, initial_capacity);			\
-		return table;						\
-	}								\
-									\
-	static _attr_unused void name##_delete(struct name *table)	\
-	{								\
-		name##_destroy(table);					\
-		free(table);						\
 	}								\
 									\
 	static _attr_unused void name##_clear(struct name *table)	\
@@ -189,23 +176,18 @@ struct _hashtable {
 	struct _hashtable_metadata *metadata;
 };
 
-__AD_LINKAGE _attr_unused void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
-						const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused void _hashtable_destroy(struct _hashtable *table);
-__AD_LINKAGE _attr_unused _attr_nodiscard
-bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
-		       _hashtable_idx_t *ret_index, const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused _attr_pure _hashtable_idx_t _hashtable_get_next(struct _hashtable *table,
-									  _hashtable_idx_t start,
-									  const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
-						  const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused _attr_nodiscard
+void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity, const struct _hashtable_info *info);
+void _hashtable_destroy(struct _hashtable *table);
+bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash, _hashtable_idx_t *ret_index,
+		       const struct _hashtable_info *info) _attr_nodiscard;
+_hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
+				     const struct _hashtable_info *info) _attr_pure;
+void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
+		       const struct _hashtable_info *info);
 _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
-				   const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
-						  const struct _hashtable_info *info);
-__AD_LINKAGE _attr_unused void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info);
+				   const struct _hashtable_info *info) _attr_nodiscard;
+void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index, const struct _hashtable_info *info);
+void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info);
 
 static inline void *_hashtable_entry(struct _hashtable *table, _hashtable_idx_t index,
 				     const struct _hashtable_info *info)

@@ -142,7 +142,7 @@ static const char __to_chars_lut_base16_upper[512] = {
 // TODO make separate functions for base 2, 8, 10, 16?
 
 #define _to_chars_impl(suffix, uint_t, int_t)				\
-	static _attr_unused _attr_always_inline				\
+	static _attr_always_inline					\
 	size_t _to_chars_helper##suffix(char *buf, uint_t uval, size_t bits, bool is_signed, \
 					unsigned int base, bool leading_zeros, bool sign_always, \
 					bool uppercase)			\
@@ -254,7 +254,7 @@ static const char __to_chars_lut_base16_upper[512] = {
 		return total_length;					\
 	}								\
 									\
-	static _attr_unused size_t _to_chars##suffix(char *buf, uint_t uval, size_t bits, unsigned int flags, bool is_signed) \
+	static size_t _to_chars##suffix(char *buf, uint_t uval, size_t bits, unsigned int flags, bool is_signed) \
 	{								\
 		if (likely(flags == TO_CHARS_DEFAULT)) {		\
 			flags |= TO_CHARS_DECIMAL;			\
@@ -295,7 +295,7 @@ _to_chars_impl(64, uint64_t, int64_t)
 	f(llong, long long)			\
 	f(ullong, unsigned long long)
 #define __TO_CHARS_FUNC(name, type)					\
-	__AD_LINKAGE size_t to_chars_##name(char *buf, type val, unsigned int flags) \
+	size_t to_chars_##name(char *buf, type val, unsigned int flags) \
 	{								\
 		return sizeof(type) <= 4 ? _to_chars32(buf, val, sizeof(type) * 8, flags, type_is_signed(type)) : \
 			_to_chars64(buf, val, sizeof(type) * 8, flags, type_is_signed(type)); \

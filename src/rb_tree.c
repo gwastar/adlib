@@ -44,7 +44,7 @@ static inline uintptr_t _rb__color(uintptr_t pc)
 	return (pc & 1);
 }
 
-__AD_LINKAGE struct rb_node *rb_parent(const struct rb_node *node)
+struct rb_node *rb_parent(const struct rb_node *node)
 {
 	return _rb__parent(node->_parent_color);
 }
@@ -104,7 +104,7 @@ static inline void _rb_change_child(const struct rb_node *old_child, struct rb_n
 	}
 }
 
-__AD_LINKAGE struct rb_node *rb_first(const struct rb_root *root)
+struct rb_node *rb_first(const struct rb_root *root)
 {
 	struct rb_node *node = NULL;
 	struct rb_node *cur = root->node;
@@ -115,7 +115,7 @@ __AD_LINKAGE struct rb_node *rb_first(const struct rb_root *root)
 	return node;
 }
 
-__AD_LINKAGE struct rb_node *rb_next(const struct rb_node *node)
+struct rb_node *rb_next(const struct rb_node *node)
 {
 	if (node->children[RB_RIGHT]) {
 		node = node->children[RB_RIGHT];
@@ -211,7 +211,7 @@ static void _rb_remove_repair(struct rb_root *root, struct rb_node *parent)
 	}
 }
 
-__AD_LINKAGE void rb_remove_node(struct rb_root *root, struct rb_node *node)
+void rb_remove_node(struct rb_root *root, struct rb_node *node)
 {
 	struct rb_node *child = node->children[RB_RIGHT];
 	struct rb_node *tmp = node->children[RB_LEFT];
@@ -277,7 +277,7 @@ __AD_LINKAGE void rb_remove_node(struct rb_root *root, struct rb_node *node)
 	}
 }
 
-__AD_LINKAGE void rb_insert_node(struct rb_root *root, struct rb_node *node, struct rb_node *parent, enum rb_direction dir)
+void rb_insert_node(struct rb_root *root, struct rb_node *node, struct rb_node *parent, enum rb_direction dir)
 {
 	assert(((uintptr_t)node & 1) == 0);
 	node->children[RB_LEFT] = NULL;

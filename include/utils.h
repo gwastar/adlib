@@ -20,6 +20,8 @@
 #ifndef __UTILS_INCLUDE__
 #define __UTILS_INCLUDE__
 
+// TODO integer three-way compare functions
+
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -124,106 +126,106 @@ _Static_assert(0, "utils.h requires typeof");
 
 
 #ifdef HAVE_BUILTIN_CLZ
-static _attr_always_inline _attr_const _attr_unused unsigned int _clz(unsigned int x)
+static _attr_always_inline _attr_const unsigned int _clz(unsigned int x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clz(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _clzl(unsigned long x)
+static _attr_always_inline _attr_const unsigned int _clzl(unsigned long x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clzl(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _clzll(unsigned long long x)
+static _attr_always_inline _attr_const unsigned int _clzll(unsigned long long x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clzll(x);
 }
 #else
-__AD_LINKAGE unsigned int _clz(unsigned int x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _clzl(unsigned long x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _clzll(unsigned long long x) _attr_const _attr_unused;
+unsigned int _clz(unsigned int x) _attr_const;
+unsigned int _clzl(unsigned long x) _attr_const;
+unsigned int _clzll(unsigned long long x) _attr_const;
 #endif
 #define clz(x) _utils_dispatch_builtin(x, _clz)
 
 
-static _attr_always_inline _attr_const _attr_unused unsigned int _ilog2(unsigned int x)
+static _attr_always_inline _attr_const unsigned int _ilog2(unsigned int x)
 {
 	return (8 * sizeof(x) - 1) ^ _clz(x | 1);
 }
 
-static _attr_always_inline _attr_const _attr_unused unsigned int _ilog2l(unsigned long x)
+static _attr_always_inline _attr_const unsigned int _ilog2l(unsigned long x)
 {
 	return (8 * sizeof(x) - 1) ^ _clzl(x | 1);
 }
 
-static _attr_always_inline _attr_const _attr_unused unsigned int _ilog2ll(unsigned long long x)
+static _attr_always_inline _attr_const unsigned int _ilog2ll(unsigned long long x)
 {
 	return (8 * sizeof(x) - 1) ^ _clzll(x | 1);
 }
 
 #define ilog2(x) _utils_dispatch_builtin(x, _ilog2)
 
-__AD_LINKAGE unsigned int _ilog10(unsigned int x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ilog10l(unsigned long x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ilog10ll(unsigned long long x) _attr_const _attr_unused;
+unsigned int _ilog10(unsigned int x) _attr_const;
+unsigned int _ilog10l(unsigned long x) _attr_const;
+unsigned int _ilog10ll(unsigned long long x) _attr_const;
 
 #define ilog10(x) _utils_dispatch_builtin(x, _ilog10)
 
 #ifdef HAVE_BUILTIN_CTZ
-static _attr_always_inline _attr_const _attr_unused unsigned int _ctz(unsigned int x)
+static _attr_always_inline _attr_const unsigned int _ctz(unsigned int x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctz(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _ctzl(unsigned long x)
+static _attr_always_inline _attr_const unsigned int _ctzl(unsigned long x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctzl(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _ctzll(unsigned long long x)
+static _attr_always_inline _attr_const unsigned int _ctzll(unsigned long long x)
 {
 	return unlikely(x == 0) ? (8 * sizeof(x)) : (size_t)__builtin_ctzll(x);
 }
 #else
-__AD_LINKAGE unsigned int _ctz(unsigned int x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ctzl(unsigned long x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ctzll(unsigned long long x) _attr_const _attr_unused;
+unsigned int _ctz(unsigned int x) _attr_const;
+unsigned int _ctzl(unsigned long x) _attr_const;
+unsigned int _ctzll(unsigned long long x) _attr_const;
 #endif
 #define ctz(x) _utils_dispatch_builtin(x, _ctz)
 
 #ifdef HAVE_BUILTIN_FFS
-static _attr_always_inline _attr_const _attr_unused unsigned int _ffs(unsigned int x)
+static _attr_always_inline _attr_const unsigned int _ffs(unsigned int x)
 {
 	return __builtin_ffs(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _ffsl(unsigned long x)
+static _attr_always_inline _attr_const unsigned int _ffsl(unsigned long x)
 {
 	return __builtin_ffsl(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _ffsll(unsigned long long x)
+static _attr_always_inline _attr_const unsigned int _ffsll(unsigned long long x)
 {
 	return __builtin_ffsll(x);
 }
 #else
-__AD_LINKAGE unsigned int _ffs(unsigned int x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ffsl(unsigned long x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _ffsll(unsigned long long x) _attr_const _attr_unused;
+unsigned int _ffs(unsigned int x) _attr_const;
+unsigned int _ffsl(unsigned long x) _attr_const;
+unsigned int _ffsll(unsigned long long x) _attr_const;
 #endif
 #define ffs(x) _utils_dispatch_builtin(x, _ffs)
 
 #ifdef HAVE_BUILTIN_POPCOUNT
-static _attr_always_inline _attr_const _attr_unused unsigned int _popcount(unsigned int x)
+static _attr_always_inline _attr_const unsigned int _popcount(unsigned int x)
 {
 	return __builtin_popcount(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _popcountl(unsigned long x)
+static _attr_always_inline _attr_const unsigned int _popcountl(unsigned long x)
 {
 	return __builtin_popcountl(x);
 }
-static _attr_always_inline _attr_const _attr_unused unsigned int _popcountll(unsigned long long x)
+static _attr_always_inline _attr_const unsigned int _popcountll(unsigned long long x)
 {
 	return __builtin_popcountll(x);
 }
 #else
-__AD_LINKAGE unsigned int _popcount(unsigned int x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _popcountl(unsigned long x) _attr_const _attr_unused;
-__AD_LINKAGE unsigned int _popcountll(unsigned long long x) _attr_const _attr_unused;
+unsigned int _popcount(unsigned int x) _attr_const;
+unsigned int _popcountl(unsigned long x) _attr_const;
+unsigned int _popcountll(unsigned long long x) _attr_const;
 #endif
 #define popcount(x) _utils_dispatch_builtin(x, _popcount)
 
@@ -274,14 +276,14 @@ __AD_LINKAGE unsigned int _popcountll(unsigned long long x) _attr_const _attr_un
 		f(ullong, unsigned long long, _LLONG_BITS, __VA_ARGS__)	\
 		f(sllong, signed long long,   _LLONG_BITS, __VA_ARGS__)
 
-#define _utils_foreach_type_no_bool(f, ...)				\
-		f(char,  char,          8, __VA_ARGS__)			\
-		f(uchar, unsigned char, 8, __VA_ARGS__)			\
-		f(schar, signed char,   8, __VA_ARGS__)			\
+#define _utils_foreach_type_no_bool(f, ...)			\
+		f(char,  char,          8, __VA_ARGS__)		\
+		f(uchar, unsigned char, 8, __VA_ARGS__)		\
+		f(schar, signed char,   8, __VA_ARGS__)		\
 		_utils_foreach_multibyte_type(f, __VA_ARGS__)
 
-#define _utils_foreach_type(f, ...)					\
-		f(bool,  _Bool,         8, __VA_ARGS__)			\
+#define _utils_foreach_type(f, ...)				\
+		f(bool,  _Bool,         8, __VA_ARGS__)		\
 		_utils_foreach_type_no_bool(f, __VA_ARGS__)
 
 #define _utils_check_bits(suffix, type, bits, ...)			\
@@ -295,13 +297,13 @@ _utils_foreach_multibyte_type(_utils_check_multibytes, dummy)
 #undef _utils_check_multibytes
 
 #define _utils_min_function(suffix, type, bits, ...)			\
-	static _attr_always_inline _attr_const _attr_unused type _min_##suffix(type a, type b) \
+	static _attr_always_inline _attr_const type _min_##suffix(type a, type b) \
 	{								\
 		return a < b ? a : b;					\
 	}
 
 #define _utils_max_function(suffix, type, bits, ...)			\
-	static _attr_always_inline _attr_const _attr_unused type _max_##suffix(type a, type b) \
+	static _attr_always_inline _attr_const type _max_##suffix(type a, type b) \
 	{								\
 		return a > b ? a : b;					\
 	}
@@ -327,15 +329,16 @@ _utils_foreach_type(_utils_max_function, dummy)
 	(static_assert_expr(types_are_compatible(a, b), "max requires compatible types for its arguments"), \
 	 max_t(typeof(a), a, b))
 
+// TODO use type_is_signed in the fallbacks instead of (type)-1 < 0
 #ifdef HAVE_BUILTIN_ADD_OVERFLOW
 #define _utils_add_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _add_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _add_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		return __builtin_add_overflow(a, b, result);		\
 	}
 #else
 #define _utils_add_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _add_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _add_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		to_unsigned_type(type) x = a, y = b, r;			\
 		*result = r = x + y;					\
@@ -344,13 +347,13 @@ _utils_foreach_type(_utils_max_function, dummy)
 #endif
 #ifdef HAVE_BUILTIN_SUB_OVERFLOW
 #define _utils_sub_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _sub_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _sub_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		return __builtin_sub_overflow(a, b, result);		\
 	}
 #else
 #define _utils_sub_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _sub_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _sub_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		to_unsigned_type(type) x = a, y = b, r;			\
 		*result = r = x - y;					\
@@ -359,13 +362,13 @@ _utils_foreach_type(_utils_max_function, dummy)
 #endif
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
 #define _utils_mul_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _mul_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _mul_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		return __builtin_mul_overflow(a, b, result);		\
 	}
 #else
 #define _utils_mul_overflow_function(suffix, type, bits, ...)		\
-	static _attr_always_inline _attr_unused bool _mul_overflow_##suffix(type a, type b, type *result) \
+	static _attr_always_inline bool _mul_overflow_##suffix(type a, type b, type *result) \
 	{								\
 		typedef to_unsigned_type(type) unsigned_type;		\
 		unsigned_type x = a, y = b, c;				\
@@ -400,7 +403,7 @@ _utils_foreach_type_no_bool(_utils_mul_overflow_function, dummy)
 #define mul_overflow(a, b, r)						\
 	_Generic(*r, _utils_foreach_type_no_bool(_utils_dispatch_mul_overflow, a, b, r) struct { int i; } : 0)
 
-static _attr_always_inline _attr_const _attr_unused uint16_t _bswap16(uint16_t x)
+static _attr_always_inline _attr_const uint16_t _bswap16(uint16_t x)
 {
 #ifdef HAVE_BUILTIN_BSWAP
 	return __builtin_bswap16(x);
@@ -409,7 +412,7 @@ static _attr_always_inline _attr_const _attr_unused uint16_t _bswap16(uint16_t x
 #endif
 }
 
-static _attr_always_inline _attr_const _attr_unused uint32_t _bswap32(uint32_t x)
+static _attr_always_inline _attr_const uint32_t _bswap32(uint32_t x)
 {
 #ifdef HAVE_BUILTIN_BSWAP
 	return __builtin_bswap32(x);
@@ -418,7 +421,7 @@ static _attr_always_inline _attr_const _attr_unused uint32_t _bswap32(uint32_t x
 #endif
 }
 
-static _attr_always_inline _attr_const _attr_unused uint64_t _bswap64(uint64_t x)
+static _attr_always_inline _attr_const uint64_t _bswap64(uint64_t x)
 {
 #ifdef HAVE_BUILTIN_BSWAP
 	return __builtin_bswap64(x);
@@ -430,7 +433,7 @@ static _attr_always_inline _attr_const _attr_unused uint64_t _bswap64(uint64_t x
 }
 
 #define _utils_bswap_function(suffix, type, bits, ...)			\
-	static _attr_always_inline _attr_const _attr_unused type _bswap_##suffix(type x) \
+	static _attr_always_inline _attr_const type _bswap_##suffix(type x) \
 	{								\
 		return _utils_concat(_bswap, bits)(x);			\
 	}
@@ -486,62 +489,62 @@ typedef union {
 
 #ifdef BYTE_ORDER_IS_LITTLE_ENDIAN
 
-static _attr_always_inline _attr_const _attr_unused be16_t cpu_to_be16(uint16_t x)
+static _attr_always_inline _attr_const be16_t cpu_to_be16(uint16_t x)
 {
 	return (be16_t){.val = _bswap16(x)};
 }
 
-static _attr_always_inline _attr_const _attr_unused be32_t cpu_to_be32(uint32_t x)
+static _attr_always_inline _attr_const be32_t cpu_to_be32(uint32_t x)
 {
 	return (be32_t){.val = _bswap32(x)};
 }
 
-static _attr_always_inline _attr_const _attr_unused be64_t cpu_to_be64(uint64_t x)
+static _attr_always_inline _attr_const be64_t cpu_to_be64(uint64_t x)
 {
 	return (be64_t){.val = _bswap64(x)};
 }
 
-static _attr_always_inline _attr_const _attr_unused uint16_t be16_to_cpu(be16_t x)
+static _attr_always_inline _attr_const uint16_t be16_to_cpu(be16_t x)
 {
 	return _bswap16(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused uint32_t be32_to_cpu(be32_t x)
+static _attr_always_inline _attr_const uint32_t be32_to_cpu(be32_t x)
 {
 	return _bswap32(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused uint64_t be64_to_cpu(be64_t x)
+static _attr_always_inline _attr_const uint64_t be64_to_cpu(be64_t x)
 {
 	return _bswap64(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused le16_t cpu_to_le16(uint16_t x)
+static _attr_always_inline _attr_const le16_t cpu_to_le16(uint16_t x)
 {
 	return (le16_t){.val = x};
 }
 
-static _attr_always_inline _attr_const _attr_unused le32_t cpu_to_le32(uint32_t x)
+static _attr_always_inline _attr_const le32_t cpu_to_le32(uint32_t x)
 {
 	return (le32_t){.val = x};
 }
 
-static _attr_always_inline _attr_const _attr_unused le64_t cpu_to_le64(uint64_t x)
+static _attr_always_inline _attr_const le64_t cpu_to_le64(uint64_t x)
 {
 	return (le64_t){.val = x};
 }
 
-static _attr_always_inline _attr_const _attr_unused uint16_t le16_to_cpu(le16_t x)
+static _attr_always_inline _attr_const uint16_t le16_to_cpu(le16_t x)
 {
 	return x.val;
 }
 
-static _attr_always_inline _attr_const _attr_unused uint32_t le32_to_cpu(le32_t x)
+static _attr_always_inline _attr_const uint32_t le32_to_cpu(le32_t x)
 {
 	return x.val;
 }
 
-static _attr_always_inline _attr_const _attr_unused uint64_t le64_to_cpu(le64_t x)
+static _attr_always_inline _attr_const uint64_t le64_to_cpu(le64_t x)
 {
 	return x.val;
 }
@@ -550,62 +553,62 @@ static _attr_always_inline _attr_const _attr_unused uint64_t le64_to_cpu(le64_t 
 
 #ifdef BYTE_ORDER_IS_BIG_ENDIAN
 
-static _attr_always_inline _attr_const _attr_unused le16_t cpu_to_le16(uint16_t x)
+static _attr_always_inline _attr_const le16_t cpu_to_le16(uint16_t x)
 {
 	return (le16_t)_bswap16(x);
 }
 
-static _attr_always_inline _attr_const _attr_unused le32_t cpu_to_le32(uint32_t x)
+static _attr_always_inline _attr_const le32_t cpu_to_le32(uint32_t x)
 {
 	return (le32_t)_bswap32(x);
 }
 
-static _attr_always_inline _attr_const _attr_unused le64_t cpu_to_le64(uint64_t x)
+static _attr_always_inline _attr_const le64_t cpu_to_le64(uint64_t x)
 {
 	return (le64_t)_bswap64(x);
 }
 
-static _attr_always_inline _attr_const _attr_unused uint16_t le16_to_cpu(le16_t x)
+static _attr_always_inline _attr_const uint16_t le16_to_cpu(le16_t x)
 {
 	return _bswap16(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused uint32_t le32_to_cpu(le32_t x)
+static _attr_always_inline _attr_const uint32_t le32_to_cpu(le32_t x)
 {
 	return _bswap32(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused uint64_t le64_to_cpu(le64_t x)
+static _attr_always_inline _attr_const uint64_t le64_to_cpu(le64_t x)
 {
 	return _bswap64(x.val);
 }
 
-static _attr_always_inline _attr_const _attr_unused be16_t cpu_to_be16(uint16_t x)
+static _attr_always_inline _attr_const be16_t cpu_to_be16(uint16_t x)
 {
 	return (be16_t)x;
 }
 
-static _attr_always_inline _attr_const _attr_unused be32_t cpu_to_be32(uint32_t x)
+static _attr_always_inline _attr_const be32_t cpu_to_be32(uint32_t x)
 {
 	return (be32_t)x;
 }
 
-static _attr_always_inline _attr_const _attr_unused be64_t cpu_to_be64(uint64_t x)
+static _attr_always_inline _attr_const be64_t cpu_to_be64(uint64_t x)
 {
 	return (be64_t)x;
 }
 
-static _attr_always_inline _attr_const _attr_unused uint16_t be16_to_cpu(be16_t x)
+static _attr_always_inline _attr_const uint16_t be16_to_cpu(be16_t x)
 {
 	return x.val;
 }
 
-static _attr_always_inline _attr_const _attr_unused uint32_t be32_to_cpu(be32_t x)
+static _attr_always_inline _attr_const uint32_t be32_to_cpu(be32_t x)
 {
 	return x.val;
 }
 
-static _attr_always_inline _attr_const _attr_unused uint64_t be64_to_cpu(be64_t x)
+static _attr_always_inline _attr_const uint64_t be64_to_cpu(be64_t x)
 {
 	return x.val;
 }

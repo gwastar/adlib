@@ -1,11 +1,6 @@
 #ifndef __CONFIG_INCLUDE__
 #define __CONFIG_INCLUDE__
 
-// TODO remove this now that the single header build is gone
-#ifndef __AD_LINKAGE
-# define __AD_LINKAGE
-#endif
-
 #cmakedefine __DISABLE_FUNCTION_DETECTION
 
 #cmakedefine HAVE_TYPEOF 1

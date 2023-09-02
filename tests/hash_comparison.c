@@ -27,7 +27,7 @@ char **numbers;
 
 DEFINE_HASHTABLE(stringset, const char *, const char *, 8, strcmp(*key, *entry) == 0)
 
-static int compare_doubles(const void *_a, const void *_b)
+	static int compare_doubles(const void *_a, const void *_b)
 {
 	double a = *(const double *)_a;
 	double b = *(const double *)_b;
@@ -168,7 +168,7 @@ static uint32_t xxh3_64(const char *str)
 
 #ifdef HAVE_GNUTLS
 
-static _attr_unused uint32_t gnutls_md5(const char *str)
+static uint32_t gnutls_md5(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -178,7 +178,7 @@ static _attr_unused uint32_t gnutls_md5(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gnutls_sha1(const char *str)
+static uint32_t gnutls_sha1(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -188,7 +188,7 @@ static _attr_unused uint32_t gnutls_sha1(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gnutls_sha256(const char *str)
+static uint32_t gnutls_sha256(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -198,7 +198,7 @@ static _attr_unused uint32_t gnutls_sha256(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gnutls_sha3(const char *str)
+static uint32_t gnutls_sha3(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -212,7 +212,7 @@ static _attr_unused uint32_t gnutls_sha3(const char *str)
 
 #ifdef HAVE_GCRYPT
 
-static _attr_unused uint32_t gcrypt_md5(const char *str)
+static uint32_t gcrypt_md5(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -222,7 +222,7 @@ static _attr_unused uint32_t gcrypt_md5(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gcrypt_sha1(const char *str)
+static uint32_t gcrypt_sha1(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -232,7 +232,7 @@ static _attr_unused uint32_t gcrypt_sha1(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gcrypt_sha256(const char *str)
+static uint32_t gcrypt_sha256(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -242,7 +242,7 @@ static _attr_unused uint32_t gcrypt_sha256(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gcrypt_blake2(const char *str)
+static uint32_t gcrypt_blake2(const char *str)
 {
 	union {
 		uint32_t u32;
@@ -252,7 +252,7 @@ static _attr_unused uint32_t gcrypt_blake2(const char *str)
 	return hash.u32;
 }
 
-static _attr_unused uint32_t gcrypt_sha3(const char *str)
+static uint32_t gcrypt_sha3(const char *str)
 {
 	union {
 		uint32_t u32;

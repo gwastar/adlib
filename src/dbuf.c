@@ -23,25 +23,25 @@
 #include <string.h>
 #include "dbuf.h"
 
-__AD_LINKAGE void dbuf_init(struct dbuf *dbuf)
+void dbuf_init(struct dbuf *dbuf)
 {
 	*dbuf = DBUF_INITIALIZER;
 }
 
-__AD_LINKAGE void dbuf_destroy(struct dbuf *dbuf)
+void dbuf_destroy(struct dbuf *dbuf)
 {
 	free(dbuf->_buf);
 	dbuf_init(dbuf);
 }
 
-__AD_LINKAGE void *dbuf_finalize(struct dbuf *dbuf)
+void *dbuf_finalize(struct dbuf *dbuf)
 {
 	void *buf = dbuf->_buf;
 	dbuf_init(dbuf);
 	return buf;
 }
 
-__AD_LINKAGE struct dbuf dbuf_copy(const struct dbuf *dbuf)
+struct dbuf dbuf_copy(const struct dbuf *dbuf)
 {
 	struct dbuf copy;
 	copy._size = dbuf->_size;
@@ -58,39 +58,39 @@ __AD_LINKAGE struct dbuf dbuf_copy(const struct dbuf *dbuf)
 	return copy;
 }
 
-__AD_LINKAGE void *dbuf_buffer(const struct dbuf *dbuf)
+void *dbuf_buffer(const struct dbuf *dbuf)
 {
 	return dbuf->_buf;
 }
 
-__AD_LINKAGE size_t dbuf_size(const struct dbuf *dbuf)
+size_t dbuf_size(const struct dbuf *dbuf)
 {
 	return dbuf->_size;
 }
 
-__AD_LINKAGE size_t dbuf_capacity(const struct dbuf *dbuf)
+size_t dbuf_capacity(const struct dbuf *dbuf)
 {
 	return dbuf->_capacity;
 }
 
-__AD_LINKAGE size_t dbuf_available_size(const struct dbuf *dbuf)
+size_t dbuf_available_size(const struct dbuf *dbuf)
 {
 	return dbuf->_capacity - dbuf->_size;
 }
 
-__AD_LINKAGE void dbuf_truncate(struct dbuf *dbuf, size_t new_size)
+void dbuf_truncate(struct dbuf *dbuf, size_t new_size)
 {
 	if (likely(new_size < dbuf->_size)) {
 		dbuf->_size = new_size;
 	}
 }
 
-__AD_LINKAGE void dbuf_clear(struct dbuf *dbuf)
+void dbuf_clear(struct dbuf *dbuf)
 {
 	dbuf_truncate(dbuf, 0);
 }
 
-__AD_LINKAGE void dbuf_resize(struct dbuf *dbuf, size_t capacity)
+void dbuf_resize(struct dbuf *dbuf, size_t capacity)
 {
 	if (unlikely(capacity == dbuf->_capacity)) {
 		return;
@@ -105,12 +105,12 @@ __AD_LINKAGE void dbuf_resize(struct dbuf *dbuf, size_t capacity)
 	dbuf->_capacity = capacity;
 }
 
-__AD_LINKAGE void dbuf_shrink_to_fit(struct dbuf *dbuf)
+void dbuf_shrink_to_fit(struct dbuf *dbuf)
 {
 	dbuf_resize(dbuf, dbuf->_size);
 }
 
-__AD_LINKAGE void dbuf_grow(struct dbuf *dbuf, size_t n)
+void dbuf_grow(struct dbuf *dbuf, size_t n)
 {
 	if (unlikely(n == 0)) {
 		return;
@@ -123,7 +123,7 @@ __AD_LINKAGE void dbuf_grow(struct dbuf *dbuf, size_t n)
 	dbuf_resize(dbuf, new_capacity);
 }
 
-__AD_LINKAGE void dbuf_reserve(struct dbuf *dbuf, size_t n)
+void dbuf_reserve(struct dbuf *dbuf, size_t n)
 {
 	size_t avail = dbuf_available_size(dbuf);
 	if (n > avail) {
@@ -131,14 +131,14 @@ __AD_LINKAGE void dbuf_reserve(struct dbuf *dbuf, size_t n)
 	}
 }
 
-__AD_LINKAGE void dbuf_add_byte(struct dbuf *dbuf, unsigned char byte)
+void dbuf_add_byte(struct dbuf *dbuf, unsigned char byte)
 {
 	dbuf_reserve(dbuf, 1);
 	dbuf->_buf[dbuf->_size] = byte;
 	dbuf->_size++;
 }
 
-__AD_LINKAGE void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count)
+void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count)
 {
 	dbuf_reserve(dbuf, count);
 	void *p = dbuf->_buf + dbuf->_size;
@@ -146,7 +146,7 @@ __AD_LINKAGE void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count)
 	return p;
 }
 
-__AD_LINKAGE void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count)
+void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count)
 {
 	if (likely(count != 0)) {
 		void *p = dbuf_add_uninitialized(dbuf, count);
@@ -154,17 +154,17 @@ __AD_LINKAGE void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count)
 	}
 }
 
-__AD_LINKAGE void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other)
+void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other)
 {
 	dbuf_add_buf(dbuf, dbuf_buffer(other), dbuf_size(other));
 }
 
-__AD_LINKAGE void dbuf_add_str(struct dbuf *dbuf, const char *str)
+void dbuf_add_str(struct dbuf *dbuf, const char *str)
 {
 	dbuf_add_buf(dbuf, str, strlen(str));
 }
 
-__AD_LINKAGE void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...)
+void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

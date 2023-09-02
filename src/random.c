@@ -36,9 +36,9 @@
 
    It is a very fast generator passing BigCrush, and it can be useful if
    for some reason you absolutely want 64 bits of state.
- */
+*/
 
-static _attr_unused uint64_t _random_splitmix64(uint64_t *x)
+static uint64_t _random_splitmix64(uint64_t *x)
 {
 	uint64_t z = (*x += 0x9e3779b97f4a7c15);
 	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
@@ -46,7 +46,7 @@ static _attr_unused uint64_t _random_splitmix64(uint64_t *x)
 	return z ^ (z >> 31);
 }
 
-__AD_LINKAGE void random_state_init(struct random_state *state, uint64_t seed)
+void random_state_init(struct random_state *state, uint64_t seed)
 {
 	uint64_t z, x = seed;
 	z = _random_splitmix64(&x);
@@ -79,9 +79,9 @@ __AD_LINKAGE void random_state_init(struct random_state *state, uint64_t seed)
    The state must be seeded so that it is not everywhere zero. If you have
    a 64-bit seed, we suggest to seed a splitmix64 generator and use its
    output to fill s.
- */
+*/
 
-__AD_LINKAGE uint64_t random_next_u64(struct random_state *state)
+uint64_t random_next_u64(struct random_state *state)
 {
 #define rotl(x, k) ((uint64_t)(x) << (k)) | ((uint64_t)(x) >> (64 - (k)))
 	const uint64_t result = rotl(state->s[1] * 5, 7) * 9;
@@ -101,27 +101,27 @@ __AD_LINKAGE uint64_t random_next_u64(struct random_state *state)
 #undef rotl
 }
 
-__AD_LINKAGE uint32_t random_next_u32(struct random_state *state)
+uint32_t random_next_u32(struct random_state *state)
 {
 	return (uint32_t)random_next_u64(state);
 }
 
-__AD_LINKAGE double random_next_uniform_double(struct random_state *state)
+double random_next_uniform_double(struct random_state *state)
 {
 	return (random_next_u64(state) >> 11) * 0x1.0p-53;
 }
 
-__AD_LINKAGE float random_next_uniform_float(struct random_state *state)
+float random_next_uniform_float(struct random_state *state)
 {
 	return (random_next_u32(state) >> 8) * 0x1.0p-24f;
 }
 
-__AD_LINKAGE bool random_next_bool(struct random_state *state)
+bool random_next_bool(struct random_state *state)
 {
 	return random_next_u32(state) & 1;
 }
 
-__AD_LINKAGE uint32_t random_next_u32_in_range(struct random_state *state, uint32_t min, uint32_t max)
+uint32_t random_next_u32_in_range(struct random_state *state, uint32_t min, uint32_t max)
 {
 	// https://arxiv.org/pdf/1805.10941.pdf
 	assert(min <= max);
@@ -143,7 +143,7 @@ __AD_LINKAGE uint32_t random_next_u32_in_range(struct random_state *state, uint3
 	return min + (m >> 32);
 }
 
-__AD_LINKAGE uint64_t random_next_u64_in_range(struct random_state *state, uint64_t min, uint64_t max)
+uint64_t random_next_u64_in_range(struct random_state *state, uint64_t min, uint64_t max)
 {
 	assert(min <= max);
 	// TODO this should produce the same result whether or not 128 bit integers are available
@@ -181,13 +181,13 @@ __AD_LINKAGE uint64_t random_next_u64_in_range(struct random_state *state, uint6
 #endif
 }
 
-__AD_LINKAGE float random_next_float_in_range(struct random_state *state, float min, float max)
+float random_next_float_in_range(struct random_state *state, float min, float max)
 {
 	assert(min <= max);
 	return min + random_next_uniform_float(state) * (max - min);
 }
 
-__AD_LINKAGE double random_next_double_in_range(struct random_state *state, double min, double max)
+double random_next_double_in_range(struct random_state *state, double min, double max)
 {
 	assert(min <= max);
 	return min + random_next_uniform_double(state) * (max - min);
@@ -197,9 +197,9 @@ __AD_LINKAGE double random_next_double_in_range(struct random_state *state, doub
 /* This is the jump function for the generator. It is equivalent
    to 2^128 calls to next(); it can be used to generate 2^128
    non-overlapping subsequences for parallel computations.
- */
+*/
 
-__AD_LINKAGE void random_jump(struct random_state *state)
+void random_jump(struct random_state *state)
 {
 	static const uint64_t JUMP[] = { 0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c };
 
@@ -230,9 +230,9 @@ __AD_LINKAGE void random_jump(struct random_state *state)
    2^192 calls to next(); it can be used to generate 2^64 starting points,
    from each of which jump() will generate 2^64 non-overlapping
    subsequences for parallel distributed computations.
- */
+*/
 
-__AD_LINKAGE void random_long_jump(struct random_state *state)
+void random_long_jump(struct random_state *state)
 {
 	static const uint64_t LONG_JUMP[] = { 0x76e15d3efefdcbbf, 0xc5004e441c522fb3, 0x77710069854ee241, 0x39109bb02acbe635 };
 

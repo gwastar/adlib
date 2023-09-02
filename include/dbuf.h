@@ -36,48 +36,48 @@ struct dbuf {
 #define DBUF_INITIALIZER ((struct dbuf){0})
 
 // initialize a dynamic buffer (you can also use DBUF_INITIALIZER, this does not allocate any memory)
-__AD_LINKAGE _attr_unused void dbuf_init(struct dbuf *dbuf);
+void dbuf_init(struct dbuf *dbuf);
 // release all resources associated with dbuf (you should reinitialize dbuf before using it again)
-__AD_LINKAGE _attr_unused void dbuf_destroy(struct dbuf *dbuf);
+void dbuf_destroy(struct dbuf *dbuf);
 // return the internal buffer (which you need to free() eventually) and reinitialize dbuf
-__AD_LINKAGE _attr_unused _attr_nodiscard void *dbuf_finalize(struct dbuf *dbuf);
+void *dbuf_finalize(struct dbuf *dbuf) _attr_nodiscard;
 // make an exact copy of dbuf (same content, same capacity, different memory)
-__AD_LINKAGE _attr_unused _attr_nodiscard struct dbuf dbuf_copy(const struct dbuf *dbuf);
+struct dbuf dbuf_copy(const struct dbuf *dbuf) _attr_nodiscard;
 // return the internal buffer (which is still owned by dbuf after calling this function)
 // Warning: modifications to dbuf may invalidate the returned pointer (due to realloc)
-__AD_LINKAGE _attr_unused _attr_pure void *dbuf_buffer(const struct dbuf *dbuf);
+void *dbuf_buffer(const struct dbuf *dbuf) _attr_pure;
 // return the size of the contents of dbuf in bytes
-__AD_LINKAGE _attr_unused _attr_pure size_t dbuf_size(const struct dbuf *dbuf);
+size_t dbuf_size(const struct dbuf *dbuf) _attr_pure;
 // return the capacity of the internal buffer of dbuf in bytes
-__AD_LINKAGE _attr_unused _attr_pure size_t dbuf_capacity(const struct dbuf *dbuf);
+size_t dbuf_capacity(const struct dbuf *dbuf) _attr_pure;
 // return the number of bytes that can be added to dbuf without causing the internal buffer to grow
-__AD_LINKAGE _attr_unused _attr_pure size_t dbuf_available_size(const struct dbuf *dbuf);
+size_t dbuf_available_size(const struct dbuf *dbuf) _attr_pure;
 // set the size of dbuf's contents to min(new_size, dbuf_size(dbuf)) (does not change capacity)
-__AD_LINKAGE _attr_unused void dbuf_truncate(struct dbuf *dbuf, size_t new_size);
+void dbuf_truncate(struct dbuf *dbuf, size_t new_size);
 // equivalent to dbuf_truncate(dbuf, 0)
-__AD_LINKAGE _attr_unused void dbuf_clear(struct dbuf *dbuf);
+void dbuf_clear(struct dbuf *dbuf);
 // set the (minimum) capacity of dbuf's internal buffer
 // (truncates the size to the new capacity if needed, may allocate more memory than requested)
-__AD_LINKAGE _attr_unused void dbuf_resize(struct dbuf *dbuf, size_t capacity);
+void dbuf_resize(struct dbuf *dbuf, size_t capacity);
 // set the capacity of dbuf's internal buffer to its size
-__AD_LINKAGE _attr_unused void dbuf_shrink_to_fit(struct dbuf *dbuf);
+void dbuf_shrink_to_fit(struct dbuf *dbuf);
 // increase capacity by atleast n bytes
-__AD_LINKAGE _attr_unused void dbuf_grow(struct dbuf *dbuf, size_t n);
+void dbuf_grow(struct dbuf *dbuf, size_t n);
 // ensure that the internal buffer has enough capacity for at least n more bytes
 // (does not change length, only capacity)
-__AD_LINKAGE _attr_unused void dbuf_reserve(struct dbuf *dbuf, size_t n);
+void dbuf_reserve(struct dbuf *dbuf, size_t n);
 // append a byte
-__AD_LINKAGE _attr_unused void dbuf_add_byte(struct dbuf *dbuf, unsigned char byte);
+void dbuf_add_byte(struct dbuf *dbuf, unsigned char byte);
 // append 'count' bytes of uninitialized memory and return a pointer to that memory
 // Warning: modifications to dbuf may invalidate the returned pointer (due to realloc)
-__AD_LINKAGE _attr_unused _attr_nodiscard void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count);
+void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count) _attr_nodiscard;
 // append 'count' bytes from 'buf' ('buf' can only be NULL if 'count' is zero)
-__AD_LINKAGE _attr_unused void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count);
+void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count);
 // append the contents of 'other'
-__AD_LINKAGE _attr_unused _attr_nonnull(2) void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other);
+void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other) _attr_nonnull(2);
 // append a null-terminated string without the null terminator
-__AD_LINKAGE _attr_unused _attr_nonnull(2) void dbuf_add_str(struct dbuf *dbuf, const char *str);
+void dbuf_add_str(struct dbuf *dbuf, const char *str) _attr_nonnull(2);
 // append a formatted string (see printf for details)
-__AD_LINKAGE _attr_unused _attr_format_printf(2, 3) void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...);
+void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...) _attr_format_printf(2, 3);
 
 #endif

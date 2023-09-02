@@ -81,17 +81,17 @@ struct json_object_member {
 };
 DEFINE_HASHTABLE(json_object_members, char *, struct json_object_member, 8, strcmp(*key, entry->name) == 0)
 
-struct json_value {
-	enum {
-		JSON_OBJECT,
-		JSON_ARRAY,
-		JSON_NUMBER,
-		JSON_STRING,
-		JSON_FALSE,
-		JSON_NULL,
-		JSON_TRUE,
-	} kind;
-};
+	struct json_value {
+		enum {
+			JSON_OBJECT,
+			JSON_ARRAY,
+			JSON_NUMBER,
+			JSON_STRING,
+			JSON_FALSE,
+			JSON_NULL,
+			JSON_TRUE,
+		} kind;
+	};
 
 struct json_object {
 	struct json_value value;

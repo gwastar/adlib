@@ -26,7 +26,7 @@ static int cmp_int(const void *a, const void *b)
 
 DEFINE_HASHTABLE(itable, int, int, 8, (*key == *entry))
 
-RANDOM_TEST(hashset, 2, 0, UINT64_MAX)
+	RANDOM_TEST(hashset, 2, 0, UINT64_MAX)
 {
 	struct itable itable;
 	itable_init(&itable, 16);

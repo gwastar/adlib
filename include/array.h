@@ -336,7 +336,7 @@ typedef struct {
 #endif
 } _arr;
 
-static _attr_always_inline _attr_unused _attr_nonnull(1) _arr *_arrhead(const void *p)
+static _attr_always_inline _attr_nonnull(1) _arr *_arrhead(const void *p)
 {
 	_arr *arr = (_arr *)p - 1;
 	_fortify_check(arr->magic1 == ARRAY_MAGIC1 &&
@@ -349,74 +349,72 @@ static _attr_always_inline _attr_unused _attr_nonnull(1) _arr *_arrhead(const vo
 #define _arr_attr_assume_aligned					\
 	_attr_assume_aligned(_Alignof(max_align_t), sizeof(_arr) % _Alignof(max_align_t))
 
-__AD_LINKAGE _attr_unused _attr_nodiscard _arr_attr_assume_aligned void *_arr_resize_internal(void *arr, size_t elem_size, size_t capacity);
-__AD_LINKAGE _attr_unused _attr_nodiscard _arr_attr_assume_aligned void *_arr_copy(const void *arr, size_t elem_size);
-__AD_LINKAGE _attr_unused void _arr_grow(void **arrp, size_t elem_size, size_t n);
-__AD_LINKAGE _attr_unused void _arr_make_valid(void **arrp, size_t elem_size, size_t i);
-__AD_LINKAGE _attr_unused void *_arr_addn(void **arrp, size_t elem_size, size_t n);
-__AD_LINKAGE _attr_unused void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t n);
-__AD_LINKAGE _attr_unused void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, size_t n);
-__AD_LINKAGE _attr_unused void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_t n);
-__AD_LINKAGE _attr_unused _attr_nonnull(3) void _arr_sort(void *arr, size_t elem_size,
-							  int (*compare)(const void *, const void *));
-__AD_LINKAGE _attr_unused _attr_pure _attr_nonnull(4) void *_arr_bsearch(const void *arr, size_t elem_size, const void *key,
-							      int (*compare)(const void *, const void *));
-__AD_LINKAGE _attr_unused _attr_nonnull(4, 5) bool _arr_bsearch_index(const void *arr, size_t elem_size,
-								      const void *key,
-								      int (*compare)(const void *, const void *),
-								      size_t *ret_index);
-__AD_LINKAGE _attr_unused _attr_nodiscard _attr_pure bool _arr_equal(const void *arr1, size_t elem_size,
-								     const void *arr2);
+void *_arr_resize_internal(void *arr, size_t elem_size, size_t capacity) _attr_nodiscard _arr_attr_assume_aligned;
+void *_arr_copy(const void *arr, size_t elem_size) _attr_nodiscard _arr_attr_assume_aligned ;
+void _arr_grow(void **arrp, size_t elem_size, size_t n);
+void _arr_make_valid(void **arrp, size_t elem_size, size_t i);
+void *_arr_addn(void **arrp, size_t elem_size, size_t n);
+void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t n);
+void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, size_t n);
+void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_t n);
+void _arr_sort(void *arr, size_t elem_size, int (*compare)(const void *, const void *)) _attr_nonnull(3);
+void *_arr_bsearch(const void *arr, size_t elem_size, const void *key,
+		   int (*compare)(const void *, const void *)) _attr_pure _attr_nonnull(4);
+bool _arr_bsearch_index(const void *arr, size_t elem_size,
+			const void *key,
+			int (*compare)(const void *, const void *),
+			size_t *ret_index) _attr_nonnull(4, 5);
+bool _arr_equal(const void *arr1, size_t elem_size, const void *arr2) _attr_nodiscard _attr_pure ;
 
-static inline _attr_unused _attr_pure size_t _arr_length(const void *arr)
+static inline _attr_pure size_t _arr_length(const void *arr)
 {
 	return arr ? _arrhead_const(arr)->length : 0;
 }
 
-static inline _attr_unused _attr_nonnull(1) _attr_pure size_t _arr_lasti(const void *arr)
+static inline _attr_nonnull(1) _attr_pure size_t _arr_lasti(const void *arr)
 {
 	size_t len = _arr_length(arr);
 	_fortify_check(len != 0);
 	return len - 1;
 }
 
-static inline _attr_unused _attr_pure size_t _arr_capacity(const void *arr)
+static inline _attr_pure size_t _arr_capacity(const void *arr)
 {
 	return arr ? _arrhead_const(arr)->capacity : 0;
 }
 
-static inline _attr_unused void _arr_clear(void *arr)
+static inline void _arr_clear(void *arr)
 {
 	if (arr) {
 		_arrhead(arr)->length = 0;
 	}
 }
 
-static inline _attr_unused void _arr_truncate(void *arr, size_t newlen)
+static inline void _arr_truncate(void *arr, size_t newlen)
 {
 	if (newlen < _arr_length(arr)) {
 		_arrhead(arr)->length = newlen;
 	}
 }
 
-static inline _attr_unused void _arr_free(void **arrp)
+static inline void _arr_free(void **arrp)
 {
 	*arrp = _arr_resize_internal(*arrp, 0, 0);
 }
 
-static inline _attr_unused void _arr_resize(void **arrp, size_t elem_size, size_t capacity)
+static inline void _arr_resize(void **arrp, size_t elem_size, size_t capacity)
 {
 	*arrp = _arr_resize_internal(*arrp, elem_size, capacity);
 }
 
-static inline _attr_unused _attr_nodiscard void *_arr_move(void **arrp)
+static inline _attr_nodiscard void *_arr_move(void **arrp)
 {
 	void *arr = *arrp;
 	*arrp = NULL;
 	return arr;
 }
 
-static inline _attr_unused void _arr_reserve(void **arrp, size_t elem_size, size_t n)
+static inline void _arr_reserve(void **arrp, size_t elem_size, size_t n)
 {
 	size_t rem = _arr_capacity(*arrp) - _arr_length(*arrp);
 	if (n > rem) {
@@ -424,7 +422,7 @@ static inline _attr_unused void _arr_reserve(void **arrp, size_t elem_size, size
 	}
 }
 
-static inline _attr_unused void *_arr_addn_zero(void **arrp, size_t elem_size, size_t n)
+static inline void *_arr_addn_zero(void **arrp, size_t elem_size, size_t n)
 {
 	void *p = _arr_addn(arrp, elem_size, n);
 	if (likely(p)) {
@@ -433,7 +431,7 @@ static inline _attr_unused void *_arr_addn_zero(void **arrp, size_t elem_size, s
 	return p;
 }
 
-static inline _attr_unused void *_arr_insertn_zero(void **arrp, size_t elem_size, size_t i, size_t n)
+static inline void *_arr_insertn_zero(void **arrp, size_t elem_size, size_t i, size_t n)
 {
 	void *p = _arr_insertn(arrp, elem_size, i, n);
 	if (likely(p)) {
@@ -442,18 +440,18 @@ static inline _attr_unused void *_arr_insertn_zero(void **arrp, size_t elem_size
 	return p;
 }
 
-static inline _attr_unused void _arr_popn(void *arr, size_t n)
+static inline void _arr_popn(void *arr, size_t n)
 {
 	_fortify_check(n <= _arr_length(arr));
 	_arrhead(arr)->length -= n;
 }
 
-static inline _attr_unused void _arr_shrink_to_fit(void **arrp, size_t elem_size)
+static inline void _arr_shrink_to_fit(void **arrp, size_t elem_size)
 {
 	*arrp = _arr_resize_internal(*arrp, elem_size, _arr_length(*arrp));
 }
 
-static inline _attr_unused _attr_nonnull(1, 3) _attr_pure
+static inline _attr_nonnull(1, 3) _attr_pure
 size_t _arr_index_of(const void *arr, size_t elem_size, const void *ptr)
 {
 	size_t diff = (char *)ptr - (char *)arr;
@@ -463,8 +461,8 @@ size_t _arr_index_of(const void *arr, size_t elem_size, const void *ptr)
 	return index;
 }
 
-static _attr_always_inline _attr_unused void _arr_add_arrayn(void **arrp, size_t elem_size,
-							     const void *arr2, size_t n)
+static _attr_always_inline void _arr_add_arrayn(void **arrp, size_t elem_size,
+						const void *arr2, size_t n)
 {
 	if (unlikely(n == 0 || !arr2)) {
 		return;
@@ -474,12 +472,12 @@ static _attr_always_inline _attr_unused void _arr_add_arrayn(void **arrp, size_t
 	memcpy(dst, arr2, n * elem_size);
 }
 
-static inline _attr_unused void _arr_add_array(void **arrp, size_t elem_size, const void *arr2)
+static inline void _arr_add_array(void **arrp, size_t elem_size, const void *arr2)
 {
 	_arr_add_arrayn(arrp, elem_size, arr2, _arr_length(arr2));
 }
 
-static inline _attr_unused _attr_nonnull(1, 3)
+static inline _attr_nonnull(1, 3)
 void _arr_swap_elements_unchecked(void *arr, size_t elem_size, unsigned char *buf, size_t i, size_t j)
 {
 	size_t n = elem_size;
@@ -489,7 +487,7 @@ void _arr_swap_elements_unchecked(void *arr, size_t elem_size, unsigned char *bu
 	memcpy(&a[n * j], buf,       n);
 }
 
-static inline _attr_unused _attr_nonnull(1, 3)
+static inline _attr_nonnull(1, 3)
 void _arr_swap_elements(void *arr, size_t elem_size, unsigned char *buf, size_t i, size_t j)
 {
 	_fortify_check(i < array_length(arr));
@@ -499,7 +497,7 @@ void _arr_swap_elements(void *arr, size_t elem_size, unsigned char *buf, size_t 
 	}
 }
 
-static inline _attr_unused _attr_nonnull(3)
+static inline _attr_nonnull(3)
 void _arr_reverse(void *arr, size_t elem_size, unsigned char *buf)
 {
 	for (size_t i = 0; i < _arr_length(arr) / 2; i++) {
@@ -507,7 +505,7 @@ void _arr_reverse(void *arr, size_t elem_size, unsigned char *buf)
 	}
 }
 
-static inline _attr_unused _attr_nonnull(3, 4)
+static inline _attr_nonnull(3, 4)
 void _arr_shuffle_elements(void *arr, size_t elem_size, unsigned char *buf, size_t (*random)(void))
 {
 	if (unlikely(array_empty(arr))) {
@@ -537,7 +535,7 @@ void _arr_shuffle_elements(void *arr, size_t elem_size, unsigned char *buf, size
 	} while (0)
 
 #define _arr_last(a) (*(typeof(a))_arr_last_pointer((a), sizeof((a)[0])))
-static inline _attr_unused _attr_nonnull(1) _attr_pure void *_arr_last_pointer(void *arr, size_t elem_size)
+static inline _attr_nonnull(1) _attr_pure void *_arr_last_pointer(void *arr, size_t elem_size)
 {
 	return (char *)arr + _arr_lasti(arr) * elem_size;
 }
@@ -556,7 +554,7 @@ static inline _attr_unused _attr_nonnull(1) _attr_pure void *_arr_last_pointer(v
 	} while (0)
 
 #define _arr_pop(a) (*(typeof(a))_arr_pop_and_return_pointer((a), sizeof((a)[0])))
-static inline _attr_nonnull(1) _attr_unused void *_arr_pop_and_return_pointer(void *arr, size_t elem_size)
+static inline _attr_nonnull(1) void *_arr_pop_and_return_pointer(void *arr, size_t elem_size)
 {
 	_fortify_check(!array_empty(arr));
 	_arrhead(arr)->length--;
@@ -587,7 +585,7 @@ static inline _attr_nonnull(1) _attr_unused void *_arr_pop_and_return_pointer(vo
 	     (_arr_iter_##__LINE__)++)
 
 #define _arr_foreach_value_reverse(a, itername)				\
-	for (typeof((a)[0]) (itername), *_arr_base_##__LINE__ = (a), \
+	for (typeof((a)[0]) (itername), *_arr_base_##__LINE__ = (a),	\
 		     *_arr_iter_##__LINE__ = _arr_end_ptr(_arr_base_##__LINE__); \
 	     (_arr_iter_##__LINE__) && (_arr_iter_##__LINE__)-- > (_arr_base_##__LINE__) && ((itername) = *(_arr_iter_##__LINE__), 1);)
 

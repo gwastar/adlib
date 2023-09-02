@@ -17,9 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __DSTRING_INCLUDE__ // hack for single header
-# define _GNU_SOURCE
-#endif
+#define _GNU_SOURCE
 
 #include <assert.h>
 #include <limits.h>
@@ -35,7 +33,7 @@
 #include "dstring.h"
 #include "utils.h"
 
-static _attr_always_inline _attr_unused struct strview _strview_from_chars(const char *chars, size_t n)
+static _attr_always_inline struct strview _strview_from_chars(const char *chars, size_t n)
 {
 	return (struct strview){
 		.characters = chars,
@@ -43,17 +41,17 @@ static _attr_always_inline _attr_unused struct strview _strview_from_chars(const
 	};
 }
 
-__AD_LINKAGE struct strview (strview_from_chars)(const char *chars, size_t n)
+struct strview (strview_from_chars)(const char *chars, size_t n)
 {
 	return _strview_from_chars(chars, n);
 }
 
-__AD_LINKAGE struct strview strview_from_cstr(const char *cstr)
+struct strview strview_from_cstr(const char *cstr)
 {
 	return _strview_from_chars(cstr, strlen(cstr));
 }
 
-__AD_LINKAGE char *strview_to_cstr(struct strview view)
+char *strview_to_cstr(struct strview view)
 {
 	char *p = malloc(view.length + 1);
 	if (unlikely(!p)) {
@@ -64,7 +62,7 @@ __AD_LINKAGE char *strview_to_cstr(struct strview view)
 	return p;
 }
 
-__AD_LINKAGE struct strview strview_substring(struct strview view, size_t start, size_t length)
+struct strview strview_substring(struct strview view, size_t start, size_t length)
 {
 	assert(start <= view.length);
 	size_t rem = view.length - start;
@@ -77,7 +75,7 @@ __AD_LINKAGE struct strview strview_substring(struct strview view, size_t start,
 	};
 }
 
-__AD_LINKAGE struct strview strview_narrow(struct strview view, size_t left, size_t right)
+struct strview strview_narrow(struct strview view, size_t left, size_t right)
 {
 	if (left > view.length) {
 		left = view.length;
@@ -91,7 +89,7 @@ __AD_LINKAGE struct strview strview_narrow(struct strview view, size_t left, siz
 	return view;
 }
 
-__AD_LINKAGE int strview_compare(struct strview view1, struct strview view2)
+int strview_compare(struct strview view1, struct strview view2)
 {
 	size_t n = view1.length < view2.length ? view1.length : view2.length;
 	int result = strncmp(view1.characters, view2.characters, n);
@@ -105,7 +103,7 @@ __AD_LINKAGE int strview_compare(struct strview view1, struct strview view2)
 	return result;
 }
 
-__AD_LINKAGE int strview_compare_cstr(struct strview view, const char *cstr)
+int strview_compare_cstr(struct strview view, const char *cstr)
 {
 	size_t n = view.length;
 	int result = strncmp(view.characters, cstr, n);
@@ -117,7 +115,7 @@ __AD_LINKAGE int strview_compare_cstr(struct strview view, const char *cstr)
 	return result;
 }
 
-__AD_LINKAGE bool strview_equal(struct strview view1, struct strview view2)
+bool strview_equal(struct strview view1, struct strview view2)
 {
 	if (view1.length != view2.length) {
 		return false;
@@ -125,12 +123,12 @@ __AD_LINKAGE bool strview_equal(struct strview view1, struct strview view2)
 	return memcmp(view1.characters, view2.characters, view1.length) == 0;
 }
 
-__AD_LINKAGE bool strview_equal_cstr(struct strview view, const char *cstr)
+bool strview_equal_cstr(struct strview view, const char *cstr)
 {
 	return strncmp(view.characters, cstr, view.length) == 0 && cstr[view.length] == '\0';
 }
 
-__AD_LINKAGE size_t strview_find(struct strview haystack, struct strview needle, size_t pos)
+size_t strview_find(struct strview haystack, struct strview needle, size_t pos)
 {
 	haystack = strview_narrow(haystack, pos, 0);
 #if defined(HAVE_MEMMEM) && defined(_GNU_SOURCE)
@@ -160,12 +158,12 @@ __AD_LINKAGE size_t strview_find(struct strview haystack, struct strview needle,
 	return found ? (size_t)(found - haystack.characters) + pos : STRVIEW_NPOS;
 }
 
-__AD_LINKAGE size_t strview_find_cstr(struct strview haystack, const char *needle, size_t pos)
+size_t strview_find_cstr(struct strview haystack, const char *needle, size_t pos)
 {
 	return strview_find(haystack, strview_from_cstr(needle), pos);
 }
 
-static _attr_unused _attr_always_inline void *_strview_memrchr(const void *s, unsigned char c, size_t n)
+static _attr_always_inline void *_strview_memrchr(const void *s, unsigned char c, size_t n)
 {
 #if defined(HAVE_MEMRCHR) && defined(_GNU_SOURCE)
 	return memrchr(s, c, n);
@@ -184,7 +182,7 @@ static _attr_unused _attr_always_inline void *_strview_memrchr(const void *s, un
 #endif
 }
 
-__AD_LINKAGE size_t strview_rfind(struct strview haystack, struct strview needle, size_t pos)
+size_t strview_rfind(struct strview haystack, struct strview needle, size_t pos)
 {
 	if (unlikely(needle.length == 0)) {
 		return haystack.length;
@@ -212,12 +210,12 @@ __AD_LINKAGE size_t strview_rfind(struct strview haystack, struct strview needle
 	return found ? (size_t)(found - haystack.characters) : STRVIEW_NPOS;
 }
 
-__AD_LINKAGE size_t strview_rfind_cstr(struct strview haystack, const char *needle, size_t pos)
+size_t strview_rfind_cstr(struct strview haystack, const char *needle, size_t pos)
 {
 	return strview_rfind(haystack, strview_from_cstr(needle), pos);
 }
 
-static _attr_unused _attr_always_inline
+static _attr_always_inline
 size_t _strview_find_characters(struct strview view, const unsigned char *chars,
 				bool reject, bool reverse, size_t pos)
 {
@@ -244,7 +242,7 @@ size_t _strview_find_characters(struct strview view, const unsigned char *chars,
 	return found ? (size_t)(found - start) : STRVIEW_NPOS;
 }
 
-__AD_LINKAGE size_t strview_find_first_of(struct strview view, const char *accept, size_t pos)
+size_t strview_find_first_of(struct strview view, const char *accept, size_t pos)
 {
 	if (unlikely(accept[0] == '\0')) {
 		return STRVIEW_NPOS;
@@ -257,7 +255,7 @@ __AD_LINKAGE size_t strview_find_first_of(struct strview view, const char *accep
 	return _strview_find_characters(view, (const unsigned char *)accept, false, false, pos);
 }
 
-__AD_LINKAGE size_t strview_find_last_of(struct strview view, const char *accept, size_t pos)
+size_t strview_find_last_of(struct strview view, const char *accept, size_t pos)
 {
 	if (unlikely(accept[0] == '\0')) {
 		return STRVIEW_NPOS;
@@ -272,19 +270,19 @@ __AD_LINKAGE size_t strview_find_last_of(struct strview view, const char *accept
 	return _strview_find_characters(view, (const unsigned char *)accept, false, true, pos);
 }
 
-__AD_LINKAGE size_t strview_find_first_not_of(struct strview view, const char *reject, size_t pos)
+size_t strview_find_first_not_of(struct strview view, const char *reject, size_t pos)
 {
 	// TODO optimized version for single character reject?
 	return _strview_find_characters(view, (const unsigned char *)reject, true, false, pos);
 }
 
-__AD_LINKAGE size_t strview_find_last_not_of(struct strview view, const char *reject, size_t pos)
+size_t strview_find_last_not_of(struct strview view, const char *reject, size_t pos)
 {
 	// TODO optimized version for single character reject?
 	return _strview_find_characters(view, (const unsigned char *)reject, true, true, pos);
 }
 
-__AD_LINKAGE bool strview_startswith(struct strview view, struct strview prefix)
+bool strview_startswith(struct strview view, struct strview prefix)
 {
 	if (prefix.length > view.length) {
 		return false;
@@ -292,7 +290,7 @@ __AD_LINKAGE bool strview_startswith(struct strview view, struct strview prefix)
 	return memcmp(view.characters, prefix.characters, prefix.length) == 0;
 }
 
-__AD_LINKAGE bool strview_startswith_cstr(struct strview view, const char *prefix)
+bool strview_startswith_cstr(struct strview view, const char *prefix)
 {
 	// TODO which implementation is faster?
 #ifdef HAVE_STRNLEN
@@ -316,7 +314,7 @@ __AD_LINKAGE bool strview_startswith_cstr(struct strview view, const char *prefi
 #endif
 }
 
-__AD_LINKAGE bool strview_endswith(struct strview view, struct strview suffix)
+bool strview_endswith(struct strview view, struct strview suffix)
 {
 	if (suffix.length > view.length) {
 		return false;
@@ -324,7 +322,7 @@ __AD_LINKAGE bool strview_endswith(struct strview view, struct strview suffix)
 	return memcmp(view.characters + (view.length - suffix.length), suffix.characters, suffix.length) == 0;
 }
 
-__AD_LINKAGE bool strview_endswith_cstr(struct strview view, const char *suffix)
+bool strview_endswith_cstr(struct strview view, const char *suffix)
 {
 #ifdef HAVE_STRNLEN
 	// see comment in strview_startswith_cstr
@@ -335,8 +333,7 @@ __AD_LINKAGE bool strview_endswith_cstr(struct strview view, const char *suffix)
 	return strview_endswith(view, suffix_view);
 }
 
-static _attr_unused struct strview _strview_strip(struct strview view, const char *strip,
-						  bool left, bool right)
+static struct strview _strview_strip(struct strview view, const char *strip, bool left, bool right)
 {
 	if (left) {
 		size_t pos = strview_find_first_not_of(view, strip, 0);
@@ -356,22 +353,22 @@ static _attr_unused struct strview _strview_strip(struct strview view, const cha
 	return view;
 }
 
-__AD_LINKAGE struct strview strview_strip(struct strview view, const char *strip)
+struct strview strview_strip(struct strview view, const char *strip)
 {
 	return _strview_strip(view, strip, true, true);
 }
 
-__AD_LINKAGE struct strview strview_lstrip(struct strview view, const char *strip)
+struct strview strview_lstrip(struct strview view, const char *strip)
 {
 	return _strview_strip(view, strip, true, false);
 }
 
-__AD_LINKAGE struct strview strview_rstrip(struct strview view, const char *strip)
+struct strview strview_rstrip(struct strview view, const char *strip)
 {
 	return _strview_strip(view, strip, false, true);
 }
 
-__AD_LINKAGE struct strview_list strview_split(struct strview view, char c, size_t max)
+struct strview_list strview_split(struct strview view, char c, size_t max)
 {
 	struct strview *list = NULL;
 	size_t allocated = 0;
@@ -402,7 +399,7 @@ __AD_LINKAGE struct strview_list strview_split(struct strview view, char c, size
 	return (struct strview_list){ .strings = list, .count = count };
 }
 
-__AD_LINKAGE struct strview_list strview_rsplit(struct strview view, char c, size_t max)
+struct strview_list strview_rsplit(struct strview view, char c, size_t max)
 {
 	struct strview *list = NULL;
 	size_t allocated = 0;
@@ -433,7 +430,7 @@ __AD_LINKAGE struct strview_list strview_rsplit(struct strview view, char c, siz
 	return (struct strview_list){ .strings = list, .count = count };
 }
 
-__AD_LINKAGE _attr_unused void strview_list_free(struct strview_list *list)
+void strview_list_free(struct strview_list *list)
 {
 	free(list->strings);
 	list->strings = NULL;
@@ -500,7 +497,7 @@ enum _dstr_type {
 static const uint8_t _dstr_empty_dstr_bytes[3] = { 0 /* length */, 0 /* capacity */, 0 /* null terminator */};
 static const dstr_t _dstr_empty_dstr = ((struct _dstr_small *)_dstr_empty_dstr_bytes)->characters;
 
-static _attr_unused _attr_always_inline enum _dstr_type _dstr_get_type(const dstr_t dstr)
+static _attr_always_inline enum _dstr_type _dstr_get_type(const dstr_t dstr)
 {
 	const struct _dstr_common *header = (const struct _dstr_common *)dstr - 1;
 	if (likely(header->small_length != UINT8_MAX)) {
@@ -509,7 +506,7 @@ static _attr_unused _attr_always_inline enum _dstr_type _dstr_get_type(const dst
 	return unlikely(header->is_big) ? __DSTR_BIG : __DSTR_MEDIUM;
 }
 
-__AD_LINKAGE size_t dstr_length(const dstr_t dstr)
+size_t dstr_length(const dstr_t dstr)
 {
 	switch (_dstr_get_type(dstr)) {
 	case __DSTR_SMALL: {
@@ -530,12 +527,12 @@ __AD_LINKAGE size_t dstr_length(const dstr_t dstr)
 	return 0;
 }
 
-__AD_LINKAGE bool dstr_is_empty(const dstr_t dstr)
+bool dstr_is_empty(const dstr_t dstr)
 {
 	return dstr_length(dstr) == 0;
 }
 
-__AD_LINKAGE size_t dstr_capacity(const dstr_t dstr)
+size_t dstr_capacity(const dstr_t dstr)
 {
 	switch (_dstr_get_type(dstr)) {
 	case __DSTR_SMALL: {
@@ -556,7 +553,7 @@ __AD_LINKAGE size_t dstr_capacity(const dstr_t dstr)
 	return 0;
 }
 
-static _attr_unused void _dstr_set_length(dstr_t dstr, size_t length)
+static void _dstr_set_length(dstr_t dstr, size_t length)
 {
 	assert(length <= dstr_capacity(dstr));
 	if (unlikely(dstr == _dstr_empty_dstr)) {
@@ -583,7 +580,7 @@ static _attr_unused void _dstr_set_length(dstr_t dstr, size_t length)
 	}
 }
 
-static _attr_unused _attr_pure size_t _dstr_header_size(enum _dstr_type type)
+static _attr_pure size_t _dstr_header_size(enum _dstr_type type)
 {
 	switch (type) {
 	case __DSTR_SMALL:  return sizeof(struct _dstr_small);
@@ -594,7 +591,7 @@ static _attr_unused _attr_pure size_t _dstr_header_size(enum _dstr_type type)
 	unreachable();
 }
 
-__AD_LINKAGE void dstr_resize(dstr_t *dstrp, size_t new_capacity)
+void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 {
 	if (unlikely(new_capacity == 0)) {
 		if (likely(*dstrp != _dstr_empty_dstr)) {
@@ -682,13 +679,13 @@ __AD_LINKAGE void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 	}
 }
 
-__AD_LINKAGE void dstr_free(dstr_t *dstrp)
+void dstr_free(dstr_t *dstrp)
 {
 	dstr_resize(dstrp, 0);
 	*dstrp = NULL;
 }
 
-static _attr_unused void _dstr_grow(dstr_t *dstrp, size_t n)
+static void _dstr_grow(dstr_t *dstrp, size_t n)
 {
 	if (unlikely(n == 0)) {
 		return;
@@ -707,7 +704,7 @@ static _attr_unused void _dstr_grow(dstr_t *dstrp, size_t n)
 	dstr_resize(dstrp, new_capacity);
 }
 
-__AD_LINKAGE void dstr_reserve(dstr_t *dstrp, size_t n)
+void dstr_reserve(dstr_t *dstrp, size_t n)
 {
 	size_t rem = dstr_capacity(*dstrp) - dstr_length(*dstrp);
 	if (n > rem) {
@@ -715,30 +712,29 @@ __AD_LINKAGE void dstr_reserve(dstr_t *dstrp, size_t n)
 	}
 }
 
-__AD_LINKAGE void dstr_clear(dstr_t *dstrp)
+void dstr_clear(dstr_t *dstrp)
 {
 	_dstr_set_length(*dstrp, 0);
 }
 
-__AD_LINKAGE void dstr_shrink_to_fit(dstr_t *dstrp)
+void dstr_shrink_to_fit(dstr_t *dstrp)
 {
 	dstr_resize(dstrp, dstr_length(*dstrp));
 }
 
-__AD_LINKAGE dstr_t dstr_new(void)
+dstr_t dstr_new(void)
 {
 	return _dstr_empty_dstr;
 }
 
-__AD_LINKAGE dstr_t dstr_with_capacity(size_t capacity)
+dstr_t dstr_with_capacity(size_t capacity)
 {
 	dstr_t dstr = dstr_new();
 	dstr_reserve(&dstr, capacity);
 	return dstr;
 }
 
-static _attr_unused _attr_always_inline
-char *_dstr_replace(dstr_t *dstrp, size_t pos, size_t len, size_t n)
+static _attr_always_inline char *_dstr_replace(dstr_t *dstrp, size_t pos, size_t len, size_t n)
 {
 	size_t length = dstr_length(*dstrp);
 	assert(pos <= length);
@@ -759,7 +755,7 @@ char *_dstr_replace(dstr_t *dstrp, size_t pos, size_t len, size_t n)
 	return p;
 }
 
-__AD_LINKAGE void dstr_append_char(dstr_t *dstrp, char c)
+void dstr_append_char(dstr_t *dstrp, char c)
 {
 	dstr_reserve(dstrp, 1);
 	size_t length = dstr_length(*dstrp);
@@ -767,34 +763,34 @@ __AD_LINKAGE void dstr_append_char(dstr_t *dstrp, char c)
 	_dstr_set_length(*dstrp, length + 1);
 }
 
-static _attr_always_inline _attr_unused void _dstr_append_chars(dstr_t *dstrp, const char *chars, size_t n)
+static _attr_always_inline void _dstr_append_chars(dstr_t *dstrp, const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, dstr_length(*dstrp), 0, n);
 	memcpy(p, chars, n);
 }
 
-__AD_LINKAGE void (dstr_append_chars)(dstr_t *dstrp, const char *chars, size_t n)
+void (dstr_append_chars)(dstr_t *dstrp, const char *chars, size_t n)
 {
 	_dstr_append_chars(dstrp, chars, n);
 }
 
-__AD_LINKAGE void dstr_append_dstr(dstr_t *dstrp, const dstr_t dstr)
+void dstr_append_dstr(dstr_t *dstrp, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	_dstr_append_chars(dstrp, dstr, dstr_length(dstr));
 }
 
-__AD_LINKAGE void dstr_append_cstr(dstr_t *dstrp, const char *cstr)
+void dstr_append_cstr(dstr_t *dstrp, const char *cstr)
 {
 	_dstr_append_chars(dstrp, cstr, strlen(cstr));
 }
 
-__AD_LINKAGE void dstr_append_view(dstr_t *dstrp, struct strview view)
+void dstr_append_view(dstr_t *dstrp, struct strview view)
 {
 	_dstr_append_chars(dstrp, view.characters, view.length);
 }
 
-__AD_LINKAGE size_t dstr_append_fmt(dstr_t *dstrp, const char *fmt, ...)
+size_t dstr_append_fmt(dstr_t *dstrp, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -803,50 +799,49 @@ __AD_LINKAGE size_t dstr_append_fmt(dstr_t *dstrp, const char *fmt, ...)
 	return n;
 }
 
-__AD_LINKAGE size_t dstr_append_fmtv(dstr_t *dstrp, const char *fmt, va_list args)
+size_t dstr_append_fmtv(dstr_t *dstrp, const char *fmt, va_list args)
 {
 	return dstr_replace_fmtv(dstrp, dstr_length(*dstrp), 0, fmt, args);
 }
 
-__AD_LINKAGE char *dstr_append_uninitialized(dstr_t *dstrp, size_t uninit_len)
+char *dstr_append_uninitialized(dstr_t *dstrp, size_t uninit_len)
 {
 	return _dstr_replace(dstrp, dstr_length(*dstrp), 0, uninit_len);
 }
 
-static _attr_always_inline _attr_unused void _dstr_insert_chars(dstr_t *dstrp, size_t pos,
-								const char *chars, size_t n)
+static _attr_always_inline void _dstr_insert_chars(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, pos, 0, n);
 	memcpy(p, chars, n);
 }
 
-__AD_LINKAGE void (dstr_insert_chars)(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
+void (dstr_insert_chars)(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
 {
 	_dstr_insert_chars(dstrp, pos, chars, n);
 }
 
-__AD_LINKAGE void dstr_insert_char(dstr_t *dstrp, size_t pos, char c)
+void dstr_insert_char(dstr_t *dstrp, size_t pos, char c)
 {
 	_dstr_insert_chars(dstrp, pos, &c, 1);
 }
 
-__AD_LINKAGE void dstr_insert_dstr(dstr_t *dstrp, size_t pos, const dstr_t dstr)
+void dstr_insert_dstr(dstr_t *dstrp, size_t pos, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	_dstr_insert_chars(dstrp, pos, dstr, dstr_length(dstr));
 }
 
-__AD_LINKAGE void dstr_insert_cstr(dstr_t *dstrp, size_t pos, const char *cstr)
+void dstr_insert_cstr(dstr_t *dstrp, size_t pos, const char *cstr)
 {
 	_dstr_insert_chars(dstrp, pos, cstr, strlen(cstr));
 }
 
-__AD_LINKAGE void dstr_insert_view(dstr_t *dstrp, size_t pos, struct strview view)
+void dstr_insert_view(dstr_t *dstrp, size_t pos, struct strview view)
 {
 	_dstr_insert_chars(dstrp, pos, view.characters, view.length);
 }
 
-__AD_LINKAGE size_t dstr_insert_fmt(dstr_t *dstrp, size_t pos, const char *fmt, ...)
+size_t dstr_insert_fmt(dstr_t *dstrp, size_t pos, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -855,45 +850,45 @@ __AD_LINKAGE size_t dstr_insert_fmt(dstr_t *dstrp, size_t pos, const char *fmt, 
 	return n;
 }
 
-__AD_LINKAGE size_t dstr_insert_fmtv(dstr_t *dstrp, size_t pos, const char *fmt, va_list args)
+size_t dstr_insert_fmtv(dstr_t *dstrp, size_t pos, const char *fmt, va_list args)
 {
 	return dstr_replace_fmtv(dstrp, pos, 0, fmt, args);
 }
 
-__AD_LINKAGE char *dstr_insert_uninitialized(dstr_t *dstrp, size_t pos, size_t uninit_len)
+char *dstr_insert_uninitialized(dstr_t *dstrp, size_t pos, size_t uninit_len)
 {
 	return _dstr_replace(dstrp, pos, 0, uninit_len);
 }
 
-static _attr_always_inline _attr_unused void _dstr_replace_chars(dstr_t *dstrp, size_t pos, size_t len,
-								 const char *chars, size_t n)
+static _attr_always_inline void _dstr_replace_chars(dstr_t *dstrp, size_t pos, size_t len,
+						    const char *chars, size_t n)
 {
 	char *p = _dstr_replace(dstrp, pos, len, n);
 	memcpy(p, chars, n);
 }
 
-__AD_LINKAGE void (dstr_replace_chars)(dstr_t *dstrp, size_t pos, size_t len, const char *chars, size_t n)
+void (dstr_replace_chars)(dstr_t *dstrp, size_t pos, size_t len, const char *chars, size_t n)
 {
 	_dstr_replace_chars(dstrp, pos, len, chars, n);
 }
 
-__AD_LINKAGE void dstr_replace_dstr(dstr_t *dstrp, size_t pos, size_t len, const dstr_t dstr)
+void dstr_replace_dstr(dstr_t *dstrp, size_t pos, size_t len, const dstr_t dstr)
 {
 	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	_dstr_replace_chars(dstrp, pos, len, dstr, dstr_length(dstr));
 }
 
-__AD_LINKAGE void dstr_replace_cstr(dstr_t *dstrp, size_t pos, size_t len, const char *cstr)
+void dstr_replace_cstr(dstr_t *dstrp, size_t pos, size_t len, const char *cstr)
 {
 	_dstr_replace_chars(dstrp, pos, len, cstr, strlen(cstr));
 }
 
-__AD_LINKAGE void dstr_replace_view(dstr_t *dstrp, size_t pos, size_t len, struct strview view)
+void dstr_replace_view(dstr_t *dstrp, size_t pos, size_t len, struct strview view)
 {
 	_dstr_replace_chars(dstrp, pos, len, view.characters, view.length);
 }
 
-__AD_LINKAGE size_t dstr_replace_fmt(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, ...)
+size_t dstr_replace_fmt(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -902,7 +897,7 @@ __AD_LINKAGE size_t dstr_replace_fmt(dstr_t *dstrp, size_t pos, size_t len, cons
 	return n;
 }
 
-__AD_LINKAGE size_t dstr_replace_fmtv(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, va_list args)
+size_t dstr_replace_fmtv(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, va_list args)
 {
 	char buf[128];
 
@@ -926,17 +921,17 @@ __AD_LINKAGE size_t dstr_replace_fmtv(dstr_t *dstrp, size_t pos, size_t len, con
 	return n;
 }
 
-__AD_LINKAGE char *dstr_replace_uninitialized(dstr_t *dstrp, size_t pos, size_t len, size_t uninit_len)
+char *dstr_replace_uninitialized(dstr_t *dstrp, size_t pos, size_t len, size_t uninit_len)
 {
 	return _dstr_replace(dstrp, pos, len, uninit_len);
 }
 
-__AD_LINKAGE void dstr_erase(dstr_t *dstrp, size_t pos, size_t len)
+void dstr_erase(dstr_t *dstrp, size_t pos, size_t len)
 {
 	_dstr_replace(dstrp, pos, len, 0);
 }
 
-static _attr_unused void _dstr_strip(dstr_t dstr, const char *strip, bool left, bool right)
+static void _dstr_strip(dstr_t dstr, const char *strip, bool left, bool right)
 {
 	if (right) {
 		size_t pos = dstr_find_last_not_of(dstr, strip, DSTR_NPOS);
@@ -958,44 +953,44 @@ static _attr_unused void _dstr_strip(dstr_t dstr, const char *strip, bool left, 
 	}
 }
 
-__AD_LINKAGE void dstr_strip(dstr_t *dstrp, const char *strip)
+void dstr_strip(dstr_t *dstrp, const char *strip)
 {
 	_dstr_strip(*dstrp, strip, true, true);
 }
 
-__AD_LINKAGE void dstr_lstrip(dstr_t *dstrp, const char *strip)
+void dstr_lstrip(dstr_t *dstrp, const char *strip)
 {
 	_dstr_strip(*dstrp, strip, true, false);
 }
 
-__AD_LINKAGE void dstr_rstrip(dstr_t *dstrp, const char *strip)
+void dstr_rstrip(dstr_t *dstrp, const char *strip)
 {
 	_dstr_strip(*dstrp, strip, false, true);
 }
 
-static _attr_always_inline _attr_unused dstr_t _dstr_from_chars(const char *chars, size_t n)
+static _attr_always_inline dstr_t _dstr_from_chars(const char *chars, size_t n)
 {
 	dstr_t dstr = dstr_new();
 	_dstr_append_chars(&dstr, chars, n);
 	return dstr;
 }
 
-__AD_LINKAGE dstr_t (dstr_from_chars)(const char *chars, size_t n)
+dstr_t (dstr_from_chars)(const char *chars, size_t n)
 {
 	return _dstr_from_chars(chars, n);
 }
 
-__AD_LINKAGE dstr_t dstr_from_cstr(const char *cstr)
+dstr_t dstr_from_cstr(const char *cstr)
 {
 	return _dstr_from_chars(cstr, strlen(cstr));
 }
 
-__AD_LINKAGE dstr_t dstr_from_view(struct strview view)
+dstr_t dstr_from_view(struct strview view)
 {
 	return _dstr_from_chars(view.characters, view.length);
 }
 
-__AD_LINKAGE dstr_t dstr_from_fmt(const char *fmt, ...)
+dstr_t dstr_from_fmt(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -1004,14 +999,14 @@ __AD_LINKAGE dstr_t dstr_from_fmt(const char *fmt, ...)
 	return dstr;
 }
 
-__AD_LINKAGE dstr_t dstr_from_fmtv(const char *fmt, va_list args)
+dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 {
 	dstr_t dstr = dstr_new();
 	dstr_append_fmtv(&dstr, fmt, args);
 	return dstr;
 }
 
-// __AD_LINKAGE dstr_t _dstr_join(const char *separator, ...)
+// dstr_t _dstr_join(const char *separator, ...)
 // {
 // 	va_list args;
 // 	va_start(args, separator);
@@ -1031,7 +1026,7 @@ __AD_LINKAGE dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 // 	return dstr;
 // }
 
-// __AD_LINKAGE dstr_t _dstr_join_views(const char *separator, ...)
+// dstr_t _dstr_join_views(const char *separator, ...)
 // {
 // 	va_list args;
 // 	va_start(args, separator);
@@ -1051,7 +1046,7 @@ __AD_LINKAGE dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 // 	return dstr;
 // }
 
-// __AD_LINKAGE dstr_t _dstr_join_cstrs(const char *separator, ...)
+// dstr_t _dstr_join_cstrs(const char *separator, ...)
 // {
 
 // 	va_list args;
@@ -1072,12 +1067,12 @@ __AD_LINKAGE dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 // 	return dstr;
 // }
 
-__AD_LINKAGE dstr_t dstr_copy(const dstr_t dstr)
+dstr_t dstr_copy(const dstr_t dstr)
 {
 	return _dstr_from_chars(dstr, dstr_length(dstr));
 }
 
-__AD_LINKAGE char *dstr_to_cstr(dstr_t *dstrp)
+char *dstr_to_cstr(dstr_t *dstrp)
 {
 	size_t length = dstr_length(*dstrp);
 	size_t header_size = _dstr_header_size(_dstr_get_type(*dstrp));
@@ -1091,12 +1086,12 @@ __AD_LINKAGE char *dstr_to_cstr(dstr_t *dstrp)
 	return p;
 }
 
-__AD_LINKAGE char *dstr_to_cstr_copy(const dstr_t dstr)
+char *dstr_to_cstr_copy(const dstr_t dstr)
 {
 	return strview_to_cstr(dstr_view(dstr));
 }
 
-__AD_LINKAGE struct strview dstr_view(const dstr_t dstr)
+struct strview dstr_view(const dstr_t dstr)
 {
 	return (struct strview){
 		.characters = dstr,
@@ -1104,55 +1099,55 @@ __AD_LINKAGE struct strview dstr_view(const dstr_t dstr)
 	};
 }
 
-__AD_LINKAGE struct strview dstr_substring_view(const dstr_t dstr, size_t start, size_t length)
+struct strview dstr_substring_view(const dstr_t dstr, size_t start, size_t length)
 {
 	return strview_substring(dstr_view(dstr), start, length);
 }
 
-__AD_LINKAGE void dstr_substring(dstr_t *dstrp, size_t start, size_t length)
+void dstr_substring(dstr_t *dstrp, size_t start, size_t length)
 {
 	struct strview view = dstr_substring_view(*dstrp, start, length);
 	memmove(*dstrp, view.characters, view.length);
 	_dstr_set_length(*dstrp, view.length);
 }
 
-__AD_LINKAGE dstr_t dstr_substring_copy(const dstr_t dstr, size_t start, size_t length)
+dstr_t dstr_substring_copy(const dstr_t dstr, size_t start, size_t length)
 {
 	struct strview view = dstr_substring_view(dstr, start, length);
 	return _dstr_from_chars(view.characters, view.length);
 }
 
-__AD_LINKAGE int dstr_compare_dstr(const dstr_t dstr1, const dstr_t dstr2)
+int dstr_compare_dstr(const dstr_t dstr1, const dstr_t dstr2)
 {
 	return strcmp(dstr1, dstr2);
 }
 
-__AD_LINKAGE int dstr_compare_view(const dstr_t dstr, struct strview view)
+int dstr_compare_view(const dstr_t dstr, struct strview view)
 {
 	return strview_compare(dstr_view(dstr), view);
 }
 
-__AD_LINKAGE int dstr_compare_cstr(const dstr_t dstr, const char *cstr)
+int dstr_compare_cstr(const dstr_t dstr, const char *cstr)
 {
 	return strcmp(dstr, cstr);
 }
 
-__AD_LINKAGE bool dstr_equal_dstr(const dstr_t dstr1, const dstr_t dstr2)
+bool dstr_equal_dstr(const dstr_t dstr1, const dstr_t dstr2)
 {
 	return strview_equal(dstr_view(dstr1), dstr_view(dstr2));
 }
 
-__AD_LINKAGE bool dstr_equal_view(const dstr_t dstr, struct strview view)
+bool dstr_equal_view(const dstr_t dstr, struct strview view)
 {
 	return strview_equal(dstr_view(dstr), view);
 }
 
-__AD_LINKAGE bool dstr_equal_cstr(const dstr_t dstr, const char *cstr)
+bool dstr_equal_cstr(const dstr_t dstr, const char *cstr)
 {
 	return strcmp(dstr, cstr) == 0;
 }
 
-__AD_LINKAGE size_t dstr_find_dstr(const dstr_t haystack, const dstr_t needle, size_t pos)
+size_t dstr_find_dstr(const dstr_t haystack, const dstr_t needle, size_t pos)
 {
 	// TODO test that both versions behave the same for pos > length(haystack) and length(needle) ==/!= 0
 #if defined(HAVE_MEMMEM) && defined(_GNU_SOURCE)
@@ -1164,12 +1159,12 @@ __AD_LINKAGE size_t dstr_find_dstr(const dstr_t haystack, const dstr_t needle, s
 #endif
 }
 
-__AD_LINKAGE size_t dstr_find_view(const dstr_t haystack, struct strview needle_view, size_t pos)
+size_t dstr_find_view(const dstr_t haystack, struct strview needle_view, size_t pos)
 {
 	return strview_find(dstr_view(haystack), needle_view, pos);
 }
 
-__AD_LINKAGE size_t dstr_find_cstr(const dstr_t haystack, const char *needle_cstr, size_t pos)
+size_t dstr_find_cstr(const dstr_t haystack, const char *needle_cstr, size_t pos)
 {
 	size_t len = dstr_length(haystack);
 	if (unlikely(pos > len)) {
@@ -1179,24 +1174,23 @@ __AD_LINKAGE size_t dstr_find_cstr(const dstr_t haystack, const char *needle_cst
 	return found ? (size_t)(found - haystack) : DSTR_NPOS;
 }
 
-__AD_LINKAGE size_t dstr_rfind_dstr(const dstr_t haystack, const dstr_t needle, size_t pos)
+size_t dstr_rfind_dstr(const dstr_t haystack, const dstr_t needle, size_t pos)
 {
 	return strview_rfind(dstr_view(haystack), dstr_view(needle), pos);
 }
 
-__AD_LINKAGE size_t dstr_rfind_view(const dstr_t haystack, struct strview needle, size_t pos)
+size_t dstr_rfind_view(const dstr_t haystack, struct strview needle, size_t pos)
 {
 	return strview_rfind(dstr_view(haystack), needle, pos);
 }
 
-__AD_LINKAGE size_t dstr_rfind_cstr(const dstr_t haystack, const char *needle_cstr, size_t pos)
+size_t dstr_rfind_cstr(const dstr_t haystack, const char *needle_cstr, size_t pos)
 {
 	return strview_rfind(dstr_view(haystack), strview_from_cstr(needle_cstr), pos);
 }
 
 
-__AD_LINKAGE size_t dstr_find_replace_view(dstr_t *haystackp, struct strview needle_view,
-					   struct strview view, size_t max)
+size_t dstr_find_replace_view(dstr_t *haystackp, struct strview needle_view, struct strview view, size_t max)
 {
 	if (max > dstr_length(*haystackp) + 1) {
 		max = dstr_length(*haystackp) + 1;
@@ -1218,21 +1212,18 @@ __AD_LINKAGE size_t dstr_find_replace_view(dstr_t *haystackp, struct strview nee
 	return replaced;
 }
 
-__AD_LINKAGE size_t dstr_find_replace_dstr(dstr_t *haystackp, const dstr_t needle,
-				      const dstr_t dstr, size_t max)
+size_t dstr_find_replace_dstr(dstr_t *haystackp, const dstr_t needle, const dstr_t dstr, size_t max)
 {
 	return dstr_find_replace_view(haystackp, dstr_view(needle), dstr_view(dstr), max);
 }
 
-__AD_LINKAGE size_t dstr_find_replace_cstr(dstr_t *haystackp, const char *needle_cstr,
-					   const char *cstr, size_t max)
+size_t dstr_find_replace_cstr(dstr_t *haystackp, const char *needle_cstr, const char *cstr, size_t max)
 {
 	return dstr_find_replace_view(haystackp, strview_from_cstr(needle_cstr),
 				      strview_from_cstr(cstr), max);
 }
 
-__AD_LINKAGE size_t dstr_rfind_replace_view(dstr_t *haystackp, struct strview needle_view,
-					    struct strview view, size_t max)
+size_t dstr_rfind_replace_view(dstr_t *haystackp, struct strview needle_view, struct strview view, size_t max)
 {
 	if (max > dstr_length(*haystackp) + 1) {
 		max = dstr_length(*haystackp) + 1;
@@ -1253,70 +1244,68 @@ __AD_LINKAGE size_t dstr_rfind_replace_view(dstr_t *haystackp, struct strview ne
 	return replaced;
 }
 
-__AD_LINKAGE size_t dstr_rfind_replace_dstr(dstr_t *haystackp, const dstr_t needle,
-				       const dstr_t dstr, size_t max)
+size_t dstr_rfind_replace_dstr(dstr_t *haystackp, const dstr_t needle, const dstr_t dstr, size_t max)
 {
 	return dstr_rfind_replace_view(haystackp, dstr_view(needle), dstr_view(dstr), max);
 }
 
-__AD_LINKAGE size_t dstr_rfind_replace_cstr(dstr_t *haystackp, const char *needle_cstr,
-					    const char *cstr, size_t max)
+size_t dstr_rfind_replace_cstr(dstr_t *haystackp, const char *needle_cstr, const char *cstr, size_t max)
 {
 	return dstr_rfind_replace_view(haystackp, strview_from_cstr(needle_cstr),
 				       strview_from_cstr(cstr), max);
 }
 
-__AD_LINKAGE size_t dstr_find_first_of(const dstr_t dstr, const char *accept, size_t pos)
+size_t dstr_find_first_of(const dstr_t dstr, const char *accept, size_t pos)
 {
 	return strview_find_first_of(dstr_view(dstr), accept, pos);
 }
 
-__AD_LINKAGE size_t dstr_find_last_of(const dstr_t dstr, const char *accept, size_t pos)
+size_t dstr_find_last_of(const dstr_t dstr, const char *accept, size_t pos)
 {
 	return strview_find_last_of(dstr_view(dstr), accept, pos);
 }
 
-__AD_LINKAGE size_t dstr_find_first_not_of(const dstr_t dstr, const char *reject, size_t pos)
+size_t dstr_find_first_not_of(const dstr_t dstr, const char *reject, size_t pos)
 {
 	return strview_find_first_not_of(dstr_view(dstr), reject, pos);
 }
 
-__AD_LINKAGE size_t dstr_find_last_not_of(const dstr_t dstr, const char *reject, size_t pos)
+size_t dstr_find_last_not_of(const dstr_t dstr, const char *reject, size_t pos)
 {
 	return strview_find_last_not_of(dstr_view(dstr), reject, pos);
 }
 
-__AD_LINKAGE bool dstr_startswith_dstr(const dstr_t dstr, const dstr_t prefix)
+bool dstr_startswith_dstr(const dstr_t dstr, const dstr_t prefix)
 {
 	return strview_startswith(dstr_view(dstr), dstr_view(prefix));
 }
 
-__AD_LINKAGE bool dstr_startswith_view(const dstr_t dstr, struct strview prefix)
+bool dstr_startswith_view(const dstr_t dstr, struct strview prefix)
 {
 	return strview_startswith(dstr_view(dstr), prefix);
 }
 
-__AD_LINKAGE bool dstr_startswith_cstr(const dstr_t dstr, const char *prefix)
+bool dstr_startswith_cstr(const dstr_t dstr, const char *prefix)
 {
 	return strview_startswith_cstr(dstr_view(dstr), prefix);
 }
 
-__AD_LINKAGE bool dstr_endswith_dstr(const dstr_t dstr, const dstr_t suffix)
+bool dstr_endswith_dstr(const dstr_t dstr, const dstr_t suffix)
 {
 	return strview_endswith(dstr_view(dstr), dstr_view(suffix));
 }
 
-__AD_LINKAGE bool dstr_endswith_view(const dstr_t dstr, struct strview suffix)
+bool dstr_endswith_view(const dstr_t dstr, struct strview suffix)
 {
 	return strview_endswith(dstr_view(dstr), suffix);
 }
 
-__AD_LINKAGE bool dstr_endswith_cstr(const dstr_t dstr, const char *suffix)
+bool dstr_endswith_cstr(const dstr_t dstr, const char *suffix)
 {
 	return strview_endswith_cstr(dstr_view(dstr), suffix);
 }
 
-__AD_LINKAGE struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max)
+struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max)
 {
 	dstr_t *list = NULL;
 	size_t length = dstr_length(dstr);
@@ -1349,7 +1338,7 @@ __AD_LINKAGE struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max)
 	return (struct dstr_list){ .strings = list, .count = count };
 }
 
-__AD_LINKAGE struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max)
+struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max)
 {
 	dstr_t *list = NULL;
 	size_t allocated = 0;
@@ -1380,17 +1369,17 @@ __AD_LINKAGE struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max)
 	return (struct dstr_list){ .strings = list, .count = count };
 }
 
-__AD_LINKAGE struct strview_list dstr_split_views(const dstr_t dstr, char c, size_t max)
+struct strview_list dstr_split_views(const dstr_t dstr, char c, size_t max)
 {
 	return strview_split(dstr_view(dstr), c, max);
 }
 
-__AD_LINKAGE struct strview_list dstr_rsplit_views(const dstr_t dstr, char c, size_t max)
+struct strview_list dstr_rsplit_views(const dstr_t dstr, char c, size_t max)
 {
 	return strview_rsplit(dstr_view(dstr), c, max);
 }
 
-__AD_LINKAGE void dstr_list_free(struct dstr_list *list)
+void dstr_list_free(struct dstr_list *list)
 {
 	for (size_t i = 0; i < list->count; i++) {
 		if (list->strings[i]) {
@@ -1402,7 +1391,7 @@ __AD_LINKAGE void dstr_list_free(struct dstr_list *list)
 	list->count = 0;
 }
 
-__AD_LINKAGE void *_dstr_debug_get_head_ptr(const dstr_t dstr)
+void *_dstr_debug_get_head_ptr(const dstr_t dstr)
 {
 	if (dstr == _dstr_empty_dstr) {
 		return NULL;

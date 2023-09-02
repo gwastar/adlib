@@ -42,52 +42,52 @@ typedef union {
 // SipHash-2-4
 // (the key k must have 16 bytes)
 // (see also https://github.com/veorq/SipHash)
-__AD_LINKAGE hash64_t siphash24_64(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
-__AD_LINKAGE hash128_t siphash24_128(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
+hash64_t siphash24_64(const void *in, size_t inlen, const void *key) _attr_pure;
+hash128_t siphash24_128(const void *in, size_t inlen, const void *key) _attr_pure;
 
 // SipHash-1-3
 // (the key k must have 16 bytes)
 // (see also https://github.com/veorq/SipHash)
-__AD_LINKAGE hash64_t siphash13_64(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
-__AD_LINKAGE hash128_t siphash13_128(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
+hash64_t siphash13_64(const void *in, size_t inlen, const void *key) _attr_pure;
+hash128_t siphash13_128(const void *in, size_t inlen, const void *key) _attr_pure;
 
 // HalfSipHash-2-4
 // (the key must have 8 bytes)
 // (see also https://github.com/veorq/SipHash)
-__AD_LINKAGE hash32_t halfsiphash24_32(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
-__AD_LINKAGE hash64_t halfsiphash24_64(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
+hash32_t halfsiphash24_32(const void *in, size_t inlen, const void *key) _attr_pure;
+hash64_t halfsiphash24_64(const void *in, size_t inlen, const void *key) _attr_pure;
 
 // HalfSipHash-1-3
 // (the key must have 8 bytes)
 // (see also https://github.com/veorq/SipHash)
-__AD_LINKAGE hash32_t halfsiphash13_32(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
-__AD_LINKAGE hash64_t halfsiphash13_64(const void *in, size_t inlen, const void *key) _attr_unused _attr_pure;
+hash32_t halfsiphash13_32(const void *in, size_t inlen, const void *key) _attr_pure;
+hash64_t halfsiphash13_64(const void *in, size_t inlen, const void *key) _attr_pure;
 
 
 // MurmurHash3_x86_32
 // (use this on 32-bit architectures for short inputs)
 // (see also https://github.com/PeterScott/murmur3)
-__AD_LINKAGE hash32_t murmurhash3_x86_32(const void *in, size_t inlen, uint32_t seed) _attr_unused _attr_pure;
+hash32_t murmurhash3_x86_32(const void *in, size_t inlen, uint32_t seed) _attr_pure;
 
 // MurmurHash3_x86_64/MurmurHash3_x86_128
 // (use this on 32-bit architectures for long inputs or when you need more than 32 bits of output)
 // (see also https://github.com/PeterScott/murmur3)
-__AD_LINKAGE hash64_t murmurhash3_x86_64(const void *in, size_t inlen, uint32_t seed) _attr_unused _attr_pure;
-__AD_LINKAGE hash128_t murmurhash3_x86_128(const void *in, size_t inlen, uint32_t seed) _attr_unused _attr_pure;
+hash64_t murmurhash3_x86_64(const void *in, size_t inlen, uint32_t seed) _attr_pure;
+hash128_t murmurhash3_x86_128(const void *in, size_t inlen, uint32_t seed) _attr_pure;
 
 // MurmurHash3_x64_64/MurmurHash3_x64_128
 // (use this on 64-bit architectures)
 // (see also https://github.com/PeterScott/murmur3)
-__AD_LINKAGE hash64_t murmurhash3_x64_64(const void *in, size_t inlen, uint32_t seed) _attr_unused _attr_pure;
-__AD_LINKAGE hash128_t murmurhash3_x64_128(const void *in, size_t inlen, uint32_t seed) _attr_unused _attr_pure;
+hash64_t murmurhash3_x64_64(const void *in, size_t inlen, uint32_t seed) _attr_pure;
+hash128_t murmurhash3_x64_128(const void *in, size_t inlen, uint32_t seed) _attr_pure;
 
-__AD_LINKAGE hash32_t hash_int32(uint32_t val) _attr_unused _attr_const;
-__AD_LINKAGE hash64_t hash_int64(uint64_t val) _attr_unused _attr_const;
+hash32_t hash_int32(uint32_t val) _attr_const;
+hash64_t hash_int64(uint64_t val) _attr_const;
 
-__AD_LINKAGE hash32_t fibonacci_hash32(uint32_t val, unsigned int bits) _attr_unused _attr_const;
-__AD_LINKAGE hash64_t fibonacci_hash64(uint64_t val, unsigned int bits) _attr_unused _attr_const;
+hash32_t fibonacci_hash32(uint32_t val, unsigned int bits) _attr_const;
+hash64_t fibonacci_hash64(uint64_t val, unsigned int bits) _attr_const;
 
-__AD_LINKAGE hash32_t hash_combine_int32(uint32_t seed, uint32_t val) _attr_unused _attr_const;
-__AD_LINKAGE hash64_t hash_combine_int64(uint64_t seed, uint64_t val) _attr_unused _attr_const;
+hash32_t hash_combine_int32(uint32_t seed, uint32_t val) _attr_const;
+hash64_t hash_combine_int64(uint64_t seed, uint64_t val) _attr_const;
 
 #endif

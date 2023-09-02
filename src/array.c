@@ -23,7 +23,7 @@
 #include "array.h"
 #include "macros.h"
 
-__AD_LINKAGE void *_arr_resize_internal(void *arr, size_t elem_size, size_t capacity)
+void *_arr_resize_internal(void *arr, size_t elem_size, size_t capacity)
 {
 	if (unlikely(capacity == 0)) {
 		if (arr) {
@@ -62,7 +62,7 @@ __AD_LINKAGE void *_arr_resize_internal(void *arr, size_t elem_size, size_t capa
 	return head + 1;
 }
 
-__AD_LINKAGE void *_arr_copy(const void *arr, size_t elem_size)
+void *_arr_copy(const void *arr, size_t elem_size)
 {
 	void *new_arr = _arr_resize_internal(NULL, elem_size, _arr_capacity(arr));
 	if (unlikely(!new_arr)) {
@@ -73,7 +73,7 @@ __AD_LINKAGE void *_arr_copy(const void *arr, size_t elem_size)
 	return new_arr;
 }
 
-__AD_LINKAGE bool _arr_equal(const void *arr1, size_t elem_size, const void *arr2)
+bool _arr_equal(const void *arr1, size_t elem_size, const void *arr2)
 {
 	if (unlikely(arr1 == arr2)) {
 		// the code below does not cover the case where both are NULL!
@@ -86,7 +86,7 @@ __AD_LINKAGE bool _arr_equal(const void *arr1, size_t elem_size, const void *arr
 	return memcmp(arr1, arr2, len * elem_size) == 0;
 }
 
-__AD_LINKAGE void _arr_grow(void **arrp, size_t elem_size, size_t n)
+void _arr_grow(void **arrp, size_t elem_size, size_t n)
 {
 	if (unlikely(n == 0)) {
 		return;
@@ -106,7 +106,7 @@ __AD_LINKAGE void _arr_grow(void **arrp, size_t elem_size, size_t n)
 	*arrp = _arr_resize_internal(*arrp, elem_size, new_capacity);
 }
 
-__AD_LINKAGE void _arr_make_valid(void **arrp, size_t elem_size, size_t i)
+void _arr_make_valid(void **arrp, size_t elem_size, size_t i)
 {
 	size_t capacity = _arr_capacity(*arrp);
 	if (i >= capacity) {
@@ -118,7 +118,7 @@ __AD_LINKAGE void _arr_make_valid(void **arrp, size_t elem_size, size_t i)
 	}
 }
 
-__AD_LINKAGE void *_arr_addn(void **arrp, size_t elem_size, size_t n)
+void *_arr_addn(void **arrp, size_t elem_size, size_t n)
 {
 	if (unlikely(n == 0)) {
 		return NULL;
@@ -137,7 +137,7 @@ __AD_LINKAGE void *_arr_addn(void **arrp, size_t elem_size, size_t n)
 	return (char *)(*arrp) + (old_len * elem_size);
 }
 
-__AD_LINKAGE void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t n)
+void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t n)
 {
 	void *arr = *arrp;
 	size_t len = _arr_length(arr);
@@ -156,7 +156,7 @@ __AD_LINKAGE void *_arr_insertn(void **arrp, size_t elem_size, size_t i, size_t 
 	return src;
 }
 
-__AD_LINKAGE void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, size_t n)
+void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, size_t n)
 {
 	size_t len = _arr_length(arr);
 	_fortify_check(i < len && n <= len && (i + n) <= len);
@@ -166,7 +166,7 @@ __AD_LINKAGE void _arr_ordered_deleten(void *arr, size_t elem_size, size_t i, si
 	_arrhead(arr)->length -= n;
 }
 
-__AD_LINKAGE void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_t n)
+void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_t n)
 {
 	size_t len = _arr_length(arr);
 	_fortify_check(i < len && n <= len && (i + n) <= len);
@@ -180,7 +180,7 @@ __AD_LINKAGE void _arr_fast_deleten(void *arr, size_t elem_size, size_t i, size_
 	_arrhead(arr)->length -= n;
 }
 
-__AD_LINKAGE void _arr_sort(void *arr, size_t elem_size, int (*compare)(const void *, const void *))
+void _arr_sort(void *arr, size_t elem_size, int (*compare)(const void *, const void *))
 {
 	size_t len = _arr_length(arr);
 	if (likely(len != 0)) {
@@ -188,8 +188,8 @@ __AD_LINKAGE void _arr_sort(void *arr, size_t elem_size, int (*compare)(const vo
 	}
 }
 
-__AD_LINKAGE bool _arr_bsearch_index(const void *arr, size_t elem_size, const void *key,
-				     int (*compare)(const void *, const void *), size_t *ret_index)
+bool _arr_bsearch_index(const void *arr, size_t elem_size, const void *key,
+			int (*compare)(const void *, const void *), size_t *ret_index)
 {
 	size_t start = 0;
 	size_t end = _arr_length(arr);
@@ -209,8 +209,8 @@ __AD_LINKAGE bool _arr_bsearch_index(const void *arr, size_t elem_size, const vo
 	return false;
 }
 
-__AD_LINKAGE void *_arr_bsearch(const void *arr, size_t elem_size, const void *key,
-				int (*compare)(const void *, const void *))
+void *_arr_bsearch(const void *arr, size_t elem_size, const void *key,
+		   int (*compare)(const void *, const void *))
 {
 	size_t idx;
 	if (!_arr_bsearch_index(arr, elem_size, key, compare, &idx)) {

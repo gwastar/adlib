@@ -173,28 +173,28 @@ static _attr_always_inline void _siphash(const void *in, const size_t inlen, con
 	__HASH_U64TO8_LE(out + 8, b);
 }
 
-__AD_LINKAGE hash64_t siphash24_64(const void *in, size_t inlen, const void *key)
+hash64_t siphash24_64(const void *in, size_t inlen, const void *key)
 {
 	hash64_t out;
 	_siphash(in, inlen, key, out.bytes, sizeof(out), 2, 4);
 	return out;
 }
 
-__AD_LINKAGE hash128_t siphash24_128(const void *in, size_t inlen, const void *key)
+hash128_t siphash24_128(const void *in, size_t inlen, const void *key)
 {
 	hash128_t out;
 	_siphash(in, inlen, key, out.bytes, sizeof(out), 2, 4);
 	return out;
 }
 
-__AD_LINKAGE hash64_t siphash13_64(const void *in, size_t inlen, const void *key)
+hash64_t siphash13_64(const void *in, size_t inlen, const void *key)
 {
 	hash64_t out;
 	_siphash(in, inlen, key, out.bytes, sizeof(out), 1, 3);
 	return out;
 }
 
-__AD_LINKAGE hash128_t siphash13_128(const void *in, size_t inlen, const void *key)
+hash128_t siphash13_128(const void *in, size_t inlen, const void *key)
 {
 	hash128_t out;
 	_siphash(in, inlen, key, out.bytes, sizeof(out), 1, 3);
@@ -304,28 +304,28 @@ static _attr_always_inline void _halfsiphash(const void *in, const size_t inlen,
 	__HASH_U32TO8_LE(out + 4, b);
 }
 
-__AD_LINKAGE hash32_t halfsiphash24_32(const void *in, size_t inlen, const void *key)
+hash32_t halfsiphash24_32(const void *in, size_t inlen, const void *key)
 {
 	hash32_t out;
 	_halfsiphash(in, inlen, key, out.bytes, sizeof(out), 2, 4);
 	return out;
 }
 
-__AD_LINKAGE hash64_t halfsiphash24_64(const void *in, size_t inlen, const void *key)
+hash64_t halfsiphash24_64(const void *in, size_t inlen, const void *key)
 {
 	hash64_t out;
 	_halfsiphash(in, inlen, key, out.bytes, sizeof(out), 2, 4);
 	return out;
 }
 
-__AD_LINKAGE hash32_t halfsiphash13_32(const void *in, size_t inlen, const void *key)
+hash32_t halfsiphash13_32(const void *in, size_t inlen, const void *key)
 {
 	hash32_t out;
 	_halfsiphash(in, inlen, key, out.bytes, sizeof(out), 1, 3);
 	return out;
 }
 
-__AD_LINKAGE hash64_t halfsiphash13_64(const void *in, size_t inlen, const void *key)
+hash64_t halfsiphash13_64(const void *in, size_t inlen, const void *key)
 {
 	hash64_t out;
 	_halfsiphash(in, inlen, key, out.bytes, sizeof(out), 1, 3);
@@ -411,7 +411,7 @@ static _attr_always_inline void _murmurhash3_x86_32(const void *in, size_t len, 
 	__HASH_U32TO8_LE(o, h1);
 }
 
-__AD_LINKAGE hash32_t murmurhash3_x86_32(const void *in, size_t inlen, uint32_t seed)
+hash32_t murmurhash3_x86_32(const void *in, size_t inlen, uint32_t seed)
 {
 	hash32_t out;
 	_murmurhash3_x86_32(in, inlen, seed, out.bytes);
@@ -514,14 +514,14 @@ static _attr_always_inline void _murmurhash3_x86_128(const void *in, size_t len,
 	__HASH_U32TO8_LE(o, h4);
 }
 
-__AD_LINKAGE hash128_t murmurhash3_x86_128(const void *in, size_t inlen, uint32_t seed)
+hash128_t murmurhash3_x86_128(const void *in, size_t inlen, uint32_t seed)
 {
 	hash128_t out;
 	_murmurhash3_x86_128(in, inlen, seed, out.bytes);
 	return out;
 }
 
-__AD_LINKAGE hash64_t murmurhash3_x86_64(const void *in, size_t inlen, uint32_t seed)
+hash64_t murmurhash3_x86_64(const void *in, size_t inlen, uint32_t seed)
 {
 	hash128_t out128 = murmurhash3_x86_128(in, inlen, seed);
 	hash64_t out64;
@@ -599,14 +599,14 @@ static _attr_always_inline void _murmurhash3_x64_128(const void *in, size_t len,
 	__HASH_U64TO8_LE(o, h2);
 }
 
-__AD_LINKAGE hash128_t murmurhash3_x64_128(const void *in, size_t inlen, uint32_t seed)
+hash128_t murmurhash3_x64_128(const void *in, size_t inlen, uint32_t seed)
 {
 	hash128_t out;
 	_murmurhash3_x64_128(in, inlen, seed, out.bytes);
 	return out;
 }
 
-__AD_LINKAGE hash64_t murmurhash3_x64_64(const void *in, size_t inlen, uint32_t seed)
+hash64_t murmurhash3_x64_64(const void *in, size_t inlen, uint32_t seed)
 {
 	hash128_t out128 = murmurhash3_x64_128(in, inlen, seed);
 	hash64_t out64;
@@ -614,7 +614,7 @@ __AD_LINKAGE hash64_t murmurhash3_x64_64(const void *in, size_t inlen, uint32_t 
 	return out64;
 }
 
-__AD_LINKAGE hash32_t hash_int32(uint32_t val)
+hash32_t hash_int32(uint32_t val)
 {
 	hash32_t out;
 	val = _murmur_fmix32(val);
@@ -622,7 +622,7 @@ __AD_LINKAGE hash32_t hash_int32(uint32_t val)
 	return out;
 }
 
-__AD_LINKAGE hash64_t hash_int64(uint64_t val)
+hash64_t hash_int64(uint64_t val)
 {
 	hash64_t out;
 	val = _murmur_fmix64(val);
@@ -630,7 +630,7 @@ __AD_LINKAGE hash64_t hash_int64(uint64_t val)
 	return out;
 }
 
-__AD_LINKAGE hash32_t fibonacci_hash32(uint32_t val, unsigned int bits)
+hash32_t fibonacci_hash32(uint32_t val, unsigned int bits)
 {
 	hash32_t out;
 	// val *= UINT32_C(2654435769);
@@ -639,7 +639,7 @@ __AD_LINKAGE hash32_t fibonacci_hash32(uint32_t val, unsigned int bits)
 	return out;
 }
 
-__AD_LINKAGE hash64_t fibonacci_hash64(uint64_t val, unsigned int bits)
+hash64_t fibonacci_hash64(uint64_t val, unsigned int bits)
 {
 	hash64_t out;
 	// val *= UINT64_C(11400714819323198485);
@@ -648,7 +648,7 @@ __AD_LINKAGE hash64_t fibonacci_hash64(uint64_t val, unsigned int bits)
 	return out;
 }
 
-__AD_LINKAGE hash32_t hash_combine_int32(uint32_t seed, uint32_t val)
+hash32_t hash_combine_int32(uint32_t seed, uint32_t val)
 {
 	return hash_int32(seed + UINT32_C(0xe6546b64) + UINT32_C(1640531527) * val);
 
@@ -656,7 +656,7 @@ __AD_LINKAGE hash32_t hash_combine_int32(uint32_t seed, uint32_t val)
 	// return murmurhash3_x86_32(&buffer, sizeof(buffer), 0);
 }
 
-__AD_LINKAGE hash64_t hash_combine_int64(uint64_t seed, uint64_t val)
+hash64_t hash_combine_int64(uint64_t seed, uint64_t val)
 {
 	return hash_int64(seed + UINT32_C(0xe6546b64) + UINT64_C(7046029254386353131) * val);
 

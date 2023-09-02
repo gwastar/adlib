@@ -22,21 +22,21 @@
 #include <stdint.h>
 
 #ifndef HAVE_BUILTIN_CLZ
-__AD_LINKAGE unsigned int _clz(unsigned int x)
+unsigned int _clz(unsigned int x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x >>= 1);
 	return 8 * sizeof(x) - n;
 }
 
-__AD_LINKAGE unsigned int _clzl(unsigned long x)
+unsigned int _clzl(unsigned long x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x >>= 1);
 	return 8 * sizeof(x) - n;
 }
 
-__AD_LINKAGE unsigned int _clzll(unsigned long long x)
+unsigned int _clzll(unsigned long long x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x >>= 1);
@@ -45,7 +45,7 @@ __AD_LINKAGE unsigned int _clzll(unsigned long long x)
 #endif
 
 #ifndef HAVE_BUILTIN_CTZ
-__AD_LINKAGE unsigned int _ctz(unsigned int x)
+unsigned int _ctz(unsigned int x)
 {
 	x = ~x & (x - 1);
 	unsigned int n;
@@ -53,7 +53,7 @@ __AD_LINKAGE unsigned int _ctz(unsigned int x)
 	return n;
 }
 
-__AD_LINKAGE unsigned int _ctzl(unsigned long x)
+unsigned int _ctzl(unsigned long x)
 {
 	x = ~x & (x - 1);
 	unsigned int n;
@@ -61,7 +61,7 @@ __AD_LINKAGE unsigned int _ctzl(unsigned long x)
 	return n;
 }
 
-__AD_LINKAGE unsigned int _ctzll(unsigned long long x)
+unsigned int _ctzll(unsigned long long x)
 {
 	x = ~x & (x - 1);
 	unsigned int n;
@@ -71,7 +71,7 @@ __AD_LINKAGE unsigned int _ctzll(unsigned long long x)
 #endif
 
 #ifndef HAVE_BUILTIN_FFS
-__AD_LINKAGE unsigned int _ffs(unsigned int x)
+unsigned int _ffs(unsigned int x)
 {
 	if (x == 0) {
 		return 0;
@@ -82,7 +82,7 @@ __AD_LINKAGE unsigned int _ffs(unsigned int x)
 	return n;
 }
 
-__AD_LINKAGE unsigned int _ffsl(unsigned long x)
+unsigned int _ffsl(unsigned long x)
 {
 	if (x == 0) {
 		return 0;
@@ -93,7 +93,7 @@ __AD_LINKAGE unsigned int _ffsl(unsigned long x)
 	return n;
 }
 
-__AD_LINKAGE unsigned int _ffsll(unsigned long long x)
+unsigned int _ffsll(unsigned long long x)
 {
 	if (x == 0) {
 		return 0;
@@ -106,21 +106,21 @@ __AD_LINKAGE unsigned int _ffsll(unsigned long long x)
 #endif
 
 #ifndef HAVE_BUILTIN_POPCOUNT
-__AD_LINKAGE unsigned int _popcount(unsigned int x)
+unsigned int _popcount(unsigned int x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x = x & (x - 1));
 	return n;
 }
 
-__AD_LINKAGE unsigned int _popcountl(unsigned long x)
+unsigned int _popcountl(unsigned long x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x = x & (x - 1));
 	return n;
 }
 
-__AD_LINKAGE unsigned int _popcountll(unsigned long long x)
+unsigned int _popcountll(unsigned long long x)
 {
 	unsigned int n;
 	for (n = 0; x; n++, x = x & (x - 1));
@@ -200,7 +200,7 @@ static unsigned int _ilog10_64(uint64_t x)
 	return y;
 }
 
-__AD_LINKAGE unsigned int _ilog10(unsigned int x)
+unsigned int _ilog10(unsigned int x)
 {
 #if UINT_MAX <= UINT32_MAX
 	return _ilog10_32(x);
@@ -209,7 +209,7 @@ __AD_LINKAGE unsigned int _ilog10(unsigned int x)
 #endif
 }
 
-__AD_LINKAGE unsigned int _ilog10l(unsigned long x)
+unsigned int _ilog10l(unsigned long x)
 {
 #if ULONG_MAX <= UINT32_MAX
 	return _ilog10_32(x);
@@ -218,7 +218,7 @@ __AD_LINKAGE unsigned int _ilog10l(unsigned long x)
 #endif
 }
 
-__AD_LINKAGE unsigned int _ilog10ll(unsigned long long x)
+unsigned int _ilog10ll(unsigned long long x)
 {
 #if ULLONG_MAX <= UINT32_MAX
 	return _ilog10_32(x);

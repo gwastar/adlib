@@ -39,17 +39,17 @@ enum to_chars_flags {
 
 // TODO fortify these functions?
 // pass NULL for 'buf' to get the required size
-__AD_LINKAGE size_t to_chars_char(char *buf, char val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_schar(char *buf, signed char val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_uchar(char *buf, unsigned char val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_short(char *buf, short val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_ushort(char *buf, unsigned short val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_int(char *buf, int val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_uint(char *buf, unsigned int val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_long(char *buf, long val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_ulong(char *buf, unsigned long val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_llong(char *buf, long long val, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t to_chars_ullong(char *buf, unsigned long long val, unsigned int flags) _attr_unused;
+size_t to_chars_char(char *buf, char val, unsigned int flags);
+size_t to_chars_schar(char *buf, signed char val, unsigned int flags);
+size_t to_chars_uchar(char *buf, unsigned char val, unsigned int flags);
+size_t to_chars_short(char *buf, short val, unsigned int flags);
+size_t to_chars_ushort(char *buf, unsigned short val, unsigned int flags);
+size_t to_chars_int(char *buf, int val, unsigned int flags);
+size_t to_chars_uint(char *buf, unsigned int val, unsigned int flags);
+size_t to_chars_long(char *buf, long val, unsigned int flags);
+size_t to_chars_ulong(char *buf, unsigned long val, unsigned int flags);
+size_t to_chars_llong(char *buf, long long val, unsigned int flags);
+size_t to_chars_ullong(char *buf, unsigned long long val, unsigned int flags);
 #define to_chars(buf, val, flags) _Generic(val,				\
 					   char : to_chars_char(buf, (char)val, flags), \
 					   unsigned char : to_chars_uchar(buf, (unsigned char)val, flags), \
@@ -77,17 +77,17 @@ enum from_chars_flags {
 	// TODO FROM_CHARS_SKIP_LEADING_WHITESPACE
 };
 
-__AD_LINKAGE size_t from_chars_char(char *chars, size_t nchars, char *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_schar(char *chars, size_t nchars, signed char *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_uchar(char *chars, size_t nchars, unsigned char *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_short(char *chars, size_t nchars, short *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_ushort(char *chars, size_t nchars, unsigned short *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_int(char *chars, size_t nchars, int *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_uint(char *chars, size_t nchars, unsigned int *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_long(char *chars, size_t nchars, long *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_ulong(char *chars, size_t nchars, unsigned long *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_llong(char *chars, size_t nchars, long long *retval, unsigned int flags) _attr_unused;
-__AD_LINKAGE size_t from_chars_ullong(char *chars, size_t nchars, unsigned long long *retval, unsigned int flags) _attr_unused;
+size_t from_chars_char(char *chars, size_t nchars, char *retval, unsigned int flags);
+size_t from_chars_schar(char *chars, size_t nchars, signed char *retval, unsigned int flags);
+size_t from_chars_uchar(char *chars, size_t nchars, unsigned char *retval, unsigned int flags);
+size_t from_chars_short(char *chars, size_t nchars, short *retval, unsigned int flags);
+size_t from_chars_ushort(char *chars, size_t nchars, unsigned short *retval, unsigned int flags);
+size_t from_chars_int(char *chars, size_t nchars, int *retval, unsigned int flags);
+size_t from_chars_uint(char *chars, size_t nchars, unsigned int *retval, unsigned int flags);
+size_t from_chars_long(char *chars, size_t nchars, long *retval, unsigned int flags);
+size_t from_chars_ulong(char *chars, size_t nchars, unsigned long *retval, unsigned int flags);
+size_t from_chars_llong(char *chars, size_t nchars, long long *retval, unsigned int flags);
+size_t from_chars_ullong(char *chars, size_t nchars, unsigned long long *retval, unsigned int flags);
 #define from_chars(chars, nchars, retval, flags) _Generic(retval,	\
 							  char * : from_chars_char(chars, nchars, (char *)retval, flags), \
 							  unsigned char * : from_chars_char(chars, nchars, (unsigned char *)retval, flags), \

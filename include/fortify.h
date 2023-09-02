@@ -22,8 +22,6 @@
 #endif
 
 
-__AD_LINKAGE void _fortify_check_failed(const char *cond,
-					const char *file,
-					unsigned int line) _attr_unused _attr_noreturn;
+void _fortify_check_failed(const char *cond, const char *file, unsigned int line) _attr_noreturn;
 
 #endif

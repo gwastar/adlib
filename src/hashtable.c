@@ -61,7 +61,7 @@ size_t num_inserts;
 #endif
 
 // TODO put this into utils
-static _attr_unused _hashtable_uint_t _hashtable_round_capacity(_hashtable_uint_t capacity)
+static _hashtable_uint_t _hashtable_round_capacity(_hashtable_uint_t capacity)
 {
 	// round to next power of 2
 	capacity--;
@@ -90,21 +90,21 @@ static _attr_unused _hashtable_uint_t _hashtable_round_capacity(_hashtable_uint_
 // 	}
 // }
 
-// static _attr_unused _hashtable_uint_t _hashtable_min_capacity(_hashtable_uint_t num_entries,
+// static _hashtable_uint_t _hashtable_min_capacity(_hashtable_uint_t num_entries,
 // 							      const struct _hashtable_info *info)
 // {
 // 	return (num_entries / info->threshold) * 10 +
 // 		((num_entries % info->threshold) * 10 + info->threshold - 1) / info->threshold;
 // }
 
-static _attr_unused _hashtable_uint_t _hashtable_max_entries(_hashtable_uint_t capacity,
-							     const struct _hashtable_info *info)
+static _hashtable_uint_t _hashtable_max_entries(_hashtable_uint_t capacity,
+						const struct _hashtable_info *info)
 {
 	return (capacity / 10) * info->threshold + (capacity % 10) * info->threshold / 10;
 }
 
-static _attr_unused _hashtable_idx_t _hashtable_hash_to_index(const struct _hashtable *table,
-							      _hashtable_hash_t hash)
+static _hashtable_idx_t _hashtable_hash_to_index(const struct _hashtable *table,
+						 _hashtable_hash_t hash)
 {
 	_hashtable_idx_t h = hash;
 
@@ -144,8 +144,8 @@ struct _hashtable_probe_iter {
 	_hashtable_uint_t mask;
 };
 
-static _attr_unused struct _hashtable_probe_iter _hashtable_probe_iter_start(const struct _hashtable *table,
-									     _hashtable_hash_t hash)
+static struct _hashtable_probe_iter _hashtable_probe_iter_start(const struct _hashtable *table,
+								_hashtable_hash_t hash)
 {
 	_hashtable_idx_t start = _hashtable_hash_to_index(table, hash);
 	struct _hashtable_probe_iter iter = {
@@ -157,7 +157,7 @@ static _attr_unused struct _hashtable_probe_iter _hashtable_probe_iter_start(con
 	return iter;
 }
 
-static _attr_unused void _hashtable_probe_iter_advance(struct _hashtable_probe_iter *iter)
+static void _hashtable_probe_iter_advance(struct _hashtable_probe_iter *iter)
 {
 	// http://www.chilton-computing.org.uk/acl/literature/reports/p012.htm
 	iter->increment++;
@@ -165,20 +165,20 @@ static _attr_unused void _hashtable_probe_iter_advance(struct _hashtable_probe_i
 	// iter->index = (iter->start + ((iter->increment + 1) * iter->increment) / 2) & iter->mask;
 }
 
-static _attr_unused _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
-								 const struct _hashtable_info *info)
+static _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
+						    const struct _hashtable_info *info)
 {
 	return capacity * info->entry_size;
 }
 
-static _attr_unused _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
-							       const struct _hashtable_info *info)
+static _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
+						  const struct _hashtable_info *info)
 {
 	(void)info;
 	return &table->metadata[index];
 }
 
-static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
+static void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	assert((table->capacity & (table->capacity - 1)) == 0);
 	_hashtable_uint_t size = info->entry_size + sizeof(_hashtable_metadata_t);
@@ -193,8 +193,8 @@ static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, co
 	table->max_entries = _hashtable_max_entries(table->capacity, info);
 }
 
-__AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
-				  const struct _hashtable_info *info)
+void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
+		     const struct _hashtable_info *info)
 {
 	if (capacity < 8) {
 		capacity = 8;
@@ -211,21 +211,21 @@ __AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t ca
 	}
 }
 
-__AD_LINKAGE void _hashtable_destroy(struct _hashtable *table)
+void _hashtable_destroy(struct _hashtable *table)
 {
 	free(table->storage);
 	memset(table, 0, sizeof(*table));
 }
 
-static _attr_unused _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
+static _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
 {
 	_hashtable_metadata_t m;
 	m.hash = hash < __HASHTABLE_MIN_VALID_HASH ? hash - __HASHTABLE_MIN_VALID_HASH : hash;
 	return m.hash;
 }
 
-__AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
-				    _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
+bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
+		       _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
 {
 #ifdef __HASHTABLE_PROFILING
 	_hashtable_uint_t search_length = 0;
@@ -257,8 +257,8 @@ __AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashta
 	return false;
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
-						  const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
+				     const struct _hashtable_info *info)
 {
 	for (_hashtable_idx_t index = start; index < table->capacity; index++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, index, info);
@@ -269,8 +269,8 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _has
 	return table->capacity;
 }
 
-static _attr_unused _hashtable_idx_t _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
-							  const struct _hashtable_info *info)
+static _hashtable_idx_t _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
+					     const struct _hashtable_info *info)
 {
 #ifdef __HASHTABLE_PROFILING
 	num_inserts++;
@@ -299,19 +299,19 @@ static _attr_unused _hashtable_idx_t _hashtable_do_insert(struct _hashtable *tab
 	return index;
 }
 
-static _attr_unused bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	return !(bitmap[index / 32] & (1u << (index % 32)));
 }
 
-static _attr_unused void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	bitmap[index / 32] |= 1u << (index % 32);
 }
 
-static _attr_unused bool _hashtable_insert_during_resize(struct _hashtable *table, _hashtable_hash_t *phash,
-							 void *entry, uint32_t *bitmap,
-							 const struct _hashtable_info *info)
+static bool _hashtable_insert_during_resize(struct _hashtable *table, _hashtable_hash_t *phash,
+					    void *entry, uint32_t *bitmap,
+					    const struct _hashtable_info *info)
 {
 	for (struct _hashtable_probe_iter iter = _hashtable_probe_iter_start(table, *phash);;
 	     _hashtable_probe_iter_advance(&iter)) {
@@ -344,8 +344,8 @@ static _attr_unused bool _hashtable_insert_during_resize(struct _hashtable *tabl
 	}
 }
 
-static _attr_unused void _hashtable_resize_common(struct _hashtable *table, _hashtable_uint_t old_capacity,
-						  const struct _hashtable_info *info)
+static void _hashtable_resize_common(struct _hashtable *table, _hashtable_uint_t old_capacity,
+				     const struct _hashtable_info *info)
 {
 	size_t max_capacity = old_capacity > table->capacity ? old_capacity : table->capacity;
 	size_t bitmap_size = (max_capacity + 31) / 32 * sizeof(uint32_t);
@@ -400,8 +400,8 @@ static _attr_unused void _hashtable_resize_common(struct _hashtable *table, _has
 	}
 }
 
-static _attr_unused void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					   const struct _hashtable_info *info)
+static void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			      const struct _hashtable_info *info)
 {
 	assert(new_capacity < table->capacity && new_capacity > table->num_entries);
 	if (new_capacity < 8) {
@@ -419,8 +419,8 @@ static _attr_unused void _hashtable_shrink(struct _hashtable *table, _hashtable_
 	_hashtable_realloc_storage(table, info);
 }
 
-static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					 const struct _hashtable_info *info)
+static void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			    const struct _hashtable_info *info)
 {
 	assert(new_capacity >= table->capacity && new_capacity > table->num_entries);
 
@@ -443,8 +443,8 @@ static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_ui
 	_hashtable_resize_common(table, old_capacity, info);
 }
 
-__AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
-				    const struct _hashtable_info *info)
+void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
+		       const struct _hashtable_info *info)
 {
 	new_capacity = _hashtable_round_capacity(new_capacity);
 	while (_hashtable_max_entries(new_capacity, info) < table->num_entries) {
@@ -457,8 +457,8 @@ __AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t 
 	}
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
-						const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
+				   const struct _hashtable_info *info)
 {
 	hash = _hashtable_sanitize_hash(hash);
 	table->num_entries++;
@@ -468,8 +468,8 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hasht
 	return _hashtable_do_insert(table, hash, info);
 }
 
-__AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
-				    const struct _hashtable_info *info)
+void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
+		       const struct _hashtable_info *info)
 {
 	_hashtable_metadata(table, index, info)->hash = __HASHTABLE_TOMBSTONE_HASH;
 	table->num_entries--;
@@ -481,7 +481,7 @@ __AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t i
 	}
 }
 
-__AD_LINKAGE void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
+void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	for (_hashtable_uint_t i = 0; i < table->capacity; i++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, i, info);
@@ -513,24 +513,24 @@ typedef struct _hashtable_metadata {
 	_hashtable_bitmap_t bitmap;
 } _hashtable_metadata_t;
 
-static _attr_unused _hashtable_idx_t _hashtable_wrap_index(_hashtable_idx_t index, _hashtable_uint_t capacity)
+static _hashtable_idx_t _hashtable_wrap_index(_hashtable_idx_t index, _hashtable_uint_t capacity)
 {
 	return index & (capacity - 1);
 }
 
-static _attr_unused _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
-								 const struct _hashtable_info *info)
+static _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
+						    const struct _hashtable_info *info)
 {
 	return capacity * info->entry_size;
 }
 
-static _attr_unused _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
-							       const struct _hashtable_info *info)
+static _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
+						  const struct _hashtable_info *info)
 {
 	return &table->metadata[index];
 }
 
-static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
+static void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	assert((table->capacity & (table->capacity - 1)) == 0);
 	_hashtable_uint_t size = info->entry_size + sizeof(_hashtable_metadata_t);
@@ -545,8 +545,8 @@ static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, co
 	table->max_entries = _hashtable_max_entries(table->capacity, info);
 }
 
-__AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
-				  const struct _hashtable_info *info)
+void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
+		     const struct _hashtable_info *info)
 {
 	if (capacity < 8) {
 		capacity = 8;
@@ -563,13 +563,13 @@ __AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t ca
 	}
 }
 
-__AD_LINKAGE void _hashtable_destroy(struct _hashtable *table)
+void _hashtable_destroy(struct _hashtable *table)
 {
 	free(table->storage);
 	memset(table, 0, sizeof(*table));
 }
 
-static _attr_unused _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
+static _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
 {
 	hash = hash < __HASHTABLE_MIN_VALID_HASH ? hash - __HASHTABLE_MIN_VALID_HASH : hash;
 	_hashtable_metadata_t m;
@@ -577,8 +577,8 @@ static _attr_unused _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t
 	return m.hash;
 }
 
-__AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
-				    _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
+bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
+		       _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
 {
 	hash = _hashtable_sanitize_hash(hash);
 	_hashtable_idx_t home = _hashtable_hash_to_index(table, hash);
@@ -601,8 +601,8 @@ __AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashta
 	return false;
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
-						  const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
+				     const struct _hashtable_info *info)
 {
 	for (_hashtable_idx_t index = start; index < table->capacity; index++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, index, info);
@@ -613,8 +613,8 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _has
 	return table->capacity;
 }
 
-static _attr_unused bool _hashtable_move_into_neighborhood(struct _hashtable *table, _hashtable_idx_t *pindex,
-							   _hashtable_uint_t *pdistance, const struct _hashtable_info *info)
+static bool _hashtable_move_into_neighborhood(struct _hashtable *table, _hashtable_idx_t *pindex,
+					      _hashtable_uint_t *pdistance, const struct _hashtable_info *info)
 {
 	_hashtable_idx_t index = *pindex;
 	_hashtable_uint_t distance = *pdistance;
@@ -649,8 +649,8 @@ static _attr_unused bool _hashtable_move_into_neighborhood(struct _hashtable *ta
 	return true;
 }
 
-static _attr_unused bool _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
-					      _hashtable_idx_t *pindex, const struct _hashtable_info *info)
+static bool _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
+				 _hashtable_idx_t *pindex, const struct _hashtable_info *info)
 {
 	_hashtable_idx_t home = _hashtable_hash_to_index(table, hash);
 	_hashtable_idx_t index = home;
@@ -675,20 +675,20 @@ static _attr_unused bool _hashtable_do_insert(struct _hashtable *table, _hashtab
 	return true;
 }
 
-static _attr_unused bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	return !(bitmap[index / 32] & (1u << (index % 32)));
 }
 
-static _attr_unused void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	bitmap[index / 32] |= 1u << (index % 32);
 }
 
 // if an entry was replaced *phash will be != __HASHTABLE_EMPTY_HASH
-static _attr_unused bool _hashtable_insert_during_resize(struct _hashtable *table, _hashtable_hash_t *phash,
-							 void *entry, uint32_t *bitmap,
-							 const struct _hashtable_info *info)
+static bool _hashtable_insert_during_resize(struct _hashtable *table, _hashtable_hash_t *phash,
+					    void *entry, uint32_t *bitmap,
+					    const struct _hashtable_info *info)
 {
 	_hashtable_hash_t hash = *phash;
 	*phash = __HASHTABLE_EMPTY_HASH;
@@ -727,8 +727,8 @@ static _attr_unused bool _hashtable_insert_during_resize(struct _hashtable *tabl
 	return success;
 }
 
-static _attr_unused void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					   const struct _hashtable_info *info)
+static void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			      const struct _hashtable_info *info)
 {
 	assert(new_capacity < table->capacity && new_capacity > table->num_entries);
 	if (new_capacity < 8) {
@@ -809,8 +809,8 @@ retry:
 	_hashtable_realloc_storage(table, info);
 }
 
-static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					 const struct _hashtable_info *info)
+static void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			    const struct _hashtable_info *info)
 {
 	assert(new_capacity >= table->capacity && new_capacity > table->num_entries);
 
@@ -879,8 +879,8 @@ static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_ui
 	free(bitmap_to_free);
 }
 
-__AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
-				    const struct _hashtable_info *info)
+void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
+		       const struct _hashtable_info *info)
 {
 	new_capacity = _hashtable_round_capacity(new_capacity);
 	while (_hashtable_max_entries(new_capacity, info) < table->num_entries) {
@@ -893,8 +893,8 @@ __AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t 
 	}
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
-						const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
+				   const struct _hashtable_info *info)
 {
 	hash = _hashtable_sanitize_hash(hash);
 	table->num_entries++;
@@ -908,8 +908,8 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hasht
 	return index;
 }
 
-__AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
-				    const struct _hashtable_info *info)
+void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
+		       const struct _hashtable_info *info)
 {
 	_hashtable_metadata_t *m = _hashtable_metadata(table, index, info);
 	_hashtable_idx_t home = _hashtable_hash_to_index(table, m->hash);
@@ -923,7 +923,7 @@ __AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t i
 	}
 }
 
-__AD_LINKAGE void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
+void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	for (_hashtable_uint_t i = 0; i < table->capacity; i++) {
 		_hashtable_metadata(table, i, info)->hash = __HASHTABLE_EMPTY_HASH;
@@ -947,44 +947,44 @@ typedef struct _hashtable_metadata {
 	_hashtable_hash_t hash;
 } _hashtable_metadata_t;
 
-static _attr_unused _hashtable_idx_t _hashtable_wrap_index(_hashtable_idx_t start, _hashtable_uint_t i,
-							   _hashtable_uint_t capacity)
+static _hashtable_idx_t _hashtable_wrap_index(_hashtable_idx_t start, _hashtable_uint_t i,
+					      _hashtable_uint_t capacity)
 {
 	return (start + i) & (capacity - 1);
 }
 
-static _attr_unused _hashtable_hash_t _hashtable_get_hash(struct _hashtable *table, _hashtable_idx_t index,
-							  const struct _hashtable_info *info)
+static _hashtable_hash_t _hashtable_get_hash(struct _hashtable *table, _hashtable_idx_t index,
+					     const struct _hashtable_info *info)
 {
 	return table->metadata[index].hash;
 }
 
-static _attr_unused void _hashtable_set_hash(struct _hashtable *table, _hashtable_idx_t index, _hashtable_hash_t hash,
-					     const struct _hashtable_info *info)
+static void _hashtable_set_hash(struct _hashtable *table, _hashtable_idx_t index, _hashtable_hash_t hash,
+				const struct _hashtable_info *info)
 {
 	table->metadata[index].hash = hash;
 }
 
-static _attr_unused _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
-								 const struct _hashtable_info *info)
+static _hashtable_uint_t _hashtable_metadata_offset(_hashtable_uint_t capacity,
+						    const struct _hashtable_info *info)
 {
 	return capacity * info->entry_size;
 }
 
-static _attr_unused _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
-							       const struct _hashtable_info *info)
+static _hashtable_metadata_t *_hashtable_metadata(struct _hashtable *table, _hashtable_idx_t index,
+						  const struct _hashtable_info *info)
 {
 	return &table->metadata[index];
 }
 
-static _attr_unused _hashtable_uint_t _hashtable_get_distance(struct _hashtable *table, _hashtable_idx_t index,
-							      const struct _hashtable_info *info)
+static _hashtable_uint_t _hashtable_get_distance(struct _hashtable *table, _hashtable_idx_t index,
+						 const struct _hashtable_info *info)
 {
 	_hashtable_hash_t hash = _hashtable_get_hash(table, index, info);
 	return (index - _hashtable_hash_to_index(table, hash)) & (table->capacity - 1);
 }
 
-static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
+static void _hashtable_realloc_storage(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	assert((table->capacity & (table->capacity - 1)) == 0);
 	_hashtable_uint_t size = info->entry_size + sizeof(_hashtable_metadata_t);
@@ -999,8 +999,8 @@ static _attr_unused void _hashtable_realloc_storage(struct _hashtable *table, co
 	table->max_entries = _hashtable_max_entries(table->capacity, info);
 }
 
-__AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
-				  const struct _hashtable_info *info)
+void _hashtable_init(struct _hashtable *table, _hashtable_uint_t capacity,
+		     const struct _hashtable_info *info)
 {
 	if (capacity < 8) {
 		capacity = 8;
@@ -1017,21 +1017,21 @@ __AD_LINKAGE void _hashtable_init(struct _hashtable *table, _hashtable_uint_t ca
 	}
 }
 
-__AD_LINKAGE void _hashtable_destroy(struct _hashtable *table)
+void _hashtable_destroy(struct _hashtable *table)
 {
 	free(table->storage);
 	memset(table, 0, sizeof(*table));
 }
 
-static _attr_unused _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
+static _hashtable_hash_t _hashtable_sanitize_hash(_hashtable_hash_t hash)
 {
 	_hashtable_metadata_t m;
 	m.hash = hash < __HASHTABLE_MIN_VALID_HASH ? hash - __HASHTABLE_MIN_VALID_HASH : hash;
 	return m.hash;
 }
 
-__AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
-				    _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
+bool _hashtable_lookup(struct _hashtable *table, void *key, _hashtable_hash_t hash,
+		       _hashtable_idx_t *ret_index, const struct _hashtable_info *info)
 {
 	hash = _hashtable_sanitize_hash(hash);
 	_hashtable_idx_t start = _hashtable_hash_to_index(table, hash);
@@ -1057,8 +1057,8 @@ __AD_LINKAGE bool _hashtable_lookup(struct _hashtable *table, void *key, _hashta
 	return false;
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
-						  const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _hashtable_idx_t start,
+				     const struct _hashtable_info *info)
 {
 	for (_hashtable_idx_t index = start; index < table->capacity; index++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, index, info);
@@ -1069,20 +1069,20 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_get_next(struct _hashtable *table, _has
 	return table->capacity;
 }
 
-static _attr_unused bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static bool _hashtable_slot_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	return !(bitmap[index / 32] & (1u << (index % 32)));
 }
 
-static _attr_unused void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
+static void _hashtable_slot_clear_needs_rehash(uint32_t *bitmap, _hashtable_idx_t index)
 {
 	bitmap[index / 32] |= 1u << (index % 32);
 }
 
-static _attr_unused bool _hashtable_insert_robin_hood(struct _hashtable *table, _hashtable_idx_t start,
-						      _hashtable_uint_t distance, _hashtable_hash_t *phash,
-						      void *entry, uint32_t *bitmap,
-						      const struct _hashtable_info *info)
+static bool _hashtable_insert_robin_hood(struct _hashtable *table, _hashtable_idx_t start,
+					 _hashtable_uint_t distance, _hashtable_hash_t *phash,
+					 void *entry, uint32_t *bitmap,
+					 const struct _hashtable_info *info)
 {
 	void *tmp_entry = alloca(info->entry_size);
 	for (_hashtable_uint_t i = 0;; i++, distance++) {
@@ -1119,8 +1119,8 @@ static _attr_unused bool _hashtable_insert_robin_hood(struct _hashtable *table, 
 	}
 }
 
-static _attr_unused _hashtable_idx_t _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
-							  const struct _hashtable_info *info)
+static _hashtable_idx_t _hashtable_do_insert(struct _hashtable *table, _hashtable_hash_t hash,
+					     const struct _hashtable_info *info)
 {
 	_hashtable_idx_t start = _hashtable_hash_to_index(table, hash);
 	_hashtable_idx_t index;
@@ -1144,8 +1144,8 @@ static _attr_unused _hashtable_idx_t _hashtable_do_insert(struct _hashtable *tab
 	return index;
 }
 
-static _attr_unused void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					   const struct _hashtable_info *info)
+static void _hashtable_shrink(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			      const struct _hashtable_info *info)
 {
 	assert(new_capacity < table->capacity && new_capacity > table->num_entries);
 	if (new_capacity < 8) {
@@ -1207,8 +1207,8 @@ static _attr_unused void _hashtable_shrink(struct _hashtable *table, _hashtable_
 	_hashtable_realloc_storage(table, info);
 }
 
-static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
-					 const struct _hashtable_info *info)
+static void _hashtable_grow(struct _hashtable *table, _hashtable_uint_t new_capacity,
+			    const struct _hashtable_info *info)
 {
 	assert(new_capacity >= table->capacity && new_capacity > table->num_entries);
 
@@ -1274,8 +1274,8 @@ static _attr_unused void _hashtable_grow(struct _hashtable *table, _hashtable_ui
 	free(bitmap_to_free);
 }
 
-__AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
-				    const struct _hashtable_info *info)
+void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t new_capacity,
+		       const struct _hashtable_info *info)
 {
 	new_capacity = _hashtable_round_capacity(new_capacity);
 	while (_hashtable_max_entries(new_capacity, info) < table->num_entries) {
@@ -1288,8 +1288,8 @@ __AD_LINKAGE void _hashtable_resize(struct _hashtable *table, _hashtable_uint_t 
 	}
 }
 
-__AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
-						const struct _hashtable_info *info)
+_hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hashtable_hash_t hash,
+				   const struct _hashtable_info *info)
 {
 	hash = _hashtable_sanitize_hash(hash);
 	table->num_entries++;
@@ -1299,8 +1299,8 @@ __AD_LINKAGE _hashtable_idx_t _hashtable_insert(struct _hashtable *table, _hasht
 	return _hashtable_do_insert(table, hash, info);
 }
 
-__AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
-				    const struct _hashtable_info *info)
+void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t index,
+		       const struct _hashtable_info *info)
 {
 	_hashtable_metadata(table, index, info)->hash = __HASHTABLE_EMPTY_HASH;
 	table->num_entries--;
@@ -1325,7 +1325,7 @@ __AD_LINKAGE void _hashtable_remove(struct _hashtable *table, _hashtable_idx_t i
 	}
 }
 
-__AD_LINKAGE void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
+void _hashtable_clear(struct _hashtable *table, const struct _hashtable_info *info)
 {
 	for (_hashtable_uint_t i = 0; i < table->capacity; i++) {
 		_hashtable_metadata_t *m = _hashtable_metadata(table, i, info);
