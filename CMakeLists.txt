@@ -103,7 +103,6 @@ else()
   message(FATAL_ERROR "Invalid hashtable implementation.")
 endif()
 
-# TODO put the generated config.h in the build directory like meson
 configure_file(include/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 
 set(SOURCES

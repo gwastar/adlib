@@ -490,6 +490,47 @@ SIMPLE_TEST(to_unsigned)
 	return true;
 }
 
+SIMPLE_TEST(to_signed)
+{
+#define CHECK_TO_SIGNED_UNSIGNED(type, signed_type)			\
+	do {								\
+		type val = -1;						\
+		signed_type sval = val;					\
+		CHECK(to_signed(val) == sval);				\
+		CHECK((long long)to_signed(val) == sval);		\
+		CHECK(_Generic(to_signed((type)0), signed_type : 1));	\
+		CHECK(_Generic((to_signed_type(type))0, signed_type : 1)); \
+	} while (0)
+
+#define CHECK_TO_SIGNED_SIGNED(type)					\
+	do {								\
+		type val = -1;						\
+		CHECK(to_signed(val) == val);				\
+		CHECK(_Generic(to_signed((type)0), type : 1));		\
+		CHECK(_Generic((to_signed_type(type))0, type : 1));	\
+	} while (0)
+
+#if CHAR_MIN == 0
+	CHECK_TO_SIGNED_UNSIGNED(char, signed char);
+#endif
+	CHECK_TO_SIGNED_UNSIGNED(unsigned char, signed char);
+	CHECK_TO_SIGNED_UNSIGNED(unsigned short, signed short);
+	CHECK_TO_SIGNED_UNSIGNED(unsigned int, signed int);
+	CHECK_TO_SIGNED_UNSIGNED(unsigned long, signed long);
+	CHECK_TO_SIGNED_UNSIGNED(unsigned long long, signed long long);
+
+#if CHAR_MIN < 0
+	CHECK_TO_SIGNED_SIGNED(char);
+#endif
+	CHECK_TO_SIGNED_SIGNED(signed char);
+	CHECK_TO_SIGNED_SIGNED(signed short);
+	CHECK_TO_SIGNED_SIGNED(signed int);
+	CHECK_TO_SIGNED_SIGNED(signed long);
+	CHECK_TO_SIGNED_SIGNED(signed long long);
+
+	return true;
+}
+
 SIMPLE_TEST(overflow8)
 {
 	for (uint64_t a = 0; a <= UINT8_MAX; a++) {

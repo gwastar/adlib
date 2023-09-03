@@ -2,7 +2,7 @@ project('adlib', 'c',
   version : '0.0.1',
   license : 'MIT',
   meson_version : '>= 0.64.0',
-  default_options : [ 'warning_level=3', # TODO increase warning level?
+  default_options : [ 'warning_level=3',
                       'default_library=static',
                       'c_std=gnu11',
                       'b_pie=true',
@@ -32,6 +32,8 @@ c_args = [
   #'-Wmissing-noreturn',
   #'-Wsuggest-attribute=malloc',
   #'-Wsuggest-attribute=format',
+
+  # '-funsigned-char',
 ]
 
 if ['1', '2', '3', 's'].contains(get_option('optimization'))
@@ -39,8 +41,6 @@ if ['1', '2', '3', 's'].contains(get_option('optimization'))
 endif
 
 add_project_arguments(cc.get_supported_arguments(c_args), language: 'c')
-
-adlib_inc = [include_directories('include')]
 
 cdata = configuration_data()
 disable_function_detection = get_option('disable-function-detection')
@@ -83,9 +83,9 @@ cdata.set('BYTE_ORDER_IS_BIG_ENDIAN', host_machine.endian() == 'big')
 cdata.set('BYTE_ORDER_IS_LITTLE_ENDIAN', host_machine.endian() == 'little')
 
 
-configure_file(output : 'config.h', input : 'include/config.h.in', configuration : cdata, format : 'cmake', install : true, install_dir : 'include', install_tag : 'devel')
+configure_file(output : 'config.h', input : 'include/config.h.in', configuration : cdata, format : 'cmake', install : true, install_dir : 'include/adlib', install_tag : 'devel')
 
-adlib_inc += include_directories('.')
+adlib_inc = include_directories('include', '.')
 
 sources = [
   'array.c',
@@ -109,7 +109,7 @@ endforeach
 
 adlib = library('adlib', prefixed_sources, include_directories : adlib_inc, install : true)
 
-install_subdir('include', install_dir : '', install_tag : 'devel', exclude_files : 'config.h.in')
+install_subdir('include', install_dir : 'include/adlib', strip_directory : true, install_tag : 'devel', exclude_files : 'config.h.in')
 
 if get_option('tests')
   subdir('tests')

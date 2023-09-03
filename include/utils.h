@@ -20,7 +20,7 @@
 #ifndef __UTILS_INCLUDE__
 #define __UTILS_INCLUDE__
 
-// TODO integer three-way compare functions
+// TODO integer three-way compare functions, split this header, prefix functions and macros here with util(s)?
 
 #include <limits.h>
 #include <stdbool.h>
@@ -29,8 +29,6 @@
 #include "compiler.h"
 #include "config.h"
 
-// TODO prefix functions and macros here with util(s)?
-
 _Static_assert(CHAR_BIT == 8, "this implementation assumes 8-bit chars");
 #ifndef HAVE_TYPEOF
 _Static_assert(0, "utils.h requires typeof");
@@ -38,65 +36,47 @@ _Static_assert(0, "utils.h requires typeof");
 
 #define static_assert_expr(cond, msg) ((void)sizeof(struct { _Static_assert(cond, msg); int dummy; }))
 
-#define to_unsigned(val) _Generic(val,					\
-				  char : (unsigned char)val,		\
-				  unsigned char : (unsigned char)val,	\
-				  unsigned short : (unsigned short)val,	\
-				  unsigned int : (unsigned int)val,	\
-				  unsigned long : (unsigned long)val,	\
-				  unsigned long long : (unsigned long long)val, \
-				  signed char : (unsigned char)val,	\
-				  signed short : (unsigned short)val,	\
-				  signed int : (unsigned int)val,	\
-				  signed long : (unsigned long)val,	\
-				  signed long long : (unsigned long long)val)
-
-// TODO write tests for this
-#define to_signed(val) _Generic(val,					\
-				char : (signed char)val,		\
-				unsigned char : (signed char)val,	\
-				unsigned short : (signed short)val,	\
-				unsigned int : (signed int)val,		\
-				unsigned long : (signed long)val,	\
-				unsigned long long : (signed long long)val, \
-				signed char : (signed char)val,		\
-				signed short : (signed short)val,	\
-				signed int : (signed int)val,		\
-				signed long : (signed long)val,		\
-				signed long long : (signed long long)val)
-
-// TODO implement this with to_unsigned or vice versa?
-#define to_unsigned_type(type_or_expression) typeof(_Generic(*(typeof(type_or_expression) *)0, \
-							     char : (unsigned char)0, \
-							     unsigned char : (unsigned char)0, \
-							     unsigned short : (unsigned short)0, \
-							     unsigned int : (unsigned int)0, \
-							     unsigned long : (unsigned long)0, \
-							     unsigned long long : (unsigned long long)0, \
-							     signed char : (unsigned char)0, \
-							     signed short : (unsigned short)0, \
-							     signed int : (unsigned int)0, \
-							     signed long : (unsigned long)0, \
-							     signed long long : (unsigned long long)0))
-
-#define to_signed_type(type_or_expression) typeof(_Generic(*(typeof(type_or_expression) *)0, \
-							   char : (signed char)0, \
-							   unsigned char : (signed char)0, \
-							   unsigned short : (signed short)0, \
-							   unsigned int : (signed int)0, \
-							   unsigned long : (signed long)0, \
-							   unsigned long long : (signed long long)0, \
-							   signed char : (signed char)0, \
-							   signed short : (signed short)0, \
-							   signed int : (signed int)0, \
-							   signed long : (signed long)0, \
-							   signed long long : (signed long long)0))
-
 #if CHAR_MIN < 0
 #define __UTILS_CHAR_IS_UNSIGNED false
+#define __UTILS_CHAR_TO_SIGNED_TYPE char
+#define __UTILS_CHAR_TO_UNSIGNED_TYPE unsigned char
 #else
 #define __UTILS_CHAR_IS_UNSIGNED true
+#define __UTILS_CHAR_TO_SIGNED_TYPE signed char
+#define __UTILS_CHAR_TO_UNSIGNED_TYPE char
 #endif
+
+#define _utils_to_unsigned(selector, val) _Generic((selector),		\
+						   char : (__UTILS_CHAR_TO_UNSIGNED_TYPE)(val), \
+						   unsigned char : (unsigned char)(val), \
+						   unsigned short : (unsigned short)(val), \
+						   unsigned int : (unsigned int)(val), \
+						   unsigned long : (unsigned long)(val), \
+						   unsigned long long : (unsigned long long)(val), \
+						   signed char : (unsigned char)(val), \
+						   signed short : (unsigned short)(val), \
+						   signed int : (unsigned int)(val), \
+						   signed long : (unsigned long)(val), \
+						   signed long long : (unsigned long long)(val))
+
+#define _utils_to_signed(selector, val) _Generic((selector),		\
+						 char : (__UTILS_CHAR_TO_SIGNED_TYPE)(val), \
+						 unsigned char : (signed char)(val), \
+						 unsigned short : (signed short)(val), \
+						 unsigned int : (signed int)(val), \
+						 unsigned long : (signed long)(val), \
+						 unsigned long long : (signed long long)(val), \
+						 signed char : (signed char)(val), \
+						 signed short : (signed short)(val), \
+						 signed int : (signed int)(val), \
+						 signed long : (signed long)(val), \
+						 signed long long : (signed long long)(val))
+
+#define to_unsigned(val) _utils_to_unsigned(val, val)
+#define to_signed(val) _utils_to_signed(val, val)
+
+#define to_unsigned_type(type_or_expression) typeof(_utils_to_unsigned(*(typeof(type_or_expression) *)0, 0))
+#define to_signed_type(type_or_expression) typeof(_utils_to_signed(*(typeof(type_or_expression) *)0, 0))
 
 #define type_is_unsigned(type_or_expression) _Generic(*(typeof(type_or_expression) *)0, \
 						      char : __UTILS_CHAR_IS_UNSIGNED, \
@@ -155,15 +135,15 @@ _Static_assert(0, "utils.h requires typeof");
 #ifdef HAVE_BUILTIN_CLZ
 static _attr_always_inline _attr_const unsigned int _clz(unsigned int x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clz(x);
+	return x == 0 ? (8 * sizeof(x)) : __builtin_clz(x);
 }
 static _attr_always_inline _attr_const unsigned int _clzl(unsigned long x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clzl(x);
+	return x == 0 ? (8 * sizeof(x)) : __builtin_clzl(x);
 }
 static _attr_always_inline _attr_const unsigned int _clzll(unsigned long long x)
 {
-	return unlikely(x == 0) ? (8 * sizeof(x)) : __builtin_clzll(x);
+	return x == 0 ? (8 * sizeof(x)) : __builtin_clzll(x);
 }
 #else
 unsigned int _clz(unsigned int x) _attr_const;
@@ -345,9 +325,9 @@ _utils_foreach_type(_utils_max_function, dummy)
 #define _utils_dispatch_max(suffix, type, bits, a, b) type : _max_##suffix(a, b),
 
 #define min_t(type, a, b)						\
-	_Generic(*(type*)0, _utils_foreach_type(_utils_dispatch_min, a, b) struct { int i; }: 0)
+	_Generic(*(type *)0, _utils_foreach_type(_utils_dispatch_min, a, b) struct { int i; }: 0)
 #define max_t(type, a, b)						\
-	_Generic(*(type*)0, _utils_foreach_type(_utils_dispatch_max, a, b) struct { int i; } :0)
+	_Generic(*(type *)0, _utils_foreach_type(_utils_dispatch_max, a, b) struct { int i; } :0)
 
 #define min(a, b)							\
 	(static_assert_expr(types_are_compatible(a, b), "min requires compatible types for its arguments"), \
@@ -356,7 +336,6 @@ _utils_foreach_type(_utils_max_function, dummy)
 	(static_assert_expr(types_are_compatible(a, b), "max requires compatible types for its arguments"), \
 	 max_t(typeof(a), a, b))
 
-// TODO use type_is_signed in the fallbacks instead of (type)-1 < 0
 #ifdef HAVE_BUILTIN_ADD_OVERFLOW
 #define _utils_add_overflow_function(suffix, type, bits, ...)		\
 	static _attr_always_inline bool _add_overflow_##suffix(type a, type b, type *result) \
