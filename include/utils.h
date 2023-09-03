@@ -20,7 +20,9 @@
 #ifndef __UTILS_INCLUDE__
 #define __UTILS_INCLUDE__
 
-// TODO integer three-way compare functions, split this header, prefix functions and macros here with util(s)?
+// TODO integer three-way compare functions
+// TODO split this header (type-utils, integer-utils, endian, ...)?
+// TODO prefix functions and macros here with util(s)?
 
 #include <limits.h>
 #include <stdbool.h>
