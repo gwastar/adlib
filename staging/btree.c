@@ -16,8 +16,6 @@
 // TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
-// TODO use the same tree search implementation for find, delete, and insert?
-// TODO change height/depth semantics? (height == 0 means root is null OR leaf)
 
 // #define STRING_MAP
 
@@ -69,6 +67,30 @@ struct btree_iter {
 		unsigned int idx;
 	} path[32];
 };
+
+typedef void (*btree_key_destructor)(btree_key_t key);
+#ifdef __BTREE_MAP
+typedef void (*btree_value_destructor)(btree_value_t *value);
+#endif
+
+struct btree_destructors {
+	btree_key_destructor key_destructor;
+#ifdef __BTREE_MAP
+	btree_value_destructor value_destructor;
+#endif
+};
+
+static void btree_item_destructor(btree_item_t *item, struct btree_destructors callbacks)
+{
+	if (callbacks.key_destructor) {
+		callbacks.key_destructor(item->key);
+	}
+#ifdef __BTREE_MAP
+	if (callbacks.value_destructor) {
+		callbacks.value_destructor(&item->value);
+	}
+#endif
+}
 
 static struct btree_iter btree_iter_start(const struct btree *tree)
 {
@@ -122,8 +144,12 @@ static bool btree_iter_get_next(struct btree_iter *iter, btree_key_t *key, btree
 	btree_item_t item;
 	bool have_next = _btree_iter_get_next(iter, &item);
 	if (have_next) {
-		*key = item.key;
-		*value = item.value;
+		if (key) {
+			*key = item.key;
+		}
+		if (value) {
+			*value = item.value;
+		}
 	}
 	return have_next;
 }
@@ -148,8 +174,7 @@ static void btree_init(struct btree *tree)
 	*tree = (struct btree)BTREE_EMPTY;
 }
 
-// TODO add callbacks for key/value destruction?
-static void btree_destroy(struct btree *tree)
+static void _btree_destroy(struct btree *tree, struct btree_destructors destructors)
 {
 	if (tree->height == 0) {
 		return;
@@ -170,6 +195,9 @@ static void btree_destroy(struct btree *tree)
 		struct btree_pos *pos = &path[depth - 1];
 		// free the leaf and go up, if we are at the end of the current node free it and keep going up
 		do {
+			for (unsigned int i = 0; i < pos->node->num_items; i++) {
+				btree_item_destructor(&pos->node->items[i], destructors);
+			}
 			free(pos->node);
 			if (--depth == 0) {
 				tree->root = NULL;
@@ -188,6 +216,26 @@ static void btree_destroy(struct btree *tree)
 		} while (depth < tree->height);
 	}
 }
+
+#ifdef __BTREE_MAP
+static void btree_destroy(struct btree *tree, btree_key_destructor key_destructor,
+			  btree_value_destructor value_destructor)
+{
+	struct btree_destructors destructors = {
+		.key_destructor = key_destructor,
+		.value_destructor = value_destructor,
+	};
+	_btree_destroy(tree, destructors);
+}
+#else
+static void btree_destroy(struct btree *tree, btree_key_destructor key_destructor)
+{
+	struct btree_destructors destructors = {
+		.key_destructor = key_destructor,
+	};
+	_btree_destroy(tree, destructors);
+}
+#endif
 
 static bool btree_node_search(const struct btree_node *node, const btree_key_t key, unsigned int *ret_idx)
 {
@@ -265,7 +313,6 @@ static btree_item_t *_btree_find(const struct btree *tree, btree_key_t key)
 }
 
 #ifdef __BTREE_MAP
-// TODO should this also return the key?
 static btree_value_t *btree_find(const struct btree *tree, btree_key_t key)
 {
 	btree_item_t *item = _btree_find(tree, key);
@@ -407,7 +454,9 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 		if (found) {
 			// we found the key in an internal node
 			// now return it and then replace it with the max value of the left subtree
-			*ret_item = node->items[idx];
+			if (ret_item) {
+				*ret_item = node->items[idx];
+			}
 			ret_item = &node->items[idx];
 			mode = DELETE_MAX;
 		}
@@ -419,7 +468,9 @@ static bool btree_delete_internal(struct btree *tree, enum btree_deletion_mode m
 
 	// we are at the leaf and have found the item to delete
 	// return the item and rebalance
-	*ret_item = node->items[idx];
+	if (ret_item) {
+		*ret_item = node->items[idx];
+	}
 	btree_node_shift_items_left(node, idx);
 	assert(node->num_items != 0);
 	node->num_items--;
@@ -540,7 +591,6 @@ static bool btree_delete_max(struct btree *tree, btree_key_t *ret_key, btree_val
 	return found;
 }
 #else
-// TODO allow passing NULL for ret_key
 static bool btree_delete(struct btree *tree, btree_key_t key, btree_key_t *ret_key)
 {
 	return btree_delete_internal(tree, DELETE_KEY, key, (btree_item_t *)ret_key);
@@ -610,7 +660,7 @@ static struct btree_node *btree_node_split_and_insert(struct btree_node *node, u
 	return new_node;
 }
 
-static bool _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, unsigned int idx,
+static void _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, unsigned int idx,
 					struct btree_node *node, struct btree_pos path[static 32],
 					unsigned int depth, unsigned int last_nonfull_node_depth)
 {
@@ -625,7 +675,7 @@ static bool _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, u
 				node->children[idx + 1] = right;
 			}
 			node->num_items++;
-			return true;
+			return;
 		}
 
 		right = btree_node_split_and_insert(node, idx, item, right, &item);
@@ -643,7 +693,6 @@ static bool _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, u
 	new_root->children[1] = right;
 	tree->root = new_root;
 	tree->height++;
-	return true;
 }
 
 #else
@@ -664,7 +713,7 @@ static struct btree_node *btree_node_split(struct btree_node *node, btree_item_t
 	return new_node;
 }
 
-static bool _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, unsigned int idx,
+static void _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, unsigned int idx,
 					struct btree_node *node, struct btree_pos path[static 32],
 					unsigned int depth, unsigned int last_nonfull_node_depth)
 {
@@ -704,12 +753,12 @@ static bool _btree_insert_and_rebalance(struct btree *tree, btree_item_t item, u
 	btree_node_shift_items_right(node, idx);
 	node->items[idx] = item;
 	node->num_items++;
-	return true;
 }
 
 #endif
 
-static bool _btree_insert(struct btree *tree, btree_item_t item)
+static bool _btree_insert(struct btree *tree, btree_item_t item, bool update,
+			  struct btree_destructors destructors)
 {
 	if (tree->height == 0) {
 		tree->root = btree_new_node(true);
@@ -722,6 +771,10 @@ static bool _btree_insert(struct btree *tree, btree_item_t item)
 	unsigned int last_nonfull_node_depth = 0;
 	for (;;) {
 		if (btree_node_search(node, item.key, &idx)) {
+			if (update) {
+				btree_item_destructor(&node->items[idx], destructors);
+				node->items[idx] = item;
+			}
 			return false;
 		}
 		if (node->num_items < MAX_ITEMS) {
@@ -735,25 +788,49 @@ static bool _btree_insert(struct btree *tree, btree_item_t item)
 		depth++;
 		node = node->children[idx];
 	}
-	return _btree_insert_and_rebalance(tree, item, idx, node, path, depth, last_nonfull_node_depth);
+	_btree_insert_and_rebalance(tree, item, idx, node, path, depth, last_nonfull_node_depth);
+	return true;
 }
 
 #ifdef __BTREE_MAP
 static bool btree_insert(struct btree *tree, btree_key_t key, btree_value_t value)
 {
-	return _btree_insert(tree, (btree_item_t){.key = key, .value = value});
+	return _btree_insert(tree, (btree_item_t){.key = key, .value = value}, false,
+			     (struct btree_destructors){0});
 }
 #else
 static bool btree_insert(struct btree *tree, btree_key_t key)
 {
-	return _btree_insert(tree, (btree_item_t){.key = key});
+	return _btree_insert(tree, (btree_item_t){.key = key}, false, (struct btree_destructors){0});
+}
+#endif
+
+#ifdef __BTREE_MAP
+static bool btree_set(struct btree *tree, btree_key_t key, btree_value_t value,
+		      btree_key_destructor key_destructor, btree_value_destructor value_destructor)
+{
+	struct btree_destructors destructors = {
+		.key_destructor = key_destructor,
+		.value_destructor = value_destructor,
+	};
+	return _btree_insert(tree, (btree_item_t){.key = key, .value = value}, true, destructors);
+}
+#else
+// TODO does this even make sense for a btree set?
+// I guess you can use this to destruct and replace a key...
+static bool btree_set(struct btree *tree, btree_key_t key, btree_key_destructor key_destructor)
+{
+	struct btree_destructors destructors = {
+		.key_destructor = key_destructor,
+	};
+	return _btree_insert(tree, (btree_item_t){.key = key}, true, destructors);
 }
 #endif
 
 static bool _btree_insert_sequential(struct btree *tree, btree_item_t item)
 {
 	if (tree->height == 0) {
-		return _btree_insert(tree, item);
+		return _btree_insert(tree, item, false, (struct btree_destructors){0});
 	}
 	struct btree_node *node = tree->root;
 	struct btree_pos path[32];
@@ -763,7 +840,7 @@ static bool _btree_insert_sequential(struct btree *tree, btree_item_t item)
 	for (;;) {
 		idx = node->num_items;
 		if (unlikely(compare(item.key, node->items[idx - 1].key) <= 0)) {
-			return _btree_insert(tree, item);
+			return _btree_insert(tree, item, false, (struct btree_destructors){0});
 		}
 		if (node->num_items < MAX_ITEMS) {
 			last_nonfull_node_depth = depth;
@@ -776,7 +853,8 @@ static bool _btree_insert_sequential(struct btree *tree, btree_item_t item)
 		depth++;
 		node = node->children[idx];
 	}
-	return _btree_insert_and_rebalance(tree, item, idx, node, path, depth, last_nonfull_node_depth);
+	_btree_insert_and_rebalance(tree, item, idx, node, path, depth, last_nonfull_node_depth);
+	return true;
 }
 
 #ifdef __BTREE_MAP
@@ -1040,12 +1118,43 @@ static void test(void)
 	assert(!btree.root && btree.height == 0);
 
 	for (size_t i = 0; i < N; i++) {
+		btree_key_t key = get_key(i);
 #ifdef __BTREE_MAP
-		btree_insert_sequential(&btree, get_key(i), i);
+		btree_insert_sequential(&btree, key, i);
 #else
-		btree_insert_sequential(&btree, get_key(i));
+		btree_insert_sequential(&btree, key);
 #endif
 		assert(btree_check(&btree));
+		assert(btree_find(&btree, key));
+	}
+
+	for (size_t i = 0; i < N; i++) {
+		btree_key_t key = get_key(i);
+#ifdef __BTREE_MAP
+		bool inserted = btree_set(&btree, key, i + 1, NULL, NULL);
+#else
+		bool inserted = btree_set(&btree, key, NULL);
+#endif
+		assert(!inserted);
+		assert(btree_check(&btree));
+		assert(btree_find(&btree, key));
+	}
+
+	{
+		struct btree_iter iter = btree_iter_start(&btree);
+		for (size_t i = 0; i < N; i++) {
+			btree_key_t key;
+#ifdef __BTREE_MAP
+			btree_value_t value;
+			bool have_next = btree_iter_get_next(&iter, &key, &value);
+			assert(have_next);
+			assert(value == i + 1);
+#else
+			bool have_next = btree_iter_get_next(&iter, &key);
+			assert(have_next);
+#endif
+			assert(key == get_key(i));
+		}
 	}
 
 	for (size_t i = 0; i < N; i++) {
@@ -1059,7 +1168,11 @@ static void test(void)
 		assert(btree_check(&btree));
 	}
 
-	btree_destroy(&btree);
+#ifdef __BTREE_MAP
+	btree_destroy(&btree, NULL, NULL);
+#else
+	btree_destroy(&btree, NULL);
+#endif
 
 	for (size_t i = 0; i < N; i++) {
 		size_t x = rand() % LIMIT;
@@ -1078,7 +1191,11 @@ static void test(void)
 		assert(btree_find(&btree, key));
 	}
 
-	btree_destroy(&btree);
+#ifdef __BTREE_MAP
+	btree_destroy(&btree, NULL, NULL);
+#else
+	btree_destroy(&btree, NULL);
+#endif
 	assert(btree.height == 0);
 	assert(btree_check(&btree));
 
@@ -1272,7 +1389,11 @@ static void benchmark(void)
 		inorder_insert[k] = ns_elapsed(start_tp, end_tp);
 
 		assert(btree_check(&btree));
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
@@ -1287,7 +1408,11 @@ static void benchmark(void)
 		inorder_fast_insert[k] = ns_elapsed(start_tp, end_tp);
 
 		assert(btree_check(&btree));
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
@@ -1303,7 +1428,11 @@ static void benchmark(void)
 		revorder_insert[k] = ns_elapsed(start_tp, end_tp);
 
 		assert(btree_check(&btree));
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N; i++) {
@@ -1424,11 +1553,19 @@ static void benchmark(void)
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		randorder_deletion[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 		btree = copy;
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		destruction[k] = ns_elapsed(start_tp, end_tp);
 
@@ -1467,7 +1604,11 @@ static void benchmark(void)
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		inorder_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N / 4; i++) {
@@ -1504,7 +1645,11 @@ static void benchmark(void)
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		revorder_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 		for (size_t i = 0; i < N / 4; i++) {
@@ -1541,7 +1686,11 @@ static void benchmark(void)
 		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 		random_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-		btree_destroy(&btree);
+#ifdef __BTREE_MAP
+		btree_destroy(&btree, NULL, NULL);
+#else
+		btree_destroy(&btree, NULL);
+#endif
 	}
 	// TODO print more statistics
 	double t;
@@ -1585,6 +1734,6 @@ static void benchmark(void)
 
 int main(void)
 {
-	// test();
-	benchmark();
+	test();
+	// benchmark();
 }
