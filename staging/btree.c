@@ -12,7 +12,7 @@
 #include "hashtable.h"
 #include "random.h"
 
-// TODO figure out the API (add btree_set?)
+// TODO make this generic (do the same trick as for hashtable to avoid an overly large and ugly macro template)
 // TODO investigate the performance difference between gcc and clang
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
