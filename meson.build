@@ -10,7 +10,7 @@ project('adlib', 'c',
 		      'b_lto_mode=thin',
 		      'b_thinlto_cache=true',
                       #'b_sanitize=address,undefined',
-                      'buildtype=debugoptimized' ])
+                      'buildtype=release' ])
 
 cc = meson.get_compiler('c')
 
