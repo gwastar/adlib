@@ -50,7 +50,7 @@
 	typedef _hashtable_hash_t name##_hash_t;			\
 	typedef _hashtable_uint_t name##_uint_t;			\
 									\
-	static _Alignas(32) const struct _hashtable_info _##name##_info = { \
+	static _Alignas(16) const struct _hashtable_info _##name##_info = { \
 		.entry_size = sizeof(entry_type),			\
 		.threshold = (THRESHOLD),				\
 		.keys_match = _##name##_keys_match,			\

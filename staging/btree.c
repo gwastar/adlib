@@ -812,6 +812,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		return _btree_insert_sequential(&tree->_impl, &key, &name##_info); \
 	}
 
+
 #define DEFINE_BTREE_MAP(name, key_type, value_type, key_destructor, value_destructor, max_items_per_node, ...) \
 	typedef key_type name##_key_t;					\
 	typedef value_type name##_value_t;				\
