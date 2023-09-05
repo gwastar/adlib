@@ -1291,11 +1291,7 @@ static void test(void)
 			assert(btree_check(&btree, &btree_info));
 		}
 
-#ifdef STRING_MAP
 		btree_destroy(&btree);
-#else
-		btree_destroy(&btree);
-#endif
 
 		for (size_t i = 0; i < N; i++) {
 			size_t x = rand() % LIMIT;
@@ -1314,11 +1310,7 @@ static void test(void)
 			assert(btree_find(&btree, key));
 		}
 
-#ifdef STRING_MAP
 		btree_destroy(&btree);
-#else
-		btree_destroy(&btree);
-#endif
 		assert(btree._impl.height == 0);
 		assert(btree_check(&btree, &btree_info));
 
@@ -1520,11 +1512,7 @@ static void test(void)
 			inorder_insert[k] = ns_elapsed(start_tp, end_tp);
 
 			assert(btree_check(&btree, &btree_info));
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			for (size_t i = 0; i < N; i++) {
@@ -1539,11 +1527,7 @@ static void test(void)
 			inorder_fast_insert[k] = ns_elapsed(start_tp, end_tp);
 
 			assert(btree_check(&btree, &btree_info));
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			for (size_t i = 0; i < N; i++) {
@@ -1559,11 +1543,7 @@ static void test(void)
 			revorder_insert[k] = ns_elapsed(start_tp, end_tp);
 
 			assert(btree_check(&btree, &btree_info));
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			for (size_t i = 0; i < N; i++) {
@@ -1684,19 +1664,11 @@ static void test(void)
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 			randorder_deletion[k] = ns_elapsed(start_tp, end_tp);
 
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 			btree = copy;
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 			destruction[k] = ns_elapsed(start_tp, end_tp);
 
@@ -1735,11 +1707,7 @@ static void test(void)
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 			inorder_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			for (size_t i = 0; i < N / 4; i++) {
@@ -1776,11 +1744,7 @@ static void test(void)
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 			revorder_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			for (size_t i = 0; i < N / 4; i++) {
@@ -1817,13 +1781,9 @@ static void test(void)
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp);
 			random_mixed[k] = ns_elapsed(start_tp, end_tp);
 
-#ifdef STRING_MAP
 			btree_destroy(&btree);
-#else
-			btree_destroy(&btree);
-#endif
 		}
-		// TODO print more statistics
+		// TODO print more statistics or maybe just print minimum instead
 		double t;
 		t = get_median(inorder_insert, ITERATIONS);
 		printf("%-32s %8.1f ns\n", "in-order insertion", t / N);
