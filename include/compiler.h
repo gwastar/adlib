@@ -91,6 +91,9 @@
 #if __has_attribute(error)
 # define HAVE_ATTR_ERROR 1
 #endif
+#if __has_attribute(flatten)
+# define HAVE_ATTR_FLATTEN 1
+#endif
 
 #if __has_builtin(__builtin_assume)
 # define HAVE_BUILTIN_ASSUME 1
@@ -244,6 +247,12 @@
 
 #ifdef HAVE_ATTR_ERROR
 # define _attr_error(msg)                    __attribute__((error(msg)))
+#endif
+
+#ifdef HAVE_ATTR_FLATTEN
+# define _attr_flatten                       __attribute__((flatten))
+#else
+# define _attr_flatten
 #endif
 
 #ifdef HAVE_BUILTIN_EXPECT

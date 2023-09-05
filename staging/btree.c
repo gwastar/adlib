@@ -17,7 +17,8 @@
 // TODO get_lower/upper_bound, iter_start_lower/upper_bound, iter_start_at
 // TODO rename min->leftmost, max->rightmost
 // TODO assert that start + end in btree_node_search cannot overflow (make max_items an unsigned short?)
-// TODO investigate the performance difference between gcc and clang
+// TODO fix bad performance with gcc (by adding _attr_flatten to all the important API functions?)
+//      how does clang optimize this code so much better while also producing a smaller binary?
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
 
