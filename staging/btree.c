@@ -23,12 +23,11 @@
 
 // #define STRING_MAP
 
-#define LINEAR_SEARCH_THRESHOLD 0 // TODO put this in info and make it dependant on key type with _Generic
-
 struct btree_node {
 	unsigned int num_items;
-	unsigned char data[]; // TODO alignment
-	/* item_t items[MAX_ITEMS]; */
+	unsigned char data[];
+	/* char padding[info->alignment_offset] */
+	/* item_t items[info->max_items]; */
 	/* struct btree_node *children[leaf ? 0 : MAX_ITEMS + 1]; */
 };
 
@@ -50,15 +49,15 @@ struct btree_info {
 	unsigned int max_items;
 	unsigned int min_items;
 	size_t item_size;
-	// TODO alignment offset
-	// TODO linear search threshold
+	unsigned int alignment_offset;
+	unsigned int linear_search_threshold;
 	int (*cmp)(const void *a, const void *b);
 	void (*destroy_item)(void *item);
 };
 
 static void *btree_node_item(struct btree_node *node, unsigned int idx, const struct btree_info *info)
 {
-	return node->data + idx * info->item_size;
+	return node->data + info->alignment_offset + idx * info->item_size;
 }
 
 static struct btree_node **btree_node_children(struct btree_node *node, const struct btree_info *info)
@@ -155,7 +154,7 @@ static struct btree_node *btree_new_node(bool leaf, const struct btree_info *inf
 {
 	size_t items_size = info->max_items * info->item_size;
 	size_t children_size = leaf ? 0 : (info->max_items + 1) * sizeof(struct btree_node *);
-	struct btree_node *node = malloc(sizeof(*node) + items_size + children_size);
+	struct btree_node *node = malloc(sizeof(*node) + info->alignment_offset + items_size + children_size);
 	node->num_items = 0;
 	return node;
 }
@@ -212,15 +211,32 @@ static void _btree_destroy(struct _btree *tree, const struct btree_info *info)
 	}
 }
 
+// use a simple heuristic to determine the threshold at which linear search becomes faster than binary search
+// TODO add float and double?
+#define LINEAR_SEARCH_THRESHOLD(type) _Generic(*(type *)0,		\
+					       char : 32,		\
+					       unsigned char : 32,	\
+					       unsigned short : 32,	\
+					       unsigned int : 32,	\
+					       unsigned long : 32,	\
+					       unsigned long long : 32,	\
+					       signed char : 32,	\
+					       signed short : 32,	\
+					       signed int : 32,		\
+					       signed long : 32,	\
+					       signed long long : 32,	\
+					       char *: 8,		\
+					       const char *:  8,	\
+					       default: 0)
+
 static bool btree_node_search(struct btree_node *node, const void *key, unsigned int *ret_idx,
 			      const struct btree_info *info)
 {
 	unsigned int start = 0;
 	unsigned int end = node->num_items;
-	compiler_assume(end <= info->max_items);
 	bool found = false;
 	unsigned int idx;
-	while (start + LINEAR_SEARCH_THRESHOLD < end) {
+	while (start + info->linear_search_threshold < end) {
 		unsigned int mid = (start + end) / 2; // start + end should never overflow
 		int cmp = info->cmp(key, btree_node_item(node, mid, info));
 		if (cmp == 0) {
@@ -234,7 +250,7 @@ static bool btree_node_search(struct btree_node *node, const void *key, unsigned
 		}
 	}
 
-	if (LINEAR_SEARCH_THRESHOLD == 0) {
+	if (info->linear_search_threshold == 0) {
 		idx = start;
 		goto done;
 	}
@@ -739,6 +755,8 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		.max_items = (max_items_per_node),			\
 		.min_items = (max_items_per_node) / 2,			\
 		.item_size = sizeof(name##_key_t),			\
+		.alignment_offset = (_Alignof(name##_key_t) - (sizeof(struct btree_node) % _Alignof(name##_key_t))) % _Alignof(name##_key_t), \
+		.linear_search_threshold = LINEAR_SEARCH_THRESHOLD(name##_key_t), \
 		.cmp = _##name##_compare,				\
 		.destroy_item = _##name##_destroy_item,			\
 	};								\
@@ -850,6 +868,8 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		.max_items = (max_items_per_node),			\
 		.min_items = (max_items_per_node) / 2,			\
 		.item_size = sizeof(_##name##_item_t),			\
+		.alignment_offset = (_Alignof(_##name##_item_t) - (sizeof(struct btree_node) % _Alignof(_##name##_item_t))) % _Alignof(_##name##_item_t), \
+		.linear_search_threshold = LINEAR_SEARCH_THRESHOLD(name##_key_t), \
 		.cmp = _##name##_compare,				\
 		.destroy_item = _##name##_destroy_item,			\
 	};								\
@@ -1825,6 +1845,6 @@ static void test(void)
 
 	int main(void)
 	{
-		test();
-		// benchmark();
+		// test();
+		benchmark();
 	}
