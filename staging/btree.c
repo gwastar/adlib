@@ -14,15 +14,16 @@
 #include "random.h"
 
 // TODO cleanup api
-// TODO get_lower/upper_bound, iter_start_lower/upper_bound, iter_start_at
+// TODO get_lower/upper_bound, iter_start_lower/upper_bound
 // TODO rename min->leftmost, max->rightmost
+// TODO reverse iteration
 // TODO assert that start + end in btree_node_search cannot overflow (make max_items an unsigned short?)
 // TODO fix bad performance with gcc (by adding _attr_flatten to all the important API functions?)
 //      how does clang optimize this code so much better while also producing a smaller binary?
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
 
-// #define STRING_MAP
+#define STRING_MAP
 
 struct btree_node {
 	unsigned int num_items;
@@ -104,114 +105,6 @@ static void btree_node_copy_item(struct btree_node *dest_node, unsigned int dest
 	btree_node_set_item(dest_node, dest_idx, btree_node_item(src_node, src_idx, info),info);
 }
 
-static void *_btree_iter_start(struct btree_iter *iter, const struct _btree *tree,
-			       const struct btree_info *info)
-{
-	iter->tree = tree;
-	iter->depth = 0;
-
-	if (tree->height == 0) {
-		return NULL;
-	}
-
-	struct btree_node *node = tree->root;
-	iter->path[0].idx = 0;
-	iter->path[0].node = node;
-
-	struct btree_pos *pos;
-	for (iter->depth = 1; iter->depth < tree->height; iter->depth++) {
-		node = btree_node_get_child(node, 0, info);
-		pos = &iter->path[iter->depth];
-		pos->idx = 0;
-		pos->node = node;
-	}
-	return btree_node_item(pos->node, pos->idx, info);
-}
-
-static void *_btree_iter_get_next(struct btree_iter *iter, const struct btree_info *info)
-{
-	if (iter->depth == 0) {
-		return NULL;
-	}
-	struct btree_pos *pos = &iter->path[iter->depth - 1];
-	pos->idx++;
-	// descend into the leftmost child of the right child
-	while (iter->depth < iter->tree->height) {
-		struct btree_node *child = btree_node_get_child(pos->node, pos->idx, info);
-		pos = &iter->path[iter->depth++];
-		pos->node = child;
-		pos->idx = 0;
-	}
-	while (pos->idx >= pos->node->num_items) {
-		if (--iter->depth == 0) {
-			return NULL;
-		}
-		pos = &iter->path[iter->depth - 1];
-	}
-	return btree_node_item(pos->node, pos->idx, info);
-}
-
-static struct btree_node *btree_new_node(bool leaf, const struct btree_info *info)
-{
-	size_t items_size = info->max_items * info->item_size;
-	size_t children_size = leaf ? 0 : (info->max_items + 1) * sizeof(struct btree_node *);
-	struct btree_node *node = malloc(sizeof(*node) + info->alignment_offset + items_size + children_size);
-	node->num_items = 0;
-	return node;
-}
-
-#define BTREE_EMPTY {.root = NULL, .height = 0}
-
-static void _btree_init(struct _btree *tree)
-{
-	*tree = (struct _btree)BTREE_EMPTY;
-}
-
-static void _btree_destroy(struct _btree *tree, const struct btree_info *info)
-{
-	if (tree->height == 0) {
-		return;
-	}
-	struct btree_pos path[32];
-	struct btree_node *node = tree->root;
-	path[0].idx = 0;
-	path[0].node = node;
-	unsigned int depth;
-	for (depth = 1; depth < tree->height; depth++) {
-		node = btree_node_get_child(node, 0, info);
-		path[depth].idx = 0;
-		path[depth].node = node;
-	}
-
-	for (;;) {
-		// start at leaf
-		struct btree_pos *pos = &path[depth - 1];
-		// free the leaf and go up, if we are at the end of the current node free it and keep going up
-		do {
-			if (info->destroy_item) {
-				for (unsigned int i = 0; i < pos->node->num_items; i++) {
-					info->destroy_item(btree_node_item(pos->node, i, info));
-				}
-			}
-			free(pos->node);
-			if (--depth == 0) {
-				tree->root = NULL;
-				tree->height = 0;
-				return;
-			}
-			pos = &path[depth - 1];
-		} while (pos->idx >= pos->node->num_items);
-		// descend into the leftmost child of the right child
-		pos->idx++;
-		do {
-			struct btree_node *child = btree_node_get_child(pos->node, pos->idx, info);
-			pos = &path[depth++];
-			pos->node = child;
-			pos->idx = 0;
-		} while (depth < tree->height);
-	}
-}
-
 // use a simple heuristic to determine the threshold at which linear search becomes faster than binary search
 // TODO add float and double?
 #define LINEAR_SEARCH_THRESHOLD(type) _Generic(*(type *)0,		\
@@ -283,6 +176,163 @@ static bool btree_node_search(struct btree_node *node, const void *key, unsigned
 done:
 	*ret_idx = idx;
 	return found;
+}
+
+static void *_btree_iter_start(struct btree_iter *iter, const struct _btree *tree,
+			       const struct btree_info *info)
+{
+	iter->tree = tree;
+	iter->depth = 0;
+
+	if (tree->height == 0) {
+		return NULL;
+	}
+
+	struct btree_node *node = tree->root;
+	iter->path[0].idx = 0;
+	iter->path[0].node = node;
+
+	struct btree_pos *pos;
+	for (iter->depth = 1; iter->depth < tree->height; iter->depth++) {
+		node = btree_node_get_child(node, 0, info);
+		pos = &iter->path[iter->depth];
+		pos->idx = 0;
+		pos->node = node;
+	}
+	return btree_node_item(pos->node, pos->idx, info);
+}
+
+static void *_btree_iter_start_at(struct btree_iter *iter, const struct _btree *tree, void *key,
+				  const struct btree_info *info)
+{
+	iter->tree = tree;
+	iter->depth = 0;
+
+	if (tree->height == 0) {
+		return NULL;
+	}
+
+	struct btree_node *node = tree->root;
+	struct btree_pos *pos;
+	for (;;) {
+		pos = &iter->path[iter->depth++];
+		pos->node = node;
+		if (btree_node_search(node, key, &pos->idx, info)) {
+			break;
+		}
+		if (iter->depth == tree->height) {
+			break;
+		}
+		node = btree_node_get_child(node, pos->idx, info);
+	}
+	return btree_node_item(pos->node, pos->idx, info);
+}
+
+static void *_btree_iter_next(struct btree_iter *iter, const struct btree_info *info)
+{
+	if (iter->depth == 0) {
+		return NULL;
+	}
+	struct btree_pos *pos = &iter->path[iter->depth - 1];
+	pos->idx++;
+	// descend into the leftmost child of the right child
+	while (iter->depth < iter->tree->height) {
+		struct btree_node *child = btree_node_get_child(pos->node, pos->idx, info);
+		pos = &iter->path[iter->depth++];
+		pos->node = child;
+		pos->idx = 0;
+	}
+	while (pos->idx >= pos->node->num_items) {
+		if (--iter->depth == 0) {
+			return NULL;
+		}
+		pos = &iter->path[iter->depth - 1];
+	}
+	return btree_node_item(pos->node, pos->idx, info);
+}
+
+static void *_btree_iter_prev(struct btree_iter *iter, const struct btree_info *info)
+{
+	if (iter->depth == 0) {
+		return NULL;
+	}
+	struct btree_pos *pos = &iter->path[iter->depth - 1];
+	// descend into the rightmost child of the left child
+	while (iter->depth < iter->tree->height) {
+		struct btree_node *child = btree_node_get_child(pos->node, pos->idx, info);
+		pos = &iter->path[iter->depth++];
+		pos->node = child;
+		pos->idx = child->num_items;
+	}
+	while (pos->idx == 0) {
+		if (--iter->depth == 0) {
+			return NULL;
+		}
+		pos = &iter->path[iter->depth - 1];
+	}
+	pos->idx--;
+	return btree_node_item(pos->node, pos->idx, info);
+}
+
+static struct btree_node *btree_new_node(bool leaf, const struct btree_info *info)
+{
+	size_t items_size = info->max_items * info->item_size;
+	size_t children_size = leaf ? 0 : (info->max_items + 1) * sizeof(struct btree_node *);
+	struct btree_node *node = malloc(sizeof(*node) + info->alignment_offset + items_size + children_size);
+	node->num_items = 0;
+	return node;
+}
+
+#define BTREE_EMPTY {.root = NULL, .height = 0}
+
+static void _btree_init(struct _btree *tree)
+{
+	*tree = (struct _btree)BTREE_EMPTY;
+}
+
+static void _btree_destroy(struct _btree *tree, const struct btree_info *info)
+{
+	if (tree->height == 0) {
+		return;
+	}
+	struct btree_pos path[32];
+	struct btree_node *node = tree->root;
+	path[0].idx = 0;
+	path[0].node = node;
+	unsigned int depth;
+	for (depth = 1; depth < tree->height; depth++) {
+		node = btree_node_get_child(node, 0, info);
+		path[depth].idx = 0;
+		path[depth].node = node;
+	}
+
+	for (;;) {
+		// start at leaf
+		struct btree_pos *pos = &path[depth - 1];
+		// free the leaf and go up, if we are at the end of the current node free it and keep going up
+		do {
+			if (info->destroy_item) {
+				for (unsigned int i = 0; i < pos->node->num_items; i++) {
+					info->destroy_item(btree_node_item(pos->node, i, info));
+				}
+			}
+			free(pos->node);
+			if (--depth == 0) {
+				tree->root = NULL;
+				tree->height = 0;
+				return;
+			}
+			pos = &path[depth - 1];
+		} while (pos->idx >= pos->node->num_items);
+		// descend into the leftmost child of the right child
+		pos->idx++;
+		do {
+			struct btree_node *child = btree_node_get_child(pos->node, pos->idx, info);
+			pos = &path[depth++];
+			pos->node = child;
+			pos->idx = 0;
+		} while (depth < tree->height);
+	}
 }
 
 static void *_btree_find(const struct _btree *tree, const void *key, const struct btree_info *info)
@@ -769,9 +819,20 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		return _btree_iter_start(iter, &tree->_impl, &name##_info); \
 	}								\
 									\
-	static const name##_key_t *name##_iter_get_next(name##_iter_t *iter) \
+	static const name##_key_t *name##_iter_start_at(name##_iter_t *iter, const struct name *tree, \
+							name##_key_t key) \
 	{								\
-		return _btree_iter_get_next(iter, &name##_info);	\
+		return _btree_iter_start_at(iter, &tree->_impl, &key, &name##_info); \
+	}								\
+									\
+	static const name##_key_t *name##_iter_next(name##_iter_t *iter) \
+	{								\
+		return _btree_iter_next(iter, &name##_info);		\
+	}								\
+									\
+	static const name##_key_t *name##_iter_prev(name##_iter_t *iter) \
+	{								\
+		return _btree_iter_prev(iter, &name##_info);		\
 	}								\
 									\
 	static void name##_init(struct name *tree)			\
@@ -831,6 +892,25 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		return _btree_insert_sequential(&tree->_impl, &key, &name##_info); \
 	}
 
+#define __BTREE_MAP_RETURN_KEY_AND_VALUE				\
+	if (!item) {							\
+		return NULL;						\
+	}								\
+	if (ret_key) {							\
+		*ret_key = item->key;					\
+	}								\
+	return &item->value
+
+#define __BTREE_MAP_DELETE_RETURN			\
+	if (found) {					\
+		if (ret_key) {				\
+			*ret_key = item.key;		\
+		}					\
+		if (ret_value) {			\
+			*ret_value = item.value;	\
+		}					\
+	}						\
+	return found
 
 #define DEFINE_BTREE_MAP(name, key_type, value_type, key_destructor, value_destructor, max_items_per_node, ...) \
 	typedef key_type name##_key_t;					\
@@ -881,25 +961,26 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 						 name##_key_t *ret_key)	\
 	{								\
 		_##name##_item_t *item = _btree_iter_start(iter, &tree->_impl, &name##_info); \
-		if (!item) {						\
-			return NULL;					\
-		}							\
-		if (ret_key) {						\
-			*ret_key = item->key;				\
-		}							\
-		return &item->value;					\
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
-	static name##_value_t *name##_iter_get_next(name##_iter_t *iter, name##_key_t *ret_key) \
+	static name##_value_t *name##_iter_start_at(name##_iter_t *iter, const struct name *tree, \
+						    name##_key_t key, name##_key_t *ret_key) \
 	{								\
-		_##name##_item_t *item = _btree_iter_get_next(iter, &name##_info); \
-		if (!item) {						\
-			return NULL;					\
-		}							\
-		if (ret_key) {						\
-			*ret_key = item->key;				\
-		}							\
-		return &item->value;					\
+		_##name##_item_t *item = _btree_iter_start_at(iter, &tree->_impl, &key, &name##_info); \
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
+	}								\
+									\
+	static name##_value_t *name##_iter_next(name##_iter_t *iter, name##_key_t *ret_key) \
+	{								\
+		_##name##_item_t *item = _btree_iter_next(iter, &name##_info); \
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
+	}								\
+									\
+	static name##_value_t *name##_iter_prev(name##_iter_t *iter, name##_key_t *ret_key) \
+	{								\
+		_##name##_item_t *item = _btree_iter_prev(iter, &name##_info); \
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
 	static void name##_init(struct name *tree)			\
@@ -921,25 +1002,13 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 	static name##_value_t *name##_get_min(const struct name *tree, name##_key_t *ret_key) \
 	{								\
 		_##name##_item_t *item = btree_get_minmax_internal(&tree->_impl, true, &name##_info); \
-		if (!item) {						\
-			return NULL;					\
-		}							\
-		if (ret_key) {						\
-			*ret_key = item->key;				\
-		}							\
-		return &item->value;					\
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
 	static name##_value_t *name##_get_max(const struct name *tree, name##_key_t *ret_key) \
 	{								\
 		_##name##_item_t *item = btree_get_minmax_internal(&tree->_impl, false, &name##_info); \
-		if (!item) {						\
-			return NULL;					\
-		}							\
-		if (ret_key) {						\
-			*ret_key = item->key;				\
-		}							\
-		return &item->value;					\
+		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
 	static bool name##_delete(struct name *tree, name##_key_t key, name##_key_t *ret_key, \
@@ -948,15 +1017,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		_##name##_item_t item;					\
 		bool found = btree_delete_internal(&tree->_impl, DELETE_KEY, &key, \
 						   (ret_key || ret_value) ? &item : NULL, &name##_info); \
-		if (found) {						\
-			if (ret_key) {					\
-				*ret_key = item.key;			\
-			}						\
-			if (ret_value) {				\
-				*ret_value = item.value;		\
-			}						\
-		}							\
-		return found;						\
+		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
 	static bool name##_delete_min(struct name *tree, name##_key_t *ret_key, name##_value_t *ret_value) \
@@ -964,15 +1025,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		_##name##_item_t item;					\
 		bool found = btree_delete_internal(&tree->_impl, DELETE_MIN, NULL, \
 						   (ret_key || ret_value) ? &item : NULL, &name##_info); \
-		if (found) {						\
-			if (ret_key) {					\
-				*ret_key = item.key;			\
-			}						\
-			if (ret_value) {				\
-				*ret_value = item.value;		\
-			}						\
-		}							\
-		return found;						\
+		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
 	static bool name##_delete_max(struct name *tree, name##_key_t *ret_key, name##_value_t *ret_value) \
@@ -980,15 +1033,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 		_##name##_item_t item;					\
 		bool found = btree_delete_internal(&tree->_impl, DELETE_MAX, NULL, \
 						   (ret_key || ret_value) ? &item : NULL, &name##_info); \
-		if (found) {						\
-			if (ret_key) {					\
-				*ret_key = item.key;			\
-			}						\
-			if (ret_value) {				\
-				*ret_value = item.value;		\
-			}						\
-		}							\
-		return found;						\
+		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
 	static bool name##_insert(struct name *tree, name##_key_t key, name##_value_t value) \
@@ -1214,14 +1259,14 @@ static void test(void)
 #endif
 		prev_key = key;
 #ifdef STRING_MAP
-		while ((value = btree_iter_get_next(&iter, &key))) {
+		while ((value = btree_iter_next(&iter, &key))) {
 			assert(strtoumax(key, NULL, 10) == *value);
 			assert(btable_lookup(&btable, key, get_hash(key)));
 			assert(btree_info.cmp(&prev_key, &key) < 0);
 			prev_key = key;
 		}
 #else
-		while ((key = btree_iter_get_next(&iter))) {
+		while ((key = btree_iter_next(&iter))) {
 			assert(btable_lookup(&btable, *key, get_hash(*key)));
 			assert(btree_info.cmp(prev_key, key) < 0);
 			prev_key = key;
@@ -1303,25 +1348,51 @@ static void test(void)
 				assert(*value == i + 1);
 				*value = i + 2;
 				assert(key == get_key(i));
-				value = btree_iter_get_next(&iter, &key);
+				value = btree_iter_next(&iter, &key);
 			}
 			assert(!value);
-			assert(!btree_iter_get_next(&iter, &key));
+			assert(!btree_iter_next(&iter, &key));
 #else
 			const btree_key_t *key = btree_iter_start(&iter, &btree);
 			for (size_t i = 0; i < N; i++) {
 				assert(key);
 				assert(*key == get_key(i));
-				key = btree_iter_get_next(&iter);
+				key = btree_iter_next(&iter);
 			}
 			assert(!key);
-			assert(!btree_iter_get_next(&iter));
+			assert(!btree_iter_next(&iter));
+#endif
+#ifdef STRING_MAP
+			{
+				// TODO make a function for starting at the end
+				btree_key_t max_key;
+				btree_get_max(&btree, &max_key);
+				value = btree_iter_start_at(&iter, &btree, max_key, &key);
+			}
+			for (size_t i = N; i-- > 0;) {
+				assert(value);
+				assert(*value == i + 2);
+				assert(key == get_key(i));
+				value = btree_iter_prev(&iter, &key);
+			}
+			assert(!value);
+			assert(!btree_iter_prev(&iter, &key));
+#else
+			// TODO make a function for starting at the end
+			key = btree_iter_start_at(&iter, &btree, *btree_get_max(&btree));
+			for (size_t i = N; i-- > 0;) {
+				assert(key);
+				assert(*key == get_key(i));
+				key = btree_iter_prev(&iter);
+			}
+			assert(!key);
+			assert(!btree_iter_prev(&iter));
 #endif
 			size_t i = 0;
 #ifdef STRING_MAP
 			for (btree_value_t *value = btree_iter_start(&iter, &btree, &key);
 			     value;
-			     value = btree_iter_get_next(&iter, &key)) {
+			     value = btree_iter_next(&iter, &key)) {
 				assert(i < N);
 				assert(*value == i + 2);
 				assert(key == get_key(i));
@@ -1330,13 +1401,65 @@ static void test(void)
 #else
 			for (const btree_key_t *key = btree_iter_start(&iter, &btree);
 			     key;
-			     key = btree_iter_get_next(&iter)) {
+			     key = btree_iter_next(&iter)) {
 				assert(i < N);
 				assert(*key == get_key(i));
 				i++;
 			}
 #endif
 			assert(i == N);
+
+#ifdef STRING_MAP
+			for (size_t i = 0; i < N; i++) {
+				value = btree_iter_start_at(&iter, &btree, get_key(i), &key);
+				assert(key == get_key(i));
+				assert(*value == i + 2);
+				value = btree_iter_next(&iter, &key);
+				if (i == N - 1) {
+					assert(!value);
+				} else {
+					assert(key == get_key(i + 1));
+					assert(*value == i + 3);
+				}
+			}
+#else
+			for (size_t i = 0; i < N; i++) {
+				key = btree_iter_start_at(&iter, &btree, get_key(i));
+				assert(*key == get_key(i));
+				key = btree_iter_next(&iter);
+				if (i == N - 1) {
+					assert(!key);
+				} else {
+					assert(*key == get_key(i + 1));
+				}
+			}
+#endif
+
+#ifdef STRING_MAP
+			value = btree_iter_start_at(&iter, &btree, get_key(N / 2), &key);
+			assert(key == get_key(N / 2));
+			value = btree_iter_next(&iter, &key);
+			assert(key == get_key(N / 2 + 1));
+			value = btree_iter_prev(&iter, &key);
+			assert(key == get_key(N / 2));
+			value = btree_iter_prev(&iter, &key);
+			assert(key == get_key(N / 2 - 1));
+			value = btree_iter_next(&iter, &key);
+			assert(key == get_key(N / 2));
+#else
+			key = btree_iter_start_at(&iter, &btree, get_key(N / 2));
+			assert(*key == get_key(N / 2));
+			key = btree_iter_next(&iter);
+			assert(*key == get_key(N / 2 + 1));
+			key = btree_iter_prev(&iter);
+			assert(*key == get_key(N / 2));
+			key = btree_iter_prev(&iter);
+			assert(*key == get_key(N / 2 - 1));
+			key = btree_iter_next(&iter);
+			assert(*key == get_key(N / 2));
+#endif
+
+			btree_check(&btree, &btree_info);
 		}
 
 		for (size_t i = 0; i < N; i++) {
@@ -1659,15 +1782,15 @@ static void test(void)
 				btree_iter_t iter;
 #ifdef STRING_MAP
 				btree_key_t prev_key, key;
-				btree_value_t *value = btree_iter_get_next(&iter, &prev_key);
-				while ((value = btree_iter_get_next(&iter, &key))) {
+				btree_value_t *value = btree_iter_next(&iter, &prev_key);
+				while ((value = btree_iter_next(&iter, &key))) {
 					assert(btree_info.cmp(&prev_key, &key) < 0);
 					prev_key = key;
 				}
 #else
 				const btree_key_t *prev_key, *key;
 				prev_key = btree_iter_start(&iter, &btree);
-				while ((key = btree_iter_get_next(&iter))) {
+				while ((key = btree_iter_next(&iter))) {
 					assert(btree_info.cmp(prev_key, key) < 0);
 					prev_key = key;
 				}
@@ -1884,6 +2007,6 @@ static void test(void)
 
 	int main(void)
 	{
-		// test();
-		benchmark();
+		test();
+		// benchmark();
 	}
