@@ -104,27 +104,28 @@ static void btree_node_copy_item(struct btree_node *dest_node, unsigned int dest
 	btree_node_set_item(dest_node, dest_idx, btree_node_item(src_node, src_idx, info),info);
 }
 
-// TODO void _btree_iter_start(struct btree_iter *iter, ...)?
-static struct btree_iter _btree_iter_start(const struct _btree *tree, const struct btree_info *info)
+static void *_btree_iter_start(struct btree_iter *iter, const struct _btree *tree,
+			       const struct btree_info *info)
 {
-	struct btree_iter iter;
-	iter.tree = tree;
-	iter.depth = 0;
+	iter->tree = tree;
+	iter->depth = 0;
 
 	if (tree->height == 0) {
-		return iter;
+		return NULL;
 	}
 
 	struct btree_node *node = tree->root;
-	iter.path[0].idx = 0;
-	iter.path[0].node = node;
+	iter->path[0].idx = 0;
+	iter->path[0].node = node;
 
-	for (iter.depth = 1; iter.depth < tree->height; iter.depth++) {
+	struct btree_pos *pos;
+	for (iter->depth = 1; iter->depth < tree->height; iter->depth++) {
 		node = btree_node_get_child(node, 0, info);
-		iter.path[iter.depth].idx = 0;
-		iter.path[iter.depth].node = node;
+		pos = &iter->path[iter->depth];
+		pos->idx = 0;
+		pos->node = node;
 	}
-	return iter;
+	return btree_node_item(pos->node, pos->idx, info);
 }
 
 static void *_btree_iter_get_next(struct btree_iter *iter, const struct btree_info *info)
@@ -133,7 +134,6 @@ static void *_btree_iter_get_next(struct btree_iter *iter, const struct btree_in
 		return NULL;
 	}
 	struct btree_pos *pos = &iter->path[iter->depth - 1];
-	void *item = btree_node_item(pos->node, pos->idx, info);
 	pos->idx++;
 	// descend into the leftmost child of the right child
 	while (iter->depth < iter->tree->height) {
@@ -144,11 +144,11 @@ static void *_btree_iter_get_next(struct btree_iter *iter, const struct btree_in
 	}
 	while (pos->idx >= pos->node->num_items) {
 		if (--iter->depth == 0) {
-			break;
+			return NULL;
 		}
 		pos = &iter->path[iter->depth - 1];
 	}
-	return item;
+	return btree_node_item(pos->node, pos->idx, info);
 }
 
 static struct btree_node *btree_new_node(bool leaf, const struct btree_info *info)
@@ -764,9 +764,9 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 									\
 	typedef struct btree_iter name##_iter_t;			\
 									\
-	static struct btree_iter name##_iter_start(const struct name *tree) \
+	static const name##_key_t *name##_iter_start(name##_iter_t *iter, const struct name *tree) \
 	{								\
-		return _btree_iter_start(&tree->_impl, &name##_info);	\
+		return _btree_iter_start(iter, &tree->_impl, &name##_info); \
 	}								\
 									\
 	static const name##_key_t *name##_iter_get_next(name##_iter_t *iter) \
@@ -877,9 +877,17 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 									\
 	typedef struct btree_iter name##_iter_t;			\
 									\
-	static struct btree_iter name##_iter_start(const struct name *tree) \
+	static name##_value_t *name##_iter_start(name##_iter_t *iter, const struct name *tree, \
+						 name##_key_t *ret_key)	\
 	{								\
-		return _btree_iter_start(&tree->_impl, &name##_info);	\
+		_##name##_item_t *item = _btree_iter_start(iter, &tree->_impl, &name##_info); \
+		if (!item) {						\
+			return NULL;					\
+		}							\
+		if (ret_key) {						\
+			*ret_key = item->key;				\
+		}							\
+		return &item->value;					\
 	}								\
 									\
 	static name##_value_t *name##_iter_get_next(name##_iter_t *iter, name##_key_t *ret_key) \
@@ -1192,15 +1200,15 @@ static void test(void)
 		assert(btree_find(&btree, *iter.entry));
 	}
 	{
-		struct btree_iter iter = btree_iter_start(&btree);
+		btree_iter_t iter;
 #ifdef STRING_MAP
 		btree_key_t prev_key, key;
-		btree_value_t *value = btree_iter_get_next(&iter, &key);
+		btree_value_t *value = btree_iter_start(&iter, &btree, &key);
 		assert(value && strtoumax(key, NULL, 10) == *value);
 		assert(btable_lookup(&btable, key, get_hash(key)));
 #else
 		const btree_key_t *prev_key, *key;
-		key = btree_iter_get_next(&iter);
+		key = btree_iter_start(&iter, &btree);
 		assert(key);
 		assert(btable_lookup(&btable, *key, get_hash(*key)));
 #endif
@@ -1286,20 +1294,49 @@ static void test(void)
 		}
 
 		{
-			struct btree_iter iter = btree_iter_start(&btree);
-			for (size_t i = 0; i < N; i++) {
+			btree_iter_t iter;
 #ifdef STRING_MAP
-				btree_key_t key;
-				btree_value_t *value = btree_iter_get_next(&iter, &key);
+			btree_key_t key;
+			btree_value_t *value = btree_iter_start(&iter, &btree, &key);
+			for (size_t i = 0; i < N; i++) {
 				assert(value);
 				assert(*value == i + 1);
+				*value = i + 2;
 				assert(key == get_key(i));
+				value = btree_iter_get_next(&iter, &key);
+			}
+			assert(!value);
+			assert(!btree_iter_get_next(&iter, &key));
 #else
-				const btree_key_t *key = btree_iter_get_next(&iter);
+			const btree_key_t *key = btree_iter_start(&iter, &btree);
+			for (size_t i = 0; i < N; i++) {
 				assert(key);
 				assert(*key == get_key(i));
-#endif
+				key = btree_iter_get_next(&iter);
 			}
+			assert(!key);
+			assert(!btree_iter_get_next(&iter));
+#endif
+			size_t i = 0;
+#ifdef STRING_MAP
+			for (btree_value_t *value = btree_iter_start(&iter, &btree, &key);
+			     value;
+			     value = btree_iter_get_next(&iter, &key)) {
+				assert(i < N);
+				assert(*value == i + 2);
+				assert(key == get_key(i));
+				i++;
+			}
+#else
+			for (const btree_key_t *key = btree_iter_start(&iter, &btree);
+			     key;
+			     key = btree_iter_get_next(&iter)) {
+				assert(i < N);
+				assert(*key == get_key(i));
+				i++;
+			}
+#endif
+			assert(i == N);
 		}
 
 		for (size_t i = 0; i < N; i++) {
@@ -1619,7 +1656,7 @@ static void test(void)
 
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp);
 			{
-				struct btree_iter iter = btree_iter_start(&btree);
+				btree_iter_t iter;
 #ifdef STRING_MAP
 				btree_key_t prev_key, key;
 				btree_value_t *value = btree_iter_get_next(&iter, &prev_key);
@@ -1629,7 +1666,7 @@ static void test(void)
 				}
 #else
 				const btree_key_t *prev_key, *key;
-				prev_key = btree_iter_get_next(&iter);
+				prev_key = btree_iter_start(&iter, &btree);
 				while ((key = btree_iter_get_next(&iter))) {
 					assert(btree_info.cmp(prev_key, key) < 0);
 					prev_key = key;
@@ -1847,6 +1884,6 @@ static void test(void)
 
 	int main(void)
 	{
-		test();
-		// benchmark();
+		// test();
+		benchmark();
 	}
