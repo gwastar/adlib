@@ -15,8 +15,6 @@
 #include "random.h"
 
 // TODO get_lower/upper_bound, iter_start_lower/upper_bound
-// TODO fix bad performance with gcc (by adding _attr_flatten to all the important API functions?)
-//      how does clang optimize this code so much better while also producing a smaller binary?
 // TODO implement APIs with hints for optimized bulk operations
 //      (figure out why the initial implementation did not improve performance...)
 
