@@ -23,6 +23,14 @@
 
 #include "config.h"
 
+#if defined(__clang__)
+#define COMPILER_IS_CLANG 1
+#elif defined(__GNUC__)
+#define COMPILER_IS_GCC 1
+#else
+#define COMPILER_IS_OTHER 1
+#endif
+
 #ifndef __has_attribute
 # define __has_attribute(x) 0
 #endif
