@@ -834,7 +834,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 	_Static_assert((max_items_per_node) >= 2, "use an AVL or RB tree for 1 item per node");	\
 	_Static_assert((max_items_per_node) <= USHRT_MAX, "cannot have more than USHRT_MAX items per node"); \
 									\
-	static _Alignas(64) const struct btree_info name##_info = {	\
+	static _Alignas(32) const struct btree_info name##_info = {	\
 		.max_items = (max_items_per_node),			\
 		.min_items = (max_items_per_node) / 2,			\
 		.item_size = sizeof(name##_key_t),			\
@@ -983,7 +983,7 @@ static bool _btree_insert_sequential(struct _btree *tree, void *item, const stru
 	_Static_assert((max_items_per_node) >= 2, "use an AVL or RB tree for 1 item per node");	\
 	_Static_assert((max_items_per_node) <= USHRT_MAX, "cannot have more than USHRT_MAX items per node"); \
 									\
-	static _Alignas(64) const struct btree_info name##_info = {	\
+	static _Alignas(32) const struct btree_info name##_info = {	\
 		.max_items = (max_items_per_node),			\
 		.min_items = (max_items_per_node) / 2,			\
 		.item_size = sizeof(_##name##_item_t),			\
