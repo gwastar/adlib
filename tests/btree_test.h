@@ -97,7 +97,7 @@ static btree_key_t get_key(btree_key_t *keys, size_t x)
 	return keys[x];
 }
 #else
-static btree_key_t * create_keys(size_t num_keys)
+static btree_key_t *create_keys(size_t num_keys)
 {
 	(void)num_keys;
 	return NULL;
@@ -122,9 +122,9 @@ static btree_key_t get_key(btree_key_t *keys, size_t x)
 // (would probably have to make keys global with pthread_once)
 
 #ifdef STRING_MAP
-RANDOM_TEST(btree_map, 2, 0, UINT64_MAX)
+static bool btree_map_test(uint64_t random)
 #else
-RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
+static bool btree_set_test(uint64_t random)
 #endif
 {
 	struct random_state rng;

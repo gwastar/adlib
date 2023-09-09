@@ -27,7 +27,7 @@
 //      (gcc specializes the API functions for the info parameter but even with __attribute__((flatten)) on all
 //       API functions or __attribute__((always_inline)) on the compare function, gcc will never inline the
 //       compare function (info->cmp), which really hurts performance for btree_set_benchmark since the keys
-//       are simple integers and the compare function is trivial)
+//       are simple integers and the compare function is trivial) (PGO fixes this issue)
 // TODO is get_lower/upper_bound useful or are the iterator variants good enough?
 // TODO implement APIs with hints for optimized bulk operations?
 //      (figure out why the initial implementation did not improve performance...)

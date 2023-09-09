@@ -91,7 +91,7 @@ static inline struct rb_node *_rb_red_parent(const struct rb_node *node)
 }
 
 static inline void _rb_change_child(const struct rb_node *old_child, struct rb_node *new_child,
-				    struct rb_node *parent, struct rb_root *root)
+				    struct rb_node *parent, struct rb_tree *root)
 {
 	if (parent) {
 		if (old_child == parent->children[RB_LEFT]) {
@@ -100,14 +100,14 @@ static inline void _rb_change_child(const struct rb_node *old_child, struct rb_n
 			parent->children[RB_RIGHT] = new_child;
 		}
 	} else {
-		root->node = new_child;
+		root->root = new_child;
 	}
 }
 
-struct rb_node *rb_first(const struct rb_root *root)
+struct rb_node *rb_first(const struct rb_tree *root)
 {
 	struct rb_node *node = NULL;
-	struct rb_node *cur = root->node;
+	struct rb_node *cur = root->root;
 	while (cur) {
 		node = cur;
 		cur = cur->children[RB_LEFT];
@@ -134,7 +134,7 @@ struct rb_node *rb_next(const struct rb_node *node)
 	return parent;
 }
 
-static void _rb_remove_repair(struct rb_root *root, struct rb_node *parent)
+static void _rb_remove_repair(struct rb_tree *root, struct rb_node *parent)
 {
 	// we only use node at the start to figure out which child node is,
 	// since we are always the left child on the first iteration this is fine
@@ -211,7 +211,7 @@ static void _rb_remove_repair(struct rb_root *root, struct rb_node *parent)
 	}
 }
 
-void rb_remove_node(struct rb_root *root, struct rb_node *node)
+void rb_remove_node(struct rb_tree *root, struct rb_node *node)
 {
 	struct rb_node *child = node->children[RB_RIGHT];
 	struct rb_node *tmp = node->children[RB_LEFT];
@@ -277,7 +277,7 @@ void rb_remove_node(struct rb_root *root, struct rb_node *node)
 	}
 }
 
-void rb_insert_node(struct rb_root *root, struct rb_node *node, struct rb_node *parent, enum rb_direction dir)
+void rb_insert_node(struct rb_tree *root, struct rb_node *node, struct rb_node *parent, enum rb_direction dir)
 {
 	assert(((uintptr_t)node & 1) == 0);
 	node->children[RB_LEFT] = NULL;
@@ -286,7 +286,7 @@ void rb_insert_node(struct rb_root *root, struct rb_node *node, struct rb_node *
 	_rb_set_parent(node, parent);
 	if (!parent) {
 		_rb_set_color(node, RB_BLACK);
-		root->node = node;
+		root->root = node;
 		return;
 	}
 	_rb_set_color(node, RB_RED);

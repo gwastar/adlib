@@ -43,17 +43,17 @@ struct avl_node {
 	};
 };
 
-struct avl_root {
-	struct avl_node *node;
+struct avl_tree {
+	struct avl_node *root;
 };
 
-#define AVL_EMPTY_ROOT ((struct avl_root){NULL})
+#define AVL_EMPTY_TREE ((struct avl_tree){NULL})
 
 #define avl_foreach(root, itername)					\
 	for (struct avl_node *(itername) = avl_first(root); (itername); (itername) = avl_next(cur))
 
-void avl_insert_node(struct avl_root *root, struct avl_node *node, struct avl_node *parent, enum avl_direction dir);
-void avl_remove_node(struct avl_root *root, struct avl_node *node);
+void avl_insert_node(struct avl_tree *root, struct avl_node *node, struct avl_node *parent, enum avl_direction dir);
+void avl_remove_node(struct avl_tree *root, struct avl_node *node);
 struct avl_node *avl_parent(const struct avl_node *node);
-struct avl_node *avl_first(const struct avl_root *root) _attr_pure;
+struct avl_node *avl_first(const struct avl_tree *root) _attr_pure;
 struct avl_node *avl_next(const struct avl_node *node) _attr_pure;

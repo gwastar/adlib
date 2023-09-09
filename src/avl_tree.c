@@ -56,7 +56,7 @@ static inline void _avl_set_balance(struct avl_node *node, int balance)
 }
 
 static inline void _avl_change_child(const struct avl_node *old_child, struct avl_node *new_child,
-				     struct avl_node *parent, struct avl_root *root)
+				     struct avl_node *parent, struct avl_tree *root)
 {
 	if (parent) {
 		if (old_child == parent->children[AVL_LEFT]) {
@@ -66,7 +66,7 @@ static inline void _avl_change_child(const struct avl_node *old_child, struct av
 			parent->children[AVL_RIGHT] = new_child;
 		}
 	} else {
-		root->node = new_child;
+		root->root = new_child;
 	}
 }
 
@@ -167,10 +167,10 @@ static struct avl_node *_avl_rotate(struct avl_node *node, enum avl_direction di
 	return node;
 }
 
-struct avl_node *avl_first(const struct avl_root *root)
+struct avl_node *avl_first(const struct avl_tree *root)
 {
 	struct avl_node *node = NULL;
-	struct avl_node *cur = root->node;
+	struct avl_node *cur = root->root;
 	while (cur) {
 		node = cur;
 		cur = cur->children[AVL_LEFT];
@@ -197,7 +197,7 @@ struct avl_node *avl_next(const struct avl_node *node)
 	return parent;
 }
 
-void avl_remove_node(struct avl_root *root, struct avl_node *node)
+void avl_remove_node(struct avl_tree *root, struct avl_node *node)
 {
 	struct avl_node *child;
 	struct avl_node *parent;
@@ -252,7 +252,7 @@ void avl_remove_node(struct avl_root *root, struct avl_node *node)
 
 	parent = avl_parent(node);
 	if (!parent) {
-		root->node = NULL;
+		root->root = NULL;
 		return;
 	}
 	dir = _avl_dir_of_child(node, parent);
@@ -293,7 +293,7 @@ rebalance:
 	}
 }
 
-void avl_insert_node(struct avl_root *root, struct avl_node *node, struct avl_node *parent, enum avl_direction dir)
+void avl_insert_node(struct avl_tree *root, struct avl_node *node, struct avl_node *parent, enum avl_direction dir)
 {
 	assert(((uintptr_t)node & 0x3) == 0);
 	node->_parent_balance = 0; // silence warning
@@ -303,7 +303,7 @@ void avl_insert_node(struct avl_root *root, struct avl_node *node, struct avl_no
 	node->children[AVL_RIGHT] = NULL;
 
 	if (!parent) {
-		root->node = node;
+		root->root = node;
 		return;
 	}
 	parent->children[dir] = node;
