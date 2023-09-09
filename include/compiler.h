@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -18,8 +18,7 @@
  */
 
 
-#ifndef __CONFIG_COMPILER__
-#define __CONFIG_COMPILER__
+#pragma once
 
 #include "config.h"
 
@@ -295,6 +294,4 @@
 # define compiler_assume(cond)               __attribute__((assume(cond)))
 #else
 # define compiler_assume(cond)               ((void)0)
-#endif
-
 #endif

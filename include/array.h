@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -44,8 +44,7 @@
 
 // TODO array_set_all, array_addn_repeat, array_at, array_map, array_filter, array_byte_size, array_copy_to/from
 
-#ifndef __ARRAY_INCLUDE__
-#define __ARRAY_INCLUDE__
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -604,5 +603,3 @@ static inline _attr_nonnull(1) void *_arr_pop_and_return_pointer(void *arr, size
 			_func(_iter);		\
 		}				\
 	} while (0)
-
-#endif

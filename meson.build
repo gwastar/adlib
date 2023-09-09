@@ -103,7 +103,6 @@ sources = [
   'fortify.c',
   'hash.c',
   'hashtable.c',
-  'macros.c',
   'random.c',
   'rb_tree.c',
   'utils.c',

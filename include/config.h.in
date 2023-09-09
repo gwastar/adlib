@@ -1,5 +1,4 @@
-#ifndef __CONFIG_INCLUDE__
-#define __CONFIG_INCLUDE__
+#pragma once
 
 #cmakedefine __DISABLE_FUNCTION_DETECTION
 
@@ -47,5 +46,3 @@
 #cmakedefine HASHTABLE_QUADRATIC 1
 #cmakedefine HASHTABLE_HOPSCOTCH 1
 #cmakedefine HASHTABLE_ROBINHOOD 1
-
-#endif

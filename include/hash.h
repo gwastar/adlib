@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __HASH_INCLUDE__
-#define __HASH_INCLUDE__
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -89,5 +88,3 @@ hash64_t fibonacci_hash64(uint64_t val, unsigned int bits) _attr_const;
 
 hash32_t hash_combine_int32(uint32_t seed, uint32_t val) _attr_const;
 hash64_t hash_combine_int64(uint64_t seed, uint64_t val) _attr_const;
-
-#endif

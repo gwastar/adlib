@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __RANDOM_INCLUDE__
-#define __RANDOM_INCLUDE__
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -57,5 +56,3 @@ void random_long_jump(struct random_state *state);
 			.s[1] = __RANDOM_SPLITMIX64((uint64_t)(x), 2),	\
 			.s[2] = __RANDOM_SPLITMIX64((uint64_t)(x), 3),	\
 			.s[3] = __RANDOM_SPLITMIX64((uint64_t)(x), 4)}
-
-#endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __DSTRING_INCLUDE__
-#define __DSTRING_INCLUDE__
+#pragma once
 
 // TODO documentation
 // TODO dstr_append/insert/replace_number..., join/concat/append with varargs, to_upper/lower?, casecmp?
@@ -214,7 +213,5 @@ static _attr_always_inline struct strview _strview_from_chars_fortified(const ch
 	return strview_from_chars(chars, n);
 }
 #define strview_from_chars(chars, n) _strview_from_chars_fortified(chars, n)
-
-#endif
 
 #endif

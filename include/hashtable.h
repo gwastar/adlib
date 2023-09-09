@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __HASH_TABLE_INCLUDE__
-#define __HASH_TABLE_INCLUDE__
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -194,5 +193,3 @@ static inline void *_hashtable_entry(struct _hashtable *table, _hashtable_idx_t 
 {
 	return table->storage + index * info->entry_size;
 }
-
-#endif

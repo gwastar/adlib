@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __UTILS_INCLUDE__
-#define __UTILS_INCLUDE__
+#pragma once
 
 // TODO integer three-way compare functions
 // TODO split this header (type-utils, integer-utils, endian, ...)?
@@ -645,5 +644,3 @@ static _attr_always_inline _attr_const uint64_t be64_to_cpu(be64_t x)
 #undef _INT_BITS
 #undef _LONG_BITS
 #undef _LLONG_BITS
-
-#endif

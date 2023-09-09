@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __RB_TREE_INCLUDE__
-#define __RB_TREE_INCLUDE__
+#pragma once
 
 // TODO documentation, high-level API (see tests/rb_tree.c)
 
@@ -57,5 +56,3 @@ void rb_insert_node(struct rb_root *root, struct rb_node *node, struct rb_node *
 struct rb_node *rb_first(const struct rb_root *root) _attr_pure;
 struct rb_node *rb_parent(const struct rb_node *node) _attr_pure;
 struct rb_node *rb_next(const struct rb_node *node) _attr_pure;
-
-#endif

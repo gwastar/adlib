@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __AVL_TREE_INCLUDE__
-#define __AVL_TREE_INCLUDE__
+#pragma once
 
 // TODO documentation, high-level API (see tests/avl_tree.c)
 
@@ -58,6 +57,3 @@ void avl_remove_node(struct avl_root *root, struct avl_node *node);
 struct avl_node *avl_parent(const struct avl_node *node);
 struct avl_node *avl_first(const struct avl_root *root) _attr_pure;
 struct avl_node *avl_next(const struct avl_node *node) _attr_pure;
-
-
-#endif

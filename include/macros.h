@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,13 +17,12 @@
  * SOFTWARE.
  */
 
-#ifndef __MACROS_INCLUDE__
-#define __MACROS_INCLUDE__
+#pragma once
 
 #include <stddef.h>
+
+// TODO move this to utils.h?
 
 // from wikipedia, the ternary operator forces matching types on pointer and member
 #define container_of(ptr, type, member)					\
 	((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
-
-#endif

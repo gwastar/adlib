@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __CHARCONV_INCLUDE__
-#define __CHARCONV_INCLUDE__
+#pragma once
 
 #include "compiler.h"
 
@@ -100,6 +99,4 @@ size_t from_chars_ullong(char *chars, size_t nchars, unsigned long long *retval,
 							  signed int * : from_chars_char(chars, nchars, (signed int *)retval, flags), \
 							  signed long * : from_chars_char(chars, nchars, (signed long *)retval, flags), \
 							  signed long long * : from_chars_char(chars, nchars, (signed long long *)retval, flags))
-#endif
-
 #endif

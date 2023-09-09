@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __DBUF_INCLUDE__
-#define __DBUF_INCLUDE__
+#pragma once
 
 #include "config.h"
 #include "compiler.h"
@@ -79,5 +78,3 @@ void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other) _attr_nonnull(2)
 void dbuf_add_str(struct dbuf *dbuf, const char *str) _attr_nonnull(2);
 // append a formatted string (see printf for details)
 void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...) _attr_format_printf(2, 3);
-
-#endif

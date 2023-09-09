@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Fabian Hügel
+ * Copyright (C) 2020-2023 Fabian Hügel
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
@@ -17,8 +17,7 @@
  * SOFTWARE.
  */
 
-#ifndef __TESTING_INCLUDE__
-#define __TESTING_INCLUDE__
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -81,5 +80,3 @@ void register_random_test(const char *file, const char *name, uint64_t num_value
 			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed);
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);
-
-#endif
