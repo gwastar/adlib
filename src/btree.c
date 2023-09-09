@@ -5,6 +5,10 @@
 #include "compiler.h"
 
 // TODO fix bad performance when compiling with gcc
+//      (gcc seems unable to inline functions at link-time with lto, instead it specializes the API functions
+//       for the info parameter but even if we add __attribute__((flatten)) to all API functions, gcc will
+//       never inline the compare function (info->cmp), which really hurts performance for btree_set_benchmark
+//       since the keys are simple integers and the compare function is trivial)
 // TODO is get_lower/upper_bound useful or are the iterator variants good enough?
 // TODO implement APIs with hints for optimized bulk operations?
 //      (figure out why the initial implementation did not improve performance...)
