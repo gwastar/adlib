@@ -18,6 +18,9 @@ c_args = [
   '-Wimplicit-fallthrough=5',
   '-Wno-language-extension-token',
   '-fstrict-flex-arrays=3',
+
+  '-fno-semantic-interposition',
+
   # TODO
 
   #'-march=native',
@@ -38,7 +41,12 @@ if ['1', '2', '3', 's'].contains(get_option('optimization'))
     c_args += '-D_FORTIFY_SOURCE=3'
 endif
 
+c_link_args = [
+  '-Wl,-Bsymbolic-functions'
+]
+
 add_project_arguments(cc.get_supported_arguments(c_args), language: 'c')
+add_project_link_arguments(cc.get_supported_link_arguments(c_link_args), language: 'c')
 
 cdata = configuration_data()
 disable_function_detection = get_option('disable-function-detection')
