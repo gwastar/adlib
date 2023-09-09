@@ -62,35 +62,29 @@ static bool btree_check(const struct btree *btree, const struct btree_info *info
 	return btree_check_children(root, btree->_impl.height, info);
 }
 
-// TODO get rid of this global state or use pthread_once
-
 #ifdef STRING_MAP
-static char **keys;
-static size_t num_keys;
 #define __KEY_SIZE 15
 #define KEY_SIZE (__KEY_SIZE + 1)
 #define KEY_FORMAT __KEY_FORMAT(__KEY_SIZE)
 #define __KEY_FORMAT(S) ___KEY_FORMAT(S)
 #define ___KEY_FORMAT(S) "%0" #S "zu"
 
-static void init_keys(size_t N)
+static btree_key_t *create_keys(size_t num_keys)
 {
-	num_keys = N;
-	keys = malloc(N * sizeof(keys[0]));
-	for (size_t i = 0; i < N; i++) {
+	btree_key_t *keys = malloc(num_keys * sizeof(keys[0]));
+	for (size_t i = 0; i < num_keys; i++) {
 		keys[i] = malloc(KEY_SIZE);
 		snprintf(keys[i], KEY_SIZE, KEY_FORMAT, i);
 	}
+	return keys;
 }
 
-static void destroy_keys(void)
+static void destroy_keys(btree_key_t *keys, size_t num_keys)
 {
 	for (size_t i = 0; i < num_keys; i++) {
 		free(keys[i]);
 	}
 	free(keys);
-	num_keys = 0;
-	keys = NULL;
 }
 
 static _attr_pure btable_hash_t get_hash(const char *key)
@@ -98,33 +92,34 @@ static _attr_pure btable_hash_t get_hash(const char *key)
 	return murmurhash3_x64_64(key, KEY_SIZE, 0).u64;
 }
 
-static char *get_key(size_t x)
+static btree_key_t get_key(btree_key_t *keys, size_t x)
 {
-	assert(x < num_keys);
 	return keys[x];
 }
 #else
-static size_t num_keys;
-static void init_keys(size_t N)
+static btree_key_t * create_keys(size_t num_keys)
 {
-	num_keys = N;
+	(void)num_keys;
+	return NULL;
 }
-static void destroy_keys(void)
+static void destroy_keys(btree_key_t *keys, size_t num_keys)
 {
-	num_keys = 0;
+	(void)keys;
+	(void)num_keys;
 }
 static btable_hash_t get_hash(btree_key_t key)
 {
 	return (btable_hash_t)key;
 }
-static btree_key_t get_key(size_t x)
+static btree_key_t get_key(btree_key_t *keys, size_t x)
 {
-	assert(x < num_keys);
+	(void)keys;
 	return (btree_key_t)x;
 }
 #endif
 
-// TODO split this up into multiple test functions
+// TODO split this up into multiple test functions?
+// (would probably have to make keys global with pthread_once)
 
 #ifdef STRING_MAP
 RANDOM_TEST(btree_map, 2, 0, UINT64_MAX)
@@ -138,7 +133,8 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	const size_t N = 1 << 14;
 	const size_t LIMIT = 1 << 16;
 
-	init_keys(2 * (N > LIMIT ? N : LIMIT));
+	size_t num_keys = 2 * (N > LIMIT ? N : LIMIT);
+	btree_key_t *keys = create_keys(num_keys);
 
 	struct btree btree = BTREE_EMPTY;
 	btree_init(&btree);
@@ -148,7 +144,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 
 	for (size_t i = 0; i < N; i++) {
 		size_t x = random_next_u64(&rng) % LIMIT;
-		btree_key_t key = get_key(x);
+		btree_key_t key = get_key(keys, x);
 		bool exists = btable_lookup(&btable, key, get_hash(key));
 		if (!exists) {
 			*btable_insert(&btable, key, get_hash(key)) = key;
@@ -197,10 +193,10 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 #endif
 	}
 	for (size_t i = LIMIT; i < LIMIT + 1000; i++) {
-		CHECK(!btree_find(&btree, get_key(i)));
+		CHECK(!btree_find(&btree, get_key(keys, i)));
 	}
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(random_next_u64(&rng) % LIMIT);
+		btree_key_t key = get_key(keys, random_next_u64(&rng) % LIMIT);
 		bool exists = btable_remove(&btable, key, get_hash(key), NULL);
 #ifdef STRING_MAP
 		btree_key_t k;
@@ -239,7 +235,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	CHECK(btree_check(&btree, &btree_info));
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(i);
+		btree_key_t key = get_key(keys, i);
 #ifdef STRING_MAP
 		btree_insert_sequential(&btree, key, i);
 #else
@@ -250,7 +246,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	}
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(i);
+		btree_key_t key = get_key(keys, i);
 #ifdef STRING_MAP
 		bool inserted = btree_set(&btree, key, i + 1);
 #else
@@ -270,7 +266,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 			CHECK(value);
 			CHECK(*value == i + 1);
 			*value = i + 2;
-			CHECK(key == get_key(i));
+			CHECK(key == get_key(keys, i));
 			value = btree_iter_next(&iter, &key);
 		}
 		CHECK(!value);
@@ -279,7 +275,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 		const btree_key_t *key = btree_iter_start_leftmost(&iter, &btree);
 		for (size_t i = 0; i < N; i++) {
 			CHECK(key);
-			CHECK(*key == get_key(i));
+			CHECK(*key == get_key(keys, i));
 			key = btree_iter_next(&iter);
 		}
 		CHECK(!key);
@@ -290,7 +286,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 		for (size_t i = N; i-- > 0;) {
 			CHECK(value);
 			CHECK(*value == i + 2);
-			CHECK(key == get_key(i));
+			CHECK(key == get_key(keys, i));
 			value = btree_iter_prev(&iter, &key);
 		}
 		CHECK(!value);
@@ -299,7 +295,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 		key = btree_iter_start_rightmost(&iter, &btree);
 		for (size_t i = N; i-- > 0;) {
 			CHECK(key);
-			CHECK(*key == get_key(i));
+			CHECK(*key == get_key(keys, i));
 			key = btree_iter_prev(&iter);
 		}
 		CHECK(!key);
@@ -312,7 +308,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 		     value = btree_iter_next(&iter, &key)) {
 			CHECK(i < N);
 			CHECK(*value == i + 2);
-			CHECK(key == get_key(i));
+			CHECK(key == get_key(keys, i));
 			i++;
 		}
 #else
@@ -320,7 +316,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 		     key;
 		     key = btree_iter_next(&iter)) {
 			CHECK(i < N);
-			CHECK(*key == get_key(i));
+			CHECK(*key == get_key(keys, i));
 			i++;
 		}
 #endif
@@ -328,113 +324,113 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 
 #ifdef STRING_MAP
 		for (size_t i = 0; i < N; i++) {
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_FIND_KEY);
-			CHECK(key == get_key(i));
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_FIND_KEY);
+			CHECK(key == get_key(keys, i));
 			CHECK(*value == i + 2);
 			value = btree_iter_next(&iter, &key);
 			if (i == N - 1) {
 				CHECK(!value);
 			} else {
-				CHECK(key == get_key(i + 1));
+				CHECK(key == get_key(keys, i + 1));
 				CHECK(*value == i + 3);
 			}
 		}
 #else
 		for (size_t i = 0; i < N; i++) {
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_FIND_KEY);
-			CHECK(*key == get_key(i));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_FIND_KEY);
+			CHECK(*key == get_key(keys, i));
 			key = btree_iter_next(&iter);
 			if (i == N - 1) {
 				CHECK(!key);
 			} else {
-				CHECK(*key == get_key(i + 1));
+				CHECK(*key == get_key(keys, i + 1));
 			}
 		}
 #endif
 
 #ifdef STRING_MAP
-		value = btree_iter_start_at(&iter, &btree, get_key(N / 2), &key, BTREE_ITER_FIND_KEY);
-		CHECK(key == get_key(N / 2));
+		value = btree_iter_start_at(&iter, &btree, get_key(keys, N / 2), &key, BTREE_ITER_FIND_KEY);
+		CHECK(key == get_key(keys, N / 2));
 		value = btree_iter_next(&iter, &key);
-		CHECK(key == get_key(N / 2 + 1));
+		CHECK(key == get_key(keys, N / 2 + 1));
 		value = btree_iter_prev(&iter, &key);
-		CHECK(key == get_key(N / 2));
+		CHECK(key == get_key(keys, N / 2));
 		value = btree_iter_prev(&iter, &key);
-		CHECK(key == get_key(N / 2 - 1));
+		CHECK(key == get_key(keys, N / 2 - 1));
 		value = btree_iter_next(&iter, &key);
-		CHECK(key == get_key(N / 2));
+		CHECK(key == get_key(keys, N / 2));
 #else
-		key = btree_iter_start_at(&iter, &btree, get_key(N / 2), BTREE_ITER_FIND_KEY);
-		CHECK(*key == get_key(N / 2));
+		key = btree_iter_start_at(&iter, &btree, get_key(keys, N / 2), BTREE_ITER_FIND_KEY);
+		CHECK(*key == get_key(keys, N / 2));
 		key = btree_iter_next(&iter);
-		CHECK(*key == get_key(N / 2 + 1));
+		CHECK(*key == get_key(keys, N / 2 + 1));
 		key = btree_iter_prev(&iter);
-		CHECK(*key == get_key(N / 2));
+		CHECK(*key == get_key(keys, N / 2));
 		key = btree_iter_prev(&iter);
-		CHECK(*key == get_key(N / 2 - 1));
+		CHECK(*key == get_key(keys, N / 2 - 1));
 		key = btree_iter_next(&iter);
-		CHECK(*key == get_key(N / 2));
+		CHECK(*key == get_key(keys, N / 2));
 #endif
 
 #ifdef STRING_MAP
 		for (size_t i = 0; i < N; i++) {
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_LOWER_BOUND_INCLUSIVE);
-			CHECK(value && key == get_key(i) && *value == i + 2);
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
-			CHECK(i == N - 1 ? !value : value && key == get_key(i + 1) && *value == i + 3);
-			bool deleted = btree_delete(&btree, get_key(i), NULL, NULL);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_LOWER_BOUND_INCLUSIVE);
+			CHECK(value && key == get_key(keys, i) && *value == i + 2);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
+			CHECK(i == N - 1 ? !value : value && key == get_key(keys, i + 1) && *value == i + 3);
+			bool deleted = btree_delete(&btree, get_key(keys, i), NULL, NULL);
 			CHECK(deleted);
-			CHECK(!btree_iter_start_at(&iter, &btree, get_key(i), NULL, BTREE_ITER_FIND_KEY));
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_LOWER_BOUND_INCLUSIVE);
-			CHECK(i == N - 1 ? !value : value && key == get_key(i + 1) && *value == i + 3);
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
-			CHECK(i == N - 1 ? !value : value && key == get_key(i + 1) && *value == i + 3);
-			btree_insert(&btree, get_key(i), i + 2);
+			CHECK(!btree_iter_start_at(&iter, &btree, get_key(keys, i), NULL, BTREE_ITER_FIND_KEY));
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_LOWER_BOUND_INCLUSIVE);
+			CHECK(i == N - 1 ? !value : value && key == get_key(keys, i + 1) && *value == i + 3);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
+			CHECK(i == N - 1 ? !value : value && key == get_key(keys, i + 1) && *value == i + 3);
+			btree_insert(&btree, get_key(keys, i), i + 2);
 		}
 
 		for (size_t i = 0; i < N; i++) {
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_UPPER_BOUND_INCLUSIVE);
-			CHECK(value && key == get_key(i) && *value == i + 2);
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
-			CHECK(i == 0 ? !value : value && key == get_key(i - 1) && *value == i + 1);
-			bool deleted = btree_delete(&btree, get_key(i), NULL, NULL);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_UPPER_BOUND_INCLUSIVE);
+			CHECK(value && key == get_key(keys, i) && *value == i + 2);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
+			CHECK(i == 0 ? !value : value && key == get_key(keys, i - 1) && *value == i + 1);
+			bool deleted = btree_delete(&btree, get_key(keys, i), NULL, NULL);
 			CHECK(deleted);
-			CHECK(!btree_iter_start_at(&iter, &btree, get_key(i), NULL, BTREE_ITER_FIND_KEY));
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_UPPER_BOUND_INCLUSIVE);
-			CHECK(i == 0 ? !value : value && key == get_key(i - 1) && *value == i + 1);
-			value = btree_iter_start_at(&iter, &btree, get_key(i), &key, BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
-			CHECK(i == 0 ? !value : value && key == get_key(i - 1) && *value == i + 1);
-			btree_insert(&btree, get_key(i), i + 2);
+			CHECK(!btree_iter_start_at(&iter, &btree, get_key(keys, i), NULL, BTREE_ITER_FIND_KEY));
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_UPPER_BOUND_INCLUSIVE);
+			CHECK(i == 0 ? !value : value && key == get_key(keys, i - 1) && *value == i + 1);
+			value = btree_iter_start_at(&iter, &btree, get_key(keys, i), &key, BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
+			CHECK(i == 0 ? !value : value && key == get_key(keys, i - 1) && *value == i + 1);
+			btree_insert(&btree, get_key(keys, i), i + 2);
 		}
 #else
 		for (size_t i = 0; i < N; i++) {
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_LOWER_BOUND_INCLUSIVE);
-			CHECK(*key == get_key(i));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
-			CHECK(i == N - 1 ? !key : *key == get_key(i + 1));
-			bool deleted = btree_delete(&btree, get_key(i), NULL);
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_LOWER_BOUND_INCLUSIVE);
+			CHECK(*key == get_key(keys, i));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
+			CHECK(i == N - 1 ? !key : *key == get_key(keys, i + 1));
+			bool deleted = btree_delete(&btree, get_key(keys, i), NULL);
 			CHECK(deleted);
-			CHECK(!btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_FIND_KEY));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_LOWER_BOUND_INCLUSIVE);
-			CHECK(i == N - 1 ? !key : *key == get_key(i + 1));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
-			CHECK(i == N - 1 ? !key : *key == get_key(i + 1));
-			btree_insert(&btree, get_key(i));
+			CHECK(!btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_FIND_KEY));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_LOWER_BOUND_INCLUSIVE);
+			CHECK(i == N - 1 ? !key : *key == get_key(keys, i + 1));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_LOWER_BOUND_EXCLUSIVE);
+			CHECK(i == N - 1 ? !key : *key == get_key(keys, i + 1));
+			btree_insert(&btree, get_key(keys, i));
 		}
 
 		for (size_t i = 0; i < N; i++) {
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_UPPER_BOUND_INCLUSIVE);
-			CHECK(*key == get_key(i));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
-			CHECK(i == 0 ? !key : *key == get_key(i - 1));
-			bool deleted = btree_delete(&btree, get_key(i), NULL);
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_UPPER_BOUND_INCLUSIVE);
+			CHECK(*key == get_key(keys, i));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
+			CHECK(i == 0 ? !key : *key == get_key(keys, i - 1));
+			bool deleted = btree_delete(&btree, get_key(keys, i), NULL);
 			CHECK(deleted);
-			CHECK(!btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_FIND_KEY));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_UPPER_BOUND_INCLUSIVE);
-			CHECK(i == 0 ? !key : *key == get_key(i - 1));
-			key = btree_iter_start_at(&iter, &btree, get_key(i), BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
-			CHECK(i == 0 ? !key : *key == get_key(i - 1));
-			btree_insert(&btree, get_key(i));
+			CHECK(!btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_FIND_KEY));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_UPPER_BOUND_INCLUSIVE);
+			CHECK(i == 0 ? !key : *key == get_key(keys, i - 1));
+			key = btree_iter_start_at(&iter, &btree, get_key(keys, i), BTREE_ITER_UPPER_BOUND_EXCLUSIVE);
+			CHECK(i == 0 ? !key : *key == get_key(keys, i - 1));
+			btree_insert(&btree, get_key(keys, i));
 		}
 #endif
 
@@ -443,7 +439,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 
 	for (size_t i = 0; i < N; i++) {
 		size_t x = random_next_u64(&rng) % LIMIT;
-		btree_key_t key = get_key(x);
+		btree_key_t key = get_key(keys, x);
 #ifdef STRING_MAP
 		btree_insert_sequential(&btree, key, x);
 #else
@@ -456,7 +452,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 
 	for (size_t i = 0; i < N; i++) {
 		size_t x = random_next_u64(&rng) % LIMIT;
-		btree_key_t key = get_key(x);
+		btree_key_t key = get_key(keys, x);
 		bool exists = btable_lookup(&btable, key, get_hash(key));
 		if (!exists) {
 			*btable_insert(&btable, key, get_hash(key)) = key;
@@ -478,7 +474,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	btable_destroy(&btable);
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(i);
+		btree_key_t key = get_key(keys, i);
 #ifdef STRING_MAP
 		bool inserted = btree_insert(&btree, key, i);
 #else
@@ -490,7 +486,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	CHECK(btree_check(&btree, &btree_info));
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(i);
+		btree_key_t key = get_key(keys, i);
 #ifdef STRING_MAP
 		btree_key_t min;
 		btree_value_t *value = btree_get_leftmost(&btree, &min);
@@ -512,7 +508,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	}
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(i);
+		btree_key_t key = get_key(keys, i);
 #ifdef STRING_MAP
 		bool inserted = btree_insert(&btree, key, i);
 #else
@@ -524,7 +520,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 	CHECK(btree_check(&btree, &btree_info));
 
 	for (size_t i = 0; i < N; i++) {
-		btree_key_t key = get_key(N - 1 - i);
+		btree_key_t key = get_key(keys, N - 1 - i);
 #ifdef STRING_MAP
 		btree_key_t max;
 		btree_value_t *value = btree_get_rightmost(&btree, &max);
@@ -547,7 +543,7 @@ RANDOM_TEST(btree_set, 2, 0, UINT64_MAX)
 
 	CHECK(btree._impl.height == 0);
 
-	destroy_keys();
+	destroy_keys(keys, num_keys);
 
 	return true;
 }
