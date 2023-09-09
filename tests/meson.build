@@ -20,6 +20,8 @@ endforeach
 tests_sources = [
   'array.c',
   'avl_tree.c',
+  'btree_map.c',
+  'btree_set.c',
   'charconv.c',
   'dbuf.c',
   'dstring.c',
@@ -34,6 +36,8 @@ tests_sources = [
 
 targets = [
   {'name': 'array_benchmark', 'sources': 'array_benchmark.c',},
+  {'name': 'btree_map_benchmark', 'sources': 'btree_map_benchmark.c',},
+  {'name': 'btree_set_benchmark', 'sources': 'btree_set_benchmark.c',},
   {'name': 'hash_benchmark', 'sources': 'hash_benchmark.c',},
   {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},

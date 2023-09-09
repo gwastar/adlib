@@ -1,6 +1,5 @@
 executables = [
   'bitmap',
-  'btree',
   'cbuf',
   'endian',
   'error',

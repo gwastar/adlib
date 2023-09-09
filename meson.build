@@ -7,8 +7,6 @@ project('adlib', 'c',
                       'c_std=gnu11',
                       'b_pie=true',
                       'b_lto=true',
-		      'b_lto_mode=thin',
-		      'b_thinlto_cache=true',
                       #'b_sanitize=address,undefined',
                       'buildtype=release' ])
 
@@ -90,6 +88,7 @@ adlib_inc = include_directories('include', '.')
 sources = [
   'array.c',
   'avl_tree.c',
+  'btree.c',
   'charconv.c',
   'dbuf.c',
   'dstring.c',
