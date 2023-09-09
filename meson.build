@@ -26,13 +26,13 @@ c_args = [
   #'-march=native',
   #'-mtune=native',
   
-  #'-fanalyzer',
-  #'-Wsuggest-attribute=pure',
-  #'-Wsuggest-attribute=const',
-  #'-Wsuggest-attribute=noreturn',
-  #'-Wmissing-noreturn',
-  #'-Wsuggest-attribute=malloc',
-  #'-Wsuggest-attribute=format',
+  # '-fanalyzer',
+  # '-Wsuggest-attribute=pure',
+  # '-Wsuggest-attribute=const',
+  # '-Wsuggest-attribute=noreturn',
+  # '-Wmissing-noreturn',
+  # '-Wsuggest-attribute=malloc',
+  # '-Wsuggest-attribute=format',
 
   # '-funsigned-char',
 ]

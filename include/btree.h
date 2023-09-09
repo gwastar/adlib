@@ -383,7 +383,7 @@ void *_btree_iter_start_at(struct btree_iter *iter, const struct _btree *tree, v
 void _btree_init(struct _btree *tree);
 void _btree_destroy(struct _btree *tree, const struct btree_info *info);
 void *_btree_find(const struct _btree *tree, const void *key, const struct btree_info *info);
-void *_btree_get_leftmost_rightmost(const struct _btree *tree, bool leftmost, const struct btree_info *info);
+void *_btree_get_leftmost_rightmost(const struct _btree *tree, bool leftmost, const struct btree_info *info) _attr_pure;
 bool _btree_delete(struct _btree *tree, enum _btree_deletion_mode mode, const void *key, void *ret_item,
 		   const struct btree_info *info);
 bool _btree_insert(struct _btree *tree, void *item, bool update, const struct btree_info *info);
