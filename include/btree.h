@@ -70,14 +70,6 @@ enum _btree_deletion_mode {
 						       const char *:  8, \
 						       default: 0)
 
-// gcc needs __attribute__((flatten) to produce fast code out of this
-#ifdef COMPILER_IS_GCC
-#define _btree_flatten _attr_flatten
-#else
-// for clang it doesn't make much difference
-#define _btree_flatten
-#endif
-
 #define BTREE_EMPTY {{.root = NULL, .height = 0}}
 
 #define DEFINE_BTREE_SET(name, key_type, key_destructor, max_items_per_node, ...) \
@@ -158,51 +150,49 @@ enum _btree_deletion_mode {
 		_btree_destroy(&tree->_impl, &name##_info);		\
 	}								\
 									\
-	static _attr_unused _btree_flatten const name##_key_t *name##_find(const struct name *tree, \
-									   name##_key_t key) \
+	static _attr_unused const name##_key_t *name##_find(const struct name *tree, name##_key_t key) \
 	{								\
 		return (const name##_key_t *)_btree_find(&tree->_impl, &key, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten const name##_key_t *name##_get_leftmost(const struct name *tree) \
+	static _attr_unused const name##_key_t *name##_get_leftmost(const struct name *tree) \
 	{								\
 		return _btree_get_leftmost_rightmost(&tree->_impl, true, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten const name##_key_t *name##_get_rightmost(const struct name *tree) \
+	static _attr_unused const name##_key_t *name##_get_rightmost(const struct name *tree) \
 	{								\
 		return _btree_get_leftmost_rightmost(&tree->_impl, false, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete(struct name *tree, name##_key_t key, \
-							      name##_key_t *ret_key) \
+	static _attr_unused bool name##_delete(struct name *tree, name##_key_t key, name##_key_t *ret_key) \
 	{								\
 		return _btree_delete(&tree->_impl, __BTREE_DELETE_KEY, &key, (void *)ret_key, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete_min(struct name *tree, name##_key_t *ret_key) \
+	static _attr_unused bool name##_delete_min(struct name *tree, name##_key_t *ret_key) \
 	{								\
 		return _btree_delete(&tree->_impl, __BTREE_DELETE_MIN, NULL, (void *)ret_key, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete_max(struct name *tree, name##_key_t *ret_key) \
+	static _attr_unused bool name##_delete_max(struct name *tree, name##_key_t *ret_key) \
 	{								\
 		return _btree_delete(&tree->_impl, __BTREE_DELETE_MAX, NULL, (void *)ret_key, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_insert(struct name *tree, name##_key_t key) \
+	static _attr_unused bool name##_insert(struct name *tree, name##_key_t key) \
 	{								\
 		return _btree_insert(&tree->_impl, &key, false, &name##_info); \
 	}								\
 									\
 	/* TODO does this even make sense for a btree set? */		\
 	/* I guess you can use this to destruct and replace a key... */	\
-	static _attr_unused _btree_flatten bool name##_set(struct name *tree, name##_key_t key) \
+	static _attr_unused bool name##_set(struct name *tree, name##_key_t key) \
 	{								\
 		return _btree_insert(&tree->_impl, &key, true, &name##_info); \
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_insert_sequential(struct name *tree, name##_key_t key) \
+	static _attr_unused bool name##_insert_sequential(struct name *tree, name##_key_t key) \
 	{								\
 		return _btree_insert_sequential(&tree->_impl, &key, &name##_info); \
 	}
@@ -319,30 +309,26 @@ enum _btree_deletion_mode {
 		_btree_destroy(&tree->_impl, &name##_info);		\
 	}								\
 									\
-	static _attr_unused _btree_flatten name##_value_t *name##_find(const struct name *tree,	\
-								       name##_key_t key) \
+	static _attr_unused name##_value_t *name##_find(const struct name *tree, name##_key_t key) \
 	{								\
 		_##name##_item_t *item = _btree_find(&tree->_impl, &key, &name##_info); \
 		return item ? &item->value : NULL;			\
 	}								\
 									\
-	static _attr_unused _btree_flatten name##_value_t *name##_get_leftmost(const struct name *tree, \
-									       name##_key_t *ret_key) \
+	static _attr_unused name##_value_t *name##_get_leftmost(const struct name *tree, name##_key_t *ret_key) \
 	{								\
 		_##name##_item_t *item = _btree_get_leftmost_rightmost(&tree->_impl, true, &name##_info); \
 		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
-	static _attr_unused _btree_flatten name##_value_t *name##_get_rightmost(const struct name *tree, \
-										name##_key_t *ret_key) \
+	static _attr_unused name##_value_t *name##_get_rightmost(const struct name *tree, name##_key_t *ret_key) \
 	{								\
 		_##name##_item_t *item = _btree_get_leftmost_rightmost(&tree->_impl, false, &name##_info); \
 		__BTREE_MAP_RETURN_KEY_AND_VALUE;			\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete(struct name *tree, name##_key_t key, \
-							      name##_key_t *ret_key, \
-							      name##_value_t *ret_value) \
+	static _attr_unused bool name##_delete(struct name *tree, name##_key_t key, name##_key_t *ret_key, \
+					       name##_value_t *ret_value) \
 	{								\
 		_##name##_item_t item;					\
 		bool found = _btree_delete(&tree->_impl, __BTREE_DELETE_KEY, &key, \
@@ -350,8 +336,8 @@ enum _btree_deletion_mode {
 		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete_min(struct name *tree, name##_key_t *ret_key, \
-								  name##_value_t *ret_value) \
+	static _attr_unused bool name##_delete_min(struct name *tree, name##_key_t *ret_key, \
+						   name##_value_t *ret_value) \
 	{								\
 		_##name##_item_t item;					\
 		bool found = _btree_delete(&tree->_impl, __BTREE_DELETE_MIN, NULL, \
@@ -359,8 +345,8 @@ enum _btree_deletion_mode {
 		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_delete_max(struct name *tree, name##_key_t *ret_key, \
-								  name##_value_t *ret_value) \
+	static _attr_unused bool name##_delete_max(struct name *tree, name##_key_t *ret_key, \
+						   name##_value_t *ret_value) \
 	{								\
 		_##name##_item_t item;					\
 		bool found = _btree_delete(&tree->_impl, __BTREE_DELETE_MAX, NULL, \
@@ -368,22 +354,20 @@ enum _btree_deletion_mode {
 		__BTREE_MAP_DELETE_RETURN;				\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_insert(struct name *tree, name##_key_t key, \
-							      name##_value_t value) \
+	static _attr_unused bool name##_insert(struct name *tree, name##_key_t key, name##_value_t value) \
 	{								\
 		return _btree_insert(&tree->_impl, &(_##name##_item_t){.key = key, .value = value}, false, \
 				     &name##_info);			\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_set(struct name *tree, name##_key_t key, \
-							   name##_value_t value) \
+	static _attr_unused bool name##_set(struct name *tree, name##_key_t key, name##_value_t value)	\
 	{								\
 		return _btree_insert(&tree->_impl, &(_##name##_item_t){.key = key, .value = value}, true, \
 				     &name##_info);			\
 	}								\
 									\
-	static _attr_unused _btree_flatten bool name##_insert_sequential(struct name *tree, name##_key_t key, \
-									 name##_value_t value) \
+	static _attr_unused bool name##_insert_sequential(struct name *tree, name##_key_t key, \
+							  name##_value_t value) \
 	{								\
 		return _btree_insert_sequential(&tree->_impl, &(_##name##_item_t){.key = key, .value = value}, \
 						&name##_info);		\

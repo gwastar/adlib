@@ -4,6 +4,7 @@
 #include "btree.h"
 #include "compiler.h"
 
+// TODO fix bad performance when compiling with gcc
 // TODO is get_lower/upper_bound useful or are the iterator variants good enough?
 // TODO implement APIs with hints for optimized bulk operations?
 //      (figure out why the initial implementation did not improve performance...)
