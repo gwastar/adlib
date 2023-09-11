@@ -106,7 +106,11 @@
 # define HAVE_BUILTIN_ASSUME 1
 #endif
 
-#ifndef __DISABLE_FUNCTION_DETECTION
+#ifndef __DISABLE_FEATURE_DETECTION
+
+#ifdef __SIZEOF_INT128__
+# define HAVE_INT128 1
+#endif
 
 #if !defined(HAVE_BUILTIN_ADD_OVERFLOW) && __has_builtin(__builtin_add_overflow)
 # define HAVE_BUILTIN_ADD_OVERFLOW 1
@@ -149,7 +153,7 @@
 # define HAVE_BUILTIN_UNREACHABLE 1
 #endif
 
-#endif // __DISABLE_FUNCTION_DETECTION
+#endif // __DISABLE_FEATURE_DETECTION
 
 #ifdef HAVE_ATTR_NONNULL
 # define _attr_nonnull(...)                  __attribute__((nonnull (__VA_ARGS__)))

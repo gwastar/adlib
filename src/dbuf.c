@@ -146,7 +146,7 @@ void *dbuf_add_uninitialized(struct dbuf *dbuf, size_t count)
 	return p;
 }
 
-void dbuf_add_buf(struct dbuf *dbuf, const void *buf, size_t count)
+void (dbuf_add_buf)(struct dbuf *dbuf, const void *buf, size_t count)
 {
 	if (likely(count != 0)) {
 		void *p = dbuf_add_uninitialized(dbuf, count);

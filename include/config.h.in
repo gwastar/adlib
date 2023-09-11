@@ -1,6 +1,6 @@
 #pragma once
 
-#cmakedefine __DISABLE_FUNCTION_DETECTION
+#cmakedefine __DISABLE_FEATURE_DETECTION
 
 #cmakedefine HAVE_TYPEOF 1
 #cmakedefine HAVE_BUILTIN_ADD_OVERFLOW 1

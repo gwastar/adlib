@@ -21,6 +21,7 @@
 
 #include "config.h"
 #include "compiler.h"
+#include "fortify.h"
 
 // TODO rename dbuf_add* to dbuf_append_* ?
 // TODO fortify some functions
@@ -78,3 +79,15 @@ void dbuf_add_dbuf(struct dbuf *dbuf, const struct dbuf *other) _attr_nonnull(2)
 void dbuf_add_str(struct dbuf *dbuf, const char *str) _attr_nonnull(2);
 // append a formatted string (see printf for details)
 void dbuf_add_fmt(struct dbuf *dbuf, const char *fmt, ...) _attr_format_printf(2, 3);
+
+#ifdef __FORTIFY_ENABLED
+
+static _attr_always_inline _attr_unused void _dbuf_add_buf_fortified(struct dbuf *dbuf, const void *buf,
+								     size_t count)
+{
+	_fortify_check(_fortify_bos(buf) >= count);
+	dbuf_add_buf(dbuf, buf, count);
+}
+#define dbuf_add_buf(dbuf, buf, count) _dbuf_add_buf_fortified(dbuf, buf, count)
+
+#endif

@@ -64,8 +64,6 @@ enum btree_iter_start_at_mode {
 	BTREE_ITER_UPPER_BOUND_EXCLUSIVE,
 };
 
-// TODO prefix these
-
 enum _btree_deletion_mode {
 	__BTREE_DELETE_MIN,
 	__BTREE_DELETE_MAX,

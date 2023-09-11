@@ -49,8 +49,8 @@ add_project_arguments(cc.get_supported_arguments(c_args), language: 'c')
 add_project_link_arguments(cc.get_supported_link_arguments(c_link_args), language: 'c')
 
 cdata = configuration_data()
-disable_function_detection = get_option('disable-function-detection')
-cdata.set('__DISABLE_FUNCTION_DETECTION', disable_function_detection)
+disable_feature_detection = get_option('disable-feature-detection')
+cdata.set('__DISABLE_FEATURE_DETECTION', disable_feature_detection)
 
 cdata.set('ARRAY_INITIAL_SIZE', get_option('array-initial-size'))
 cdata.set('ARRAY_GROWTH_FACTOR_NUMERATOR', get_option('array-growth-factor-numerator'))
@@ -65,7 +65,7 @@ have_typeof = cc.compiles('int main() { typeof(int) x = 0; return x; }', name : 
 cdata.set('HAVE_TYPEOF', have_typeof)
 cdata.set('HAVE_MALLOC_USABLE_SIZE', cc.has_function('malloc_usable_size'))
 
-if not disable_function_detection
+if not disable_feature_detection
   cdata.set('HAVE_BUILTIN_ADD_OVERFLOW', cc.has_function('__builtin_add_overflow'))
   cdata.set('HAVE_BUILTIN_BSWAP', cc.has_function('__builtin_bswap16') and cc.has_function('__builtin_bswap32') and cc.has_function('__builtin_bswap64'))
   cdata.set('HAVE_BUILTIN_CHOOSE_EXPR', cc.has_function('__builtin_choose_expr'))
