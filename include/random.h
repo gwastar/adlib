@@ -39,7 +39,7 @@ float random_next_uniform_float(struct random_state *state);
 bool random_next_bool(struct random_state *state);
 uint32_t _random_next_u32_in_range(struct random_state *state, uint32_t limit);
 uint64_t _random_next_u64_in_range(struct random_state *state, uint64_t limit);
-uint64_t _random_next_u64_in_range2(struct random_state *state, uint64_t limit);
+// uint64_t _random_next_u64_in_range2(struct random_state *state, uint64_t limit);
 float random_next_float_in_range(struct random_state *state, float min, float max);
 double random_next_double_in_range(struct random_state *state, double min, double max);
 void random_jump(struct random_state *state);
@@ -63,35 +63,49 @@ static _attr_always_inline uint64_t random_next_u64_in_range(struct random_state
 							     uint64_t max)
 {
 	assert(min <= max);
-	uint64_t diff = max - min;
-	if ((diff & (diff + 1)) == 0) {
+	uint64_t n = max - min + 1;
+#if 0
+	// TODO why does this not work properly
+	// example: for min=9 max=9+1023 this produced a distribution with mean=718.502 stddev=270.958
+	// when it should be mean=520.5 stddev=295.603
+	if ((n & (n - 1)) == 0) {
 		uint64_t r = random_next_u64(state);
-		return min + (r & diff);
+		return min + (r & (n - 1));
 	}
-	return min + _random_next_u64_in_range(state, diff + 1);
+#else
+	if (n == 0) {
+		return random_next_u64(state);
+	}
+#endif
+	return min + _random_next_u64_in_range(state, n);
 }
 
+#if 0
 // for processors that don't have fast 64x64->128 multiplication
+
+// TODO why does this not work properly
+// example: for min=9 max=9+1023 this produced a distribution with mean=718.502 stddev=270.958
+// when it should be mean=520.5 stddev=295.603
+// (same problem as above?)
 static _attr_always_inline uint64_t random_next_u64_in_range2(struct random_state *state, uint64_t min,
 							      uint64_t max)
 {
 	assert(min <= max);
-	uint64_t diff = max - min;
-	if ((diff & (diff + 1)) == 0) {
-		uint64_t r = random_next_u64(state);
-		return min + (r & diff);
+	uint64_t n = max - min + 1;
+	if (n == 0) {
+		return random_next_u64(state);
 	}
-	return _random_next_u64_in_range2(state, diff + 1);
+	return min + _random_next_u64_in_range2(state, n);
 }
+#endif
 
 static _attr_always_inline uint32_t random_next_u32_in_range(struct random_state *state, uint32_t min,
 							     uint32_t max)
 {
 	assert(min <= max);
-	uint32_t diff = max - min;
-	if ((diff & (diff + 1)) == 0) {
-		uint32_t r = random_next_u32(state);
-		return min + (r & diff);
+	uint32_t n = max - min + 1;
+	if (n == 0) {
+		return random_next_u32(state);
 	}
-	return _random_next_u32_in_range(state, diff + 1);
+	return min + _random_next_u32_in_range(state, n);
 }

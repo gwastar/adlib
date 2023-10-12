@@ -164,6 +164,7 @@ uint64_t _random_next_u64_in_range(struct random_state *state, uint64_t limit)
 	return uint128_get_high_bits(m);
 }
 
+#if 0
 uint64_t _random_next_u64_in_range2(struct random_state *state, uint64_t limit)
 {
 	// if (unlikely(limit == 0)) {
@@ -176,6 +177,7 @@ uint64_t _random_next_u64_in_range2(struct random_state *state, uint64_t limit)
 	} while (x >= UINT64_MAX - remainder);
 	return x % limit;
 }
+#endif
 
 float random_next_float_in_range(struct random_state *state, float min, float max)
 {

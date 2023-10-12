@@ -216,7 +216,6 @@ struct test_work {
 		struct {
 			uint64_t num_values;
 			uint64_t seed;
-			uint64_t failed_value;
 		} random;
 	};
 };
@@ -232,7 +231,7 @@ static bool run_range_test(bool (*f)(uint64_t start, uint64_t end), uint64_t sta
 }
 
 static bool run_random_test(bool (*f)(uint64_t random), uint64_t num_values, uint64_t seed,
-			    uint64_t min_value, uint64_t max_value, uint64_t *failed_value)
+			    uint64_t min_value, uint64_t max_value)
 {
 	struct random_state rng;
 	random_state_init(&rng, seed);
@@ -240,7 +239,7 @@ static bool run_random_test(bool (*f)(uint64_t random), uint64_t num_values, uin
 	for (uint64_t i = 0; i < num_values; i++) {
 		uint64_t r = random_next_u64_in_range(&rng, min_value, max_value);
 		if (!f(r)) {
-			*failed_value = r;
+			fprintf(stderr, "test failed with random value: %" PRIu64 "\n", r);
 			return false;
 		}
 	}
@@ -260,8 +259,7 @@ static bool run_test_helper(struct test_work *work)
 		break;
 	case TEST_TYPE_RANDOM:
 		success = run_random_test(test->random_test.f, work->random.num_values, work->random.seed,
-					  test->random_test.min_value, test->random_test.max_value,
-					  &work->random.failed_value);
+					  test->random_test.min_value, test->random_test.max_value);
 		break;
 	}
 	return success;
@@ -644,7 +642,6 @@ static size_t summarize_results(void)
 				break;
 			}
 			case TEST_TYPE_RANDOM: {
-				printf("  " FAILED " on value: %" PRIu64 "\n", work->random.failed_value);
 				break;
 			}
 			}

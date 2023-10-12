@@ -76,20 +76,20 @@ static void benchmark_random64_range(void)
 	BENCHMARK(random_next_u64_in_range(&rng, 0, 100));
 }
 
-static void benchmark_random64_range2(void)
-{
-	BENCHMARK(random_next_u64_in_range2(&rng, 0, 100));
-}
+// static void benchmark_random64_range2(void)
+// {
+// 	BENCHMARK(random_next_u64_in_range2(&rng, 0, 100));
+// }
 
 static void benchmark_random64_range_pow2(void)
 {
 	BENCHMARK(random_next_u64_in_range(&rng, 0, 127));
 }
 
-static void benchmark_random64_range2_pow2(void)
-{
-	BENCHMARK(random_next_u64_in_range2(&rng, 0, 127));
-}
+// static void benchmark_random64_range2_pow2(void)
+// {
+// 	BENCHMARK(random_next_u64_in_range2(&rng, 0, 127));
+// }
 
 static void benchmark_random32_range(void)
 {
@@ -107,9 +107,9 @@ int main(void)
 
 	benchmark_random64();
 	benchmark_random64_range();
-	benchmark_random64_range2();
+	// benchmark_random64_range2();
 	benchmark_random64_range_pow2();
-	benchmark_random64_range2_pow2();
+	// benchmark_random64_range2_pow2();
 	benchmark_random32_range();
 	benchmark_random32_range_pow2();
 }
