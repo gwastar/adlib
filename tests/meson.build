@@ -31,6 +31,7 @@ tests_sources = [
   'json.c',
   'random.c',
   'rb_tree.c',
+  'uint128.c',
   'utils.c',
 ]
 
@@ -42,7 +43,7 @@ targets = [
   {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
   {'name': 'random_benchmark', 'sources': 'random_benchmark.c',},
-  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': [m_dep, thread_dep]},
+  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': [m_dep, thread_dep], 'c_args': ['-D__ADLIB_TESTS__']},
 ]
 
 foreach target : targets

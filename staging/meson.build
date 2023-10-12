@@ -11,7 +11,6 @@ executables = [
   'mem_arena',
   'mprintf',
   'sort',
-  'uint128',
 ]
 
 staging_c_args = [
