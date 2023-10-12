@@ -40,6 +40,8 @@ endif()
 set(TEST_SOURCES
   array.c
   avl_tree.c
+  btree_map.c
+  btree_set.c
   charconv.c
   dbuf.c
   dstring.c
@@ -49,12 +51,13 @@ set(TEST_SOURCES
   json.c
   random.c
   rb_tree.c
+  uint128.c
   utils.c
 )
 
 add_executable(tests testing.c ${TEST_SOURCES})
+target_compile_definitions(tests PRIVATE __ADLIB_TESTS__)
 target_link_libraries(tests ad-static)
-
 target_link_libraries(tests Threads::Threads m)
 
 add_test(NAME run_testsuite COMMAND $<TARGET_FILE:tests>)

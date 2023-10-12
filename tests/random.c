@@ -37,6 +37,46 @@ static bool check_stats(double *numbers, size_t n, double min, double max)
 	return true;
 }
 
+static bool test_range_functions(uint64_t min_value, uint64_t max_value, double *numbers,
+				 struct random_state *rng, size_t N)
+{
+	for (size_t i = 0; i < N; i++) {
+		uint64_t x = random_next_u64_in_range(rng, min_value, max_value);
+		CHECK(min_value <= x && x <= max_value);
+		numbers[i] = x;
+	}
+	CHECK(check_stats(numbers, N, min_value, max_value));
+
+	for (size_t i = 0; i < N; i++) {
+		uint64_t x = random_next_u64_in_range2(rng, min_value, max_value);
+		CHECK(min_value <= x && x <= max_value);
+		numbers[i] = x;
+	}
+	CHECK(check_stats(numbers, N, min_value, max_value));
+
+	for (size_t i = 0; i < N; i++) {
+		uint32_t x = random_next_u32_in_range(rng, min_value, max_value);
+		CHECK(min_value <= x && x <= max_value);
+		numbers[i] = x;
+	}
+	CHECK(check_stats(numbers, N, min_value, max_value));
+
+	for (size_t i = 0; i < N; i++) {
+		double x = random_next_double_in_range(rng, min_value, max_value);
+		CHECK(min_value <= x && x <= max_value);
+		numbers[i] = x;
+	}
+	CHECK(check_stats(numbers, N, min_value, max_value));
+
+	for (size_t i = 0; i < N; i++) {
+		float x = random_next_float_in_range(rng, min_value, max_value);
+		CHECK(min_value <= x && x <= max_value);
+		numbers[i] = x;
+	}
+	CHECK(check_stats(numbers, N, min_value, max_value));
+	return true;
+}
+
 RANDOM_TEST(random, 2, 0, UINT64_MAX)
 {
 	const size_t N = 32 * 1024 * 1024;
@@ -46,33 +86,14 @@ RANDOM_TEST(random, 2, 0, UINT64_MAX)
 
 	double *numbers = calloc(N, sizeof(numbers[0]));
 
-	for (size_t i = 0; i < N; i++) {
-		uint64_t x = random_next_u64_in_range(&rng, 0, 100);
-		assert(x <= 100);
-		numbers[i] = x;
-	}
-	CHECK(check_stats(numbers, N, 0, 100));
-
-	for (size_t i = 0; i < N; i++) {
-		uint32_t x = random_next_u32_in_range(&rng, 0, 100);
-		assert(x <= 100);
-		numbers[i] = x;
-	}
-	CHECK(check_stats(numbers, N, 0, 100));
-
-	for (size_t i = 0; i < N; i++) {
-		double x = random_next_double_in_range(&rng, 0, 100);
-		assert(x <= 100);
-		numbers[i] = x;
-	}
-	CHECK(check_stats(numbers, N, 0, 100));
-
-	for (size_t i = 0; i < N; i++) {
-		float x = random_next_float_in_range(&rng, 0, 100);
-		assert(x <= 100);
-		numbers[i] = x;
-	}
-	CHECK(check_stats(numbers, N, 0, 100));
+	test_range_functions(0, 100, numbers, &rng, N);
+	test_range_functions(0, 128, numbers, &rng, N);
+	test_range_functions(12345, 67890, numbers, &rng, N);
+	test_range_functions((uint64_t)UINT32_MAX + 1, UINT64_MAX - 1, numbers, &rng, N);
+	test_range_functions(0, 128, numbers, &rng, N);
+	test_range_functions(999, 999 + 1023, numbers, &rng, N);
+	test_range_functions(0, UINT32_MAX, numbers, &rng, N);
+	test_range_functions(0, UINT64_MAX, numbers, &rng, N);
 
 	for (size_t i = 0; i < N; i++) {
 		numbers[i] = random_next_u64(&rng);
@@ -86,11 +107,13 @@ RANDOM_TEST(random, 2, 0, UINT64_MAX)
 
 	for (size_t i = 0; i < N; i++) {
 		numbers[i] = random_next_uniform_double(&rng);
+		CHECK(0 <= numbers[i] && numbers[i] <= 1);
 	}
 	CHECK(check_stats(numbers, N, 0, 1));
 
 	for (size_t i = 0; i < N; i++) {
 		numbers[i] = random_next_uniform_float(&rng);
+		CHECK(0 <= numbers[i] && numbers[i] <= 1);
 	}
 	CHECK(check_stats(numbers, N, 0, 1));
 

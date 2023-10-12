@@ -50,7 +50,7 @@ static void measure_overhead(void)
 		random_state_init(&rng, 0xdeadbeef);			\
 		double times[5];					\
 		const unsigned int n = sizeof(times) / sizeof(times[0]); \
-		const unsigned int iterations = 1 << 28;		\
+		const unsigned int iterations = 1 << 26;		\
 		for (unsigned int k = 0; k < n; k++) {			\
 			struct timespec start_tp, end_tp;		\
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start_tp); \
@@ -61,6 +61,7 @@ static void measure_overhead(void)
 			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end_tp); \
 			times[k] = (ns_elapsed(start_tp, end_tp) - overhead) / iterations; \
 		}							\
+		/* TODO more stats would be interesting here */		\
 		double t = get_median(times, n);			\
 		printf("[%s]: %16.2f ns\n", __func__ + strlen("benchmark_"), t); \
 	} while (0)
@@ -75,9 +76,29 @@ static void benchmark_random64_range(void)
 	BENCHMARK(random_next_u64_in_range(&rng, 0, 100));
 }
 
+static void benchmark_random64_range2(void)
+{
+	BENCHMARK(random_next_u64_in_range2(&rng, 0, 100));
+}
+
+static void benchmark_random64_range_pow2(void)
+{
+	BENCHMARK(random_next_u64_in_range(&rng, 0, 127));
+}
+
+static void benchmark_random64_range2_pow2(void)
+{
+	BENCHMARK(random_next_u64_in_range2(&rng, 0, 127));
+}
+
 static void benchmark_random32_range(void)
 {
 	BENCHMARK(random_next_u32_in_range(&rng, 0, 100));
+}
+
+static void benchmark_random32_range_pow2(void)
+{
+	BENCHMARK(random_next_u32_in_range(&rng, 0, 127));
 }
 
 int main(void)
@@ -86,5 +107,9 @@ int main(void)
 
 	benchmark_random64();
 	benchmark_random64_range();
+	benchmark_random64_range2();
+	benchmark_random64_range_pow2();
+	benchmark_random64_range2_pow2();
 	benchmark_random32_range();
+	benchmark_random32_range_pow2();
 }

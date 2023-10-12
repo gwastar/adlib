@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include "random.h"
+#include "uint128.h"
 
 /* http://prng.di.unimi.it/splitmix64.c
 
@@ -121,15 +122,14 @@ bool random_next_bool(struct random_state *state)
 	return random_next_u32(state) & 1;
 }
 
-uint32_t random_next_u32_in_range(struct random_state *state, uint32_t min, uint32_t max)
+uint32_t _random_next_u32_in_range(struct random_state *state, uint32_t limit)
 {
 	// https://arxiv.org/pdf/1805.10941.pdf
-	assert(min <= max);
-	uint32_t s = max - min + 1;
+	uint32_t s = limit;
+	// if (unlikely(s == 0)) {
+	// 	return x;
+	// }
 	uint32_t x = random_next_u32(state);
-	if (unlikely(s == 0)) {
-		return x;
-	}
 	uint64_t m = (uint64_t)x * s;
 	uint32_t l = (uint32_t)m;
 	if (l < s) {
@@ -140,45 +140,41 @@ uint32_t random_next_u32_in_range(struct random_state *state, uint32_t min, uint
 			l = (uint32_t)m;
 		}
 	}
-	return min + (m >> 32);
+	return m >> 32;
 }
 
-uint64_t random_next_u64_in_range(struct random_state *state, uint64_t min, uint64_t max)
+uint64_t _random_next_u64_in_range(struct random_state *state, uint64_t limit)
 {
-	assert(min <= max);
-	// TODO this should produce the same result whether or not 128 bit integers are available
-	// TODO fast path for powers of 2 (maybe using __builtin_constant_p)?
-#ifdef __SIZEOF_INT128__
 	// https://arxiv.org/pdf/1805.10941.pdf
-	__extension__ typedef unsigned __int128 uint128_t;
-	uint64_t s = max - min + 1;
+	uint64_t s = limit;
+	// if (unlikely(s == 0)) {
+	// 	return x;
+	// }
 	uint64_t x = random_next_u64(state);
-	if (unlikely(s == 0)) {
-		return x;
-	}
-	uint128_t m = (uint128_t)x * s;
-	uint64_t l = (uint64_t)m;
+	uint128_t m = uint128_mul64(x, s);
+	uint64_t l = uint128_get_low_bits(m);
 	if (l < s) {
 		uint64_t t = (-s) % s;
 		while (l < t) {
 			x = random_next_u64(state);
-			m = (uint128_t)x * s;
-			l = (uint64_t)m;
+			m = uint128_mul64(x, s);
+			l = uint128_get_low_bits(m);
 		}
 	}
-	return min + (m >> 64);
-#else
-	uint64_t n = max - min + 1;
-	if (unlikely(n == 0)) {
-		return random_next_u64(state);
-	}
-	uint64_t remainder = UINT64_MAX % n;
+	return uint128_get_high_bits(m);
+}
+
+uint64_t _random_next_u64_in_range2(struct random_state *state, uint64_t limit)
+{
+	// if (unlikely(limit == 0)) {
+	// 	return random_next_u64(state);
+	// }
+	uint64_t remainder = UINT64_MAX % limit;
 	uint64_t x;
 	do {
 		x = random_next_u64(state);
 	} while (x >= UINT64_MAX - remainder);
-	return min + x % n;
-#endif
+	return x % limit;
 }
 
 float random_next_float_in_range(struct random_state *state, float min, float max)
