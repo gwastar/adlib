@@ -59,6 +59,7 @@ _Static_assert(0, "the array implementation requires typeof");
 
 _Static_assert(ARRAY_GROWTH_FACTOR_NUMERATOR > ARRAY_GROWTH_FACTOR_DENOMINATOR,
 	       "array growth factor must be greater than one");
+_Static_assert(ARRAY_GROWTH_FACTOR_DENOMINATOR > 0, "");
 
 // this macro provides a more explicit way of declaring a dynamic array with T as the element type
 // (array_t(int) arr vs int *arr; the second could be a simple pointer or static array or dynamic array)
