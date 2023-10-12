@@ -108,13 +108,13 @@ configure_file(include/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 set(SOURCES
   array.c
   avl_tree.c
+  btree.c
   charconv.c
   dbuf.c
   dstring.c
   fortify.c
   hash.c
   hashtable.c
-  macros.c
   random.c
   rb_tree.c
   utils.c
