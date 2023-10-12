@@ -17,7 +17,7 @@
  * SOFTWARE.
  */
 
-// Inspired by https://github.com/nothings/stb/blob/master/stb.h
+// Inspired by https://github.com/nothings/stb/
 
 // Declare an (empty) array like so: array_t(int) my_array = NULL;
 // (or so: int *my_array = NULL;)
