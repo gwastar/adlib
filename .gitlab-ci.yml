@@ -1,0 +1,23 @@
+stages:
+  - build
+  - test
+
+variables:
+  IMAGE: "registry.gitlab.gnome.org/gnome/gtk/fedora:v49"
+
+build-job:
+  stage: build
+  image: $IMAGE
+  artifacts:
+    when: always
+    paths:
+      - "${CI_PROJECT_DIR}/_build/tests"
+  script:
+    - meson setup _build
+    - meson compile -C _build
+
+test-job:
+  stage: test
+  image: $IMAGE
+  script:
+    - ./_build/tests/tests
