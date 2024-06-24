@@ -2,22 +2,78 @@ stages:
   - build
   - test
 
-variables:
-  IMAGE: "registry.gitlab.gnome.org/gnome/gtk/fedora:v49"
+default:
+  image: "registry.gitlab.com/gwastar/adlib"
 
-build-job:
+.build-meson:
   stage: build
-  image: $IMAGE
   artifacts:
-    when: always
     paths:
-      - "${CI_PROJECT_DIR}/_build/tests"
+      - "${CI_PROJECT_DIR}/_${CI_JOB_NAME_SLUG}/tests"
   script:
-    - meson setup _build
-    - meson compile -C _build
+    - meson setup ${MESON_FLAGS} _${CI_JOB_NAME_SLUG}
+    - meson compile -C _${CI_JOB_NAME_SLUG}
 
-test-job:
+.build-meson-clang:
+  extends: .build-meson
+  before_script:
+    - export CC=clang
+    - export LD=lld
+
+build-gcc-release:
+  extends: .build-meson
+  variables:
+    MESON_FLAGS: "-Dbuildtype=release"
+
+build-gcc-debug:
+  extends: .build-meson
+  variables:
+    MESON_FLAGS: "-Dbuildtype=debug"
+  when: manual
+
+build-clang-release:
+  extends: .build-meson-clang
+  variables:
+    MESON_FLAGS: "-Dbuildtype=release"
+  when: manual
+
+build-asan-ubsan:
+  extends: .build-meson-clang
+  variables:
+    MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=address,undefined -Db_lundef=false"
+  when: manual
+
+build-msan:
+  extends: .build-meson-clang
+  variables:
+    MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
+  when: manual
+
+.test:
   stage: test
-  image: $IMAGE
   script:
-    - ./_build/tests/tests
+    - "_${CI_JOB_NAME_SLUG/test/build}/tests/tests"
+
+test-gcc-release:
+  extends: .test
+  needs: [build-gcc-release]
+
+test-gcc-debug:
+  extends: .test
+  needs: [build-gcc-debug]
+  when: manual
+
+test-clang-release:
+  extends: .test
+  needs: [build-clang-release]
+  when: manual
+
+test-asan-ubsan:
+  extends: .test
+  needs: [build-asan-ubsan]
+  when: manual
+
+test-msan:
+  extends: .test
+  needs: [build-msan]
+  when: manual
