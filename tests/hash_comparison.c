@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <gnutls/gnutls.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
