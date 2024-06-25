@@ -252,7 +252,11 @@ void avl_remove_node(struct avl_tree *root, struct avl_node *node)
 
 	parent = avl_parent(node);
 	if (!parent) {
-		root->root = NULL;
+		// we are removing the root with either one or no child
+		if (child) {
+			_avl_set_parent(child, NULL);
+		}
+		root->root = child;
 		return;
 	}
 	dir = _avl_dir_of_child(node, parent);

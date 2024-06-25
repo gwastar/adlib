@@ -124,9 +124,10 @@ RANDOM_TEST(insert_find_remove, 2, 0, UINT64_MAX)
 	struct avl_tree tree = AVL_EMPTY_TREE;
 	struct random_state rng;
 	random_state_init(&rng, random);
+	unsigned int num_inserted = 0;
 	for (unsigned int i = 0; i < N; i++) {
 		int key = random_next_u32(&rng);
-		avl_insert_key(&tree, key);
+		num_inserted += avl_insert_key(&tree, key);
 	}
 	CHECK(check_tree(&tree));
 	random_state_init(&rng, random);
@@ -135,18 +136,22 @@ RANDOM_TEST(insert_find_remove, 2, 0, UINT64_MAX)
 		struct avl_node *node = avl_find(&tree, key);
 		CHECK(node && to_thing(node)->key == key);
 	}
+
 	random_state_init(&rng, random);
+	unsigned int num_removed = 0;
 	for (unsigned int i = 0; i < N; i++) {
 		int key = random_next_u32(&rng);
 		struct avl_node *node = avl_remove_key(&tree, key);
 		if (node) {
 			CHECK(to_thing(node)->key == key);
 			free(to_thing(node));
+			num_removed++;
 		}
 		if (i % 1024 == 0) {
 			CHECK(check_tree(&tree));
 		}
 	}
+	CHECK(num_inserted == num_removed);
 	CHECK(tree.root == NULL);
 	return true;
 }
