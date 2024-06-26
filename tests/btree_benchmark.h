@@ -21,7 +21,7 @@ DEFINE_BTREE_SET(btree, int64_t, NULL, 127, (a < b) ? -1 : (a > b))
 #ifdef STRING_MAP
 static char **keys;
 static size_t num_keys;
-#define __KEY_SIZE 15
+#define __KEY_SIZE 20
 #define KEY_SIZE (__KEY_SIZE + 1)
 #define KEY_FORMAT __KEY_FORMAT(__KEY_SIZE)
 #define __KEY_FORMAT(S) ___KEY_FORMAT(S)

@@ -63,7 +63,7 @@ static bool btree_check(const struct btree *btree, const struct btree_info *info
 }
 
 #ifdef STRING_MAP
-#define __KEY_SIZE 15
+#define __KEY_SIZE 20
 #define KEY_SIZE (__KEY_SIZE + 1)
 #define KEY_FORMAT __KEY_FORMAT(__KEY_SIZE)
 #define __KEY_FORMAT(S) ___KEY_FORMAT(S)
