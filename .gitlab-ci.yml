@@ -18,6 +18,12 @@ workflow:
     # ...but otherwise run branch pipelines
     - if: $CI_COMMIT_BRANCH
 
+.expensive-job:
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      allow_failure: false
+    - when: manual
+      allow_failure: true
 
 .build-meson:
   stage: build
@@ -32,11 +38,10 @@ workflow:
     - meson setup ${MESON_FLAGS} _${CI_JOB_NAME_SLUG}
     - meson compile -C _${CI_JOB_NAME_SLUG}
 
-.build-meson-clang:
-  extends: .build-meson
-  before_script:
-    - export CC=clang
-    - export LD=lld
+.use-clang:
+  variables:
+    CC: "clang"
+    LD: "lld"
 
 build-gcc-release:
   extends: .build-meson
@@ -44,25 +49,33 @@ build-gcc-release:
     MESON_FLAGS: "-Dbuildtype=release"
 
 build-gcc-debug:
-  extends: .build-meson
+  extends:
+    - .build-meson
+    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=debug"
-  when: manual
 
 build-clang-release:
-  extends: .build-meson-clang
+  extends:
+    - .build-meson
+    - .use-clang
+    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=release"
-  when: manual
 
 build-asan-ubsan:
-  extends: .build-meson-clang
+  extends:
+    - .build-meson
+    - .use-clang
+    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=address,undefined -Db_lundef=false"
-  when: manual
 
 build-msan:
-  extends: .build-meson-clang
+  extends:
+    - .build-meson
+    - .use-clang
+    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
   when: manual
@@ -77,21 +90,26 @@ test-gcc-release:
   needs: [build-gcc-release]
 
 test-gcc-debug:
-  extends: .test
+  extends:
+    - .test
+    - .expensive-job
   needs: [build-gcc-debug]
-  when: manual
 
 test-clang-release:
-  extends: .test
+  extends:
+    - .test
+    - .expensive-job
   needs: [build-clang-release]
-  when: manual
 
 test-asan-ubsan:
-  extends: .test
+  extends:
+    - .test
+    - .expensive-job
   needs: [build-asan-ubsan]
-  when: manual
 
 test-msan:
-  extends: .test
+  extends:
+    - .test
+    - .expensive-job
   needs: [build-msan]
   when: manual
