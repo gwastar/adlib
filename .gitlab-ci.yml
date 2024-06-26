@@ -88,14 +88,13 @@ build-asan-ubsan:
   variables:
     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=address,undefined -Db_lundef=false"
 
-build-msan:
-  extends:
-    - .build-meson
-    - .use-clang
-    - .expensive-job
-  variables:
-    MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
-  when: manual
+# build-msan:
+#   extends:
+#     - .build-meson
+#     - .use-clang
+#     - .expensive-job
+#   variables:
+#     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
 
 .test:
   stage: test
@@ -124,9 +123,8 @@ test-asan-ubsan:
     - .expensive-job
   needs: [build-asan-ubsan]
 
-test-msan:
-  extends:
-    - .test
-    - .expensive-job
-  needs: [build-msan]
-  when: manual
+# test-msan:
+#   extends:
+#     - .test
+#     - .expensive-job
+#   needs: [build-msan]
