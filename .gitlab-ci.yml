@@ -60,7 +60,7 @@ workflow:
 .use-clang:
   variables:
     CC: "ccache clang"
-    LD: "lld"
+    CC_LD: "lld"
 
 build-gcc-release:
   extends: .build-meson
