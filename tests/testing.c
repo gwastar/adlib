@@ -19,7 +19,6 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
-#include <bits/time.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <signal.h>
