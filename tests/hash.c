@@ -771,34 +771,44 @@ static void test_avalanche(void)
 #endif
 
 // TODO copy pasted from random
-static bool check_statistics(double *numbers, size_t n, double min, double max)
+static bool check_stats(double *numbers, size_t n, double min, double max, bool discrete)
 {
 	double mean = 0;
 	for (size_t i = 0; i < n; i++) {
-		mean += numbers[i];
+		mean = (i * mean + numbers[i]) / (i + 1);
 	}
-	mean /= (double)n;
-
 	double stddev = 0;
 	for (size_t i = 0; i < n; i++) {
 		double x = numbers[i] - mean;
-		stddev += x * x;
+		stddev = (i * stddev + x * x) / (i + 1);
 	}
-	stddev = sqrt(stddev / (double)n);
+	stddev = sqrt(stddev);
 
-	double target_mean = 0.5 * (max + min);
-	double target_stddev = sqrt((max - min) * (max - min) / 12.0);
+	double target_mean = 0.5 * max + 0.5 * min;
+	double target_stddev;
+	if (discrete) {
+		double d = max - min + 1;
+		target_stddev = sqrt((d * d - 1) / 12.0);
+	} else {
+		double d = max - min;
+		target_stddev = sqrt(d * d / 12.0);
+	}
 
-	double dev_mean = fabs(target_mean - mean) / target_mean;
-	double dev_stddev = fabs(target_stddev - stddev) / target_stddev;
+	double dev_mean = fabs(1.0 - mean / target_mean);
+	double dev_stddev = fabs(1.0 - stddev / target_stddev);
 
-	// printf("  target: mean = %g, stddev = %g\n", target_mean, target_stddev);
-	// printf("  actual: mean = %g, stddev = %g\n", mean, stddev);
-	// printf("  deviation: mean = %g%%, stddev = %g%%\n", dev_mean, dev_stddev);
+	printf("target: mean = %g, stddev = %g\n", target_mean, target_stddev);
+	printf("actual: mean = %g, stddev = %g\n", mean, stddev);
+	printf("deviation: mean = %g%%, stddev = %g%%\n", dev_mean, dev_stddev);
 
 	CHECK(dev_mean < 0.001);
-	CHECK(dev_stddev < 0.02);
+	CHECK(dev_stddev < 0.001);
 	return true;
+}
+
+static bool check_statistics(double *numbers, size_t n, double min, double max)
+{
+	return check_stats(numbers, n, min, max, true);
 }
 
 SIMPLE_TEST(integer_hashes)
@@ -828,7 +838,7 @@ SIMPLE_TEST(integer_hashes)
 	for (uint64_t i = 0; i < N; i++) {
 		numbers[i] = fibonacci_hash64(i, 48).u64;
 	}
-	CHECK(check_statistics(numbers, N, 0, 0x1.0p48f));
+	CHECK(check_statistics(numbers, N, 0, 0x1.0p48));
 
 	// puts("hash_combine_int32(i, i + 1)");
 	for (uint32_t i = 0; i < N; i++) {

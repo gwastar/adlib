@@ -40,7 +40,7 @@ static bool check_stats(double *numbers, size_t n, double min, double max, bool 
 	// printf("deviation: mean = %g%%, stddev = %g%%\n", dev_mean, dev_stddev);
 
 	CHECK(dev_mean < 0.001);
-	CHECK(dev_stddev < 0.01);
+	CHECK(dev_stddev < 0.001);
 	return true;
 }
 
