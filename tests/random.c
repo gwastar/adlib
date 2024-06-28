@@ -84,12 +84,12 @@ static bool test_range_functions(uint64_t min_value, uint64_t max_value, double 
 	return true;
 }
 
-RANDOM_TEST(random, 2, 0, UINT64_MAX)
+RANDOM_TEST(random, 2)
 {
 	const size_t N = 32 * 1024 * 1024;
 
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 
 	double *numbers = calloc(N, sizeof(numbers[0]));
 

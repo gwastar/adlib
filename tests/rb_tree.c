@@ -136,26 +136,26 @@ static bool check_tree(struct rb_tree *tree)
 	return check_tree_recursive(tree->root, 0, &black_depth);
 }
 
-RANDOM_TEST(insert_find_remove, 2, 0, UINT64_MAX)
+RANDOM_TEST(insert_find_remove, 2)
 {
 	const unsigned int N = 200000;
 	struct rb_tree tree = RB_EMPTY_TREE;
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	unsigned int num_inserted = 0;
 	for (unsigned int i = 0; i < N; i++) {
 		int key = random_next_u32(&rng);
 		num_inserted += rb_insert_key(&tree, key);
 	}
 	CHECK(check_tree(&tree));
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	for (unsigned int i = 0; i < N; i++) {
 		int key = random_next_u32(&rng);
 		struct rb_node *node = rb_find(&tree, key);
 		CHECK(node && to_thing(node)->key == key);
 	}
 
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	unsigned int num_removed = 0;
 	for (unsigned int i = 0; i < N; i++) {
 		int key = random_next_u32(&rng);
@@ -174,11 +174,11 @@ RANDOM_TEST(insert_find_remove, 2, 0, UINT64_MAX)
 	return true;
 }
 
-RANDOM_TEST(foreach, 2, 0, UINT64_MAX)
+RANDOM_TEST(foreach, 2)
 {
 	struct rb_tree tree = RB_EMPTY_TREE;
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	for (unsigned int i = 0; i < 200000; i++) {
 		int key = random_next_u32(&rng);
 		rb_insert_key(&tree, key);
@@ -196,11 +196,11 @@ RANDOM_TEST(foreach, 2, 0, UINT64_MAX)
 	return true;
 }
 
-RANDOM_TEST(random_insert_find_remove, 2, 0, UINT64_MAX)
+RANDOM_TEST(random_insert_find_remove, 2)
 {
 	struct rb_tree tree = RB_EMPTY_TREE;
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	for (unsigned int i = 0; i < 200000; i++) {
 		const int max_key = 1024;
 		{

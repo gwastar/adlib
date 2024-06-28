@@ -588,9 +588,9 @@ SIMPLE_TEST(to_chars)
 	return true;
 }
 
-RANDOM_TEST(to_chars_random, 1u << 22, 0, UINT64_MAX)
+RANDOM_TEST(to_chars_random, 1u << 22)
 {
-	return check_from_number(random);
+	return check_from_number(random_seed);
 }
 
 static bool check_base_counting(unsigned int base)

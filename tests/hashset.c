@@ -26,14 +26,14 @@ static int cmp_int(const void *a, const void *b)
 
 DEFINE_HASHTABLE(itable, int, int, 8, (*key == *entry))
 
-	RANDOM_TEST(hashset, 2, 0, UINT64_MAX)
+RANDOM_TEST(hashset, 2)
 {
 	struct itable itable;
 	itable_init(&itable, 16);
 	int *arr = NULL;
 
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 
 	for (unsigned long counter = 0; counter < 100000; counter++) {
 		int r = random_next_u32(&rng) % 128;

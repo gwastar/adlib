@@ -37,14 +37,15 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	_SIMPLE_TEST(name, true)
 #define RANGE_TEST(name, start_, end_)		\
 	_RANGE_TEST(name, start_, end_, true)
-#define RANDOM_TEST(name, num_values, min_value, max_value)		\
-	_RANDOM_TEST(name, num_values, min_value, max_value, true)
+#define RANDOM_TEST(name, num_values)		\
+	_RANDOM_TEST(name, num_values, true)
 
 #define NEGATIVE_SIMPLE_TEST(name)		\
 	_SIMPLE_TEST(name, false)
+// TODO remove these
 #define NEGATIVE_RANGE_TEST(name, start_, end_)	\
 	_RANGE_TEST(name, start_, end_, false)
-#define NEGATIVE_RANDOM_TEST(name, num_values, min_value, max_value)	\
+#define NEGATIVE_RANDOM_TEST(name, num_values)				\
 	_RANDOM_TEST(name, num_values, min_value, max_value, false)
 
 #define _SIMPLE_TEST(name, should_succeed)				\
@@ -63,20 +64,20 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	}								\
 	static bool test_##name(uint64_t start, uint64_t end)
 
-#define _RANDOM_TEST(name, num_values, min_value, max_value, should_succeed) \
-	static bool test_##name(uint64_t random);			\
+#define _RANDOM_TEST(name, num_values, should_succeed)			\
+	static bool test_##name(uint64_t);				\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_random_test(__FILE__, #name, num_values, min_value, max_value, test_##name, should_succeed); \
+		register_random_test(__FILE__, #name, num_values, test_##name, should_succeed); \
 	}								\
-	static bool test_##name(uint64_t random)
+	static bool test_##name(uint64_t random_seed)
 
 
 void register_simple_test(const char *file, const char *name,
 			  bool (*f)(void), bool should_succeed);
 void register_range_test(const char *file, const char *name, uint64_t start, uint64_t end,
 			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed);
-void register_random_test(const char *file, const char *name, uint64_t num_values, uint64_t min_value,
-			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed);
+void register_random_test(const char *file, const char *name, uint64_t num_values,
+			  bool (*f)(uint64_t), bool should_succeed);
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);

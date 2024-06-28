@@ -117,12 +117,10 @@ SIMPLE_TEST(uint128_edge_cases)
 	return true;
 }
 
-RANDOM_TEST(uint128_random, 2, 0, UINT64_MAX)
+RANDOM_TEST(uint128_random, 2)
 {
-	// TODO random tests should be able to get arbitrary amounts of random bytes,
-	//      maybe pass the random_state instead of a single uint64_t?
 	struct random_state rng;
-	random_state_init(&rng, random);
+	random_state_init(&rng, random_seed);
 	static const size_t N = 1 << 26;
 	for (size_t i = 0; i < N; i++) {
 		uint128_t a = uint128_from_high_low_bits(random_next_u64(&rng), random_next_u64(&rng));

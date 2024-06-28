@@ -19,9 +19,9 @@ RANGE_TEST(ilog2, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(ilog2_rand_64, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(ilog2_rand_64, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	double lg2 = log2(x != 0 ? (double)x : 1.0);
 	if (ilog2((int64_t)x) != (unsigned int)lg2) {
 		return false;
@@ -41,9 +41,9 @@ RANGE_TEST(ilog10, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(ilog10_rand_64, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(ilog10_rand_64, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	double lg10 = log10(x != 0 ? (double)x : 1.0);
 	if (ilog10((int64_t)x) != (unsigned int)lg10) {
 		return false;
@@ -103,9 +103,9 @@ RANGE_TEST(clz64, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(clz64_rand, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(clz64_rand, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	unsigned int reference = hackers_delight_clz64(x);
 	if (clz((uint64_t)x) != reference ||
 	    clz((int64_t)x) != reference) {
@@ -162,9 +162,9 @@ RANGE_TEST(ctz64, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(ctz64_rand, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(ctz64_rand, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	unsigned int reference = hackers_delight_ctz64(x);
 	if (ctz((uint64_t)x) != reference ||
 	    ctz((int64_t)x) != reference) {
@@ -209,9 +209,9 @@ RANGE_TEST(ffs64, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(ffs64_rand, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(ffs64_rand, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	unsigned int reference = reference_ffs64(x);
 	if (ffs((uint64_t)x) != reference ||
 	    ffs((int64_t)x) != reference) {
@@ -259,9 +259,9 @@ RANGE_TEST(popcount64, 0, UINT32_MAX)
 	return true;
 }
 
-RANDOM_TEST(popcount64_rand, 1u << 30, (uint64_t)UINT32_MAX + 1, UINT64_MAX)
+RANDOM_TEST(popcount64_rand, 1u << 30)
 {
-	uint64_t x = random;
+	uint64_t x = random_seed;
 	unsigned int reference = hackers_delight_popcount64(x);
 	if (popcount((uint64_t)x) != reference ||
 	    popcount((int64_t)x) != reference) {
@@ -307,8 +307,10 @@ SIMPLE_TEST(minmax)
 	return true;
 }
 
-RANDOM_TEST(bswap, 1u << 16, 0, UINT64_MAX)
+RANDOM_TEST(bswap, 1u << 16)
 {
+	uint64_t random = random_seed;
+
 #define CHECK_BSWAP_SIGNEDNESS(type)					\
 	CHECK(bswap((unsigned type)random) == (unsigned type)bswap((signed type)random));
 
@@ -350,8 +352,10 @@ RANDOM_TEST(bswap, 1u << 16, 0, UINT64_MAX)
 	return true;
 }
 
-RANDOM_TEST(endianness, 1u << 16, 0, UINT64_MAX)
+RANDOM_TEST(endianness, 1u << 16)
 {
+	uint64_t random = random_seed;
+
 #define CHECK_CPU_TO_LE_TYPE(bits) CHECK(_Generic(cpu_to_le((uint##bits##_t)0), le##bits##_t: 1))
 	CHECK_CPU_TO_LE_TYPE(16);
 	CHECK_CPU_TO_LE_TYPE(32);
@@ -1227,13 +1231,13 @@ SIMPLE_TEST(overflow32)
 	return true;
 }
 
-RANDOM_TEST(overflow32_random, 1 << 18, 0, UINT64_MAX)
+RANDOM_TEST(overflow32_random, 1 << 18)
 {
 	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
-		if (!check_overflow32(test_cases[i], random)) {
+		if (!check_overflow32(test_cases[i], random_seed)) {
 			return false;
 		}
-		if (!check_overflow32(random, test_cases[i])) {
+		if (!check_overflow32(random_seed, test_cases[i])) {
 			return false;
 		}
 	}
@@ -1294,13 +1298,13 @@ SIMPLE_TEST(overflow64)
 	return true;
 }
 
-RANDOM_TEST(overflow64_random, 1 << 18, 0, UINT64_MAX)
+RANDOM_TEST(overflow64_random, 1 << 18)
 {
 	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
-		if (!check_overflow64(test_cases[i], random)) {
+		if (!check_overflow64(test_cases[i], random_seed)) {
 			return false;
 		}
-		if (!check_overflow64(random, test_cases[i])) {
+		if (!check_overflow64(random_seed, test_cases[i])) {
 			return false;
 		}
 	}

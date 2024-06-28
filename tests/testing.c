@@ -39,11 +39,9 @@
 #include <unistd.h>
 #include "compiler.h"
 #include "macros.h"
-#include "random.h"
 #include "testing.h"
 
-static uint64_t initial_seed = 0;
-static uint64_t global_seed = 0;
+static uint64_t global_seed;
 
 struct simple_test {
 	bool (*f)(void);
@@ -57,9 +55,7 @@ struct range_test {
 
 struct random_test {
 	uint64_t num_values;
-	uint64_t min_value;
-	uint64_t max_value;
-	bool (*f)(uint64_t random);
+	bool (*f)(uint64_t);
 };
 
 struct test {
@@ -136,8 +132,8 @@ void register_range_test(const char *file, const char *name, uint64_t start, uin
 		});
 }
 
-void register_random_test(const char *file, const char *name, uint64_t num_values, uint64_t min_value,
-			  uint64_t max_value, bool (*f)(uint64_t random), bool should_succeed)
+void register_random_test(const char *file, const char *name, uint64_t num_values,
+			  bool (*f)(uint64_t), bool should_succeed)
 {
 	add_test((struct test){
 			.type = TEST_TYPE_RANDOM,
@@ -146,8 +142,6 @@ void register_random_test(const char *file, const char *name, uint64_t num_value
 			.should_succeed = should_succeed,
 			.random_test = (struct random_test){
 				.num_values = num_values,
-				.min_value = min_value,
-				.max_value = max_value,
 				.f = f,
 			}
 		});
@@ -229,6 +223,19 @@ static struct worker *to_worker(struct list_head *ptr)
 	return ptr ? container_of(ptr, struct worker, link) : NULL;
 }
 
+static uint64_t splitmix64(uint64_t *state)
+{
+	uint64_t z = (*state += 0x9e3779b97f4a7c15);
+	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+	return z ^ (z >> 31);
+}
+
+static void splitmix64_skip(uint64_t *state, uint64_t skip)
+{
+	*state += skip * 0x9e3779b97f4a7c15;
+}
+
 static bool run_simple_test(bool (*f)(void))
 {
 	return f();
@@ -239,14 +246,10 @@ static bool run_range_test(bool (*f)(uint64_t start, uint64_t end), uint64_t sta
 	return f(start, end);
 }
 
-static bool run_random_test(bool (*f)(uint64_t random), uint64_t num_values, uint64_t seed,
-			    uint64_t min_value, uint64_t max_value)
+static bool run_random_test(bool (*f)(uint64_t random), uint64_t num_values, uint64_t seed)
 {
-	struct random_state rng;
-	random_state_init(&rng, seed);
-
 	for (uint64_t i = 0; i < num_values; i++) {
-		uint64_t r = random_next_u64_in_range(&rng, min_value, max_value);
+		uint64_t r = splitmix64(&seed);
 		if (!f(r)) {
 			fprintf(stderr, "test failed with random value: %" PRIu64 "\n", r);
 			return false;
@@ -267,8 +270,7 @@ static bool run_test(struct worker *worker)
 		success = run_range_test(test->range_test.f, worker->range.start, worker->range.end);
 		break;
 	case TEST_TYPE_RANDOM:
-		success = run_random_test(test->random_test.f, worker->random.num_values, worker->random.seed,
-					  test->random_test.min_value, test->random_test.max_value);
+		success = run_random_test(test->random_test.f, worker->random.num_values, worker->random.seed);
 		break;
 	}
 	return success;
@@ -353,14 +355,6 @@ static void queue_range_test_work(struct list_head *queue, struct test *test, un
 	assert(cur == end);
 }
 
-static uint64_t splitmix64(uint64_t *x)
-{
-	uint64_t z = (*x += 0x9e3779b97f4a7c15);
-	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
-	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
-	return z ^ (z >> 31);
-}
-
 static void queue_random_test_work(struct list_head *queue, struct test *test, unsigned int nthreads)
 {
 	uint64_t n = test->random_test.num_values;
@@ -370,15 +364,18 @@ static void queue_random_test_work(struct list_head *queue, struct test *test, u
 	uint64_t per_thread = n / nthreads;
 	uint64_t rem = n % nthreads;
 	uint64_t total = 0;
+	uint64_t seed = global_seed; // we just use the same seed for every random test
 	struct worker *workers = test_create_workers(test, nthreads);
 	for (unsigned int t = 0; t < nthreads; t++) {
-		workers[t].random.num_values = per_thread;
+		uint64_t num_values = per_thread;
 		if (rem) {
-			workers[t].random.num_values++;
+			num_values++;
 			rem--;
 		}
-		total += workers[t].random.num_values;
-		workers[t].random.seed = splitmix64(&global_seed);
+		workers[t].random.num_values = num_values;
+		total += num_values;
+		workers[t].random.seed = seed;
+		splitmix64_skip(&seed, num_values);
 		list_push_tail(queue, &workers[t].link);
 	}
 	assert(total == n);
@@ -605,7 +602,7 @@ static bool run(struct list_head *queue, size_t nthreads)
 	printf("Summary: %s%zu/%zu failed" RESET " (",
 	       num_failed == 0 ? GREEN : RED, num_failed, num_tests);
 	print_time(ns_elapsed(start, end), stdout);
-	printf(") (random seed: %" PRIu64 ")\n", initial_seed);
+	printf(") (random seed: %" PRIu64 ")\n", global_seed);
 
 	return num_failed == 0;
 }
@@ -621,31 +618,21 @@ NEGATIVE_SIMPLE_TEST(selftest2)
 	return false;
 }
 
-RANDOM_TEST(selftest3, 1000, 13, 42)
-{
-	CHECK(13 <= random && random <= 42);
-	return true;
-}
-
-RANGE_TEST(selftest4, 13, 17)
+RANGE_TEST(selftest3, 13, 17)
 {
 	CHECK(start <= end);
 	CHECK(13 <= start && end <= 17);
+	// fprintf(stderr, "%lu-%lu\n", (unsigned long)start, (unsigned long)end);
 	return true;
 }
 
-// RANGE_TEST(selftest5, 1, 999)
-// {
-// 	for (uint64_t x = start; x <= end; x++) {
-// 		if (x == 12 || x == 419 || x == 665) {
-// 			puts("DANGER!!!");
-// 		}
-// 		CHECK(x != 13);
-// 		CHECK(x != 420);
-// 		CHECK(x != 666);
-// 	}
-// 	return true;
-// }
+RANDOM_TEST(selftest4, 9)
+{
+	(void)random_seed;
+	return true;
+	// fprintf(stderr, "%lu\n", (unsigned long)random_seed);
+	// return false;
+}
 
 static int compare_tests(const void *_a, const void *_b)
 {
@@ -730,7 +717,7 @@ int main(int argc, char **argv)
 		case 's':
 			errno = 0;
 			char *endptr;
-			initial_seed = strtoull(optarg, &endptr, 0);
+			global_seed = strtoull(optarg, &endptr, 0);
 			if (endptr == optarg && errno == 0) {
 				errno = EINVAL;
 			}
@@ -753,12 +740,11 @@ int main(int argc, char **argv)
 	}
 
 	if (!seed_initialized) {
-		if (getrandom(&initial_seed, sizeof(initial_seed), 0) == -1) {
+		if (getrandom(&global_seed, sizeof(global_seed), 0) == -1) {
 			perror("getrandom failed");
 			exit(EXIT_FAILURE);
 		}
 	}
-	global_seed = initial_seed;
 
 	struct list_head queue = list_head_init(&queue);
 
