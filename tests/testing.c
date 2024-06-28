@@ -482,8 +482,7 @@ static bool print_test_results(struct test *test)
 		runtime += work->runtime_ns;
 		test_passed &= work->passed;
 	}
-	fputs(CLEAR_LINE, stderr);
-	printf("[%s/%s] %s (", test->file, test->name, test_passed ? PASSED : FAILED);
+	printf("\r[%s/%s] %s (", test->file, test->name, test_passed ? PASSED : FAILED);
 	print_time(runtime, stdout);
 	puts(")");
 	if (test_passed) {
