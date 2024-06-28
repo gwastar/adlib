@@ -42,11 +42,6 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
 #define NEGATIVE_SIMPLE_TEST(name)		\
 	_SIMPLE_TEST(name, false)
-// TODO remove these
-#define NEGATIVE_RANGE_TEST(name, start_, end_)	\
-	_RANGE_TEST(name, start_, end_, false)
-#define NEGATIVE_RANDOM_TEST(name, num_values)				\
-	_RANDOM_TEST(name, num_values, min_value, max_value, false)
 
 #define _SIMPLE_TEST(name, should_succeed)				\
 	static bool test_##name(void);					\
