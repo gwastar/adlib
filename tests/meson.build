@@ -46,24 +46,17 @@ targets = [
 ]
 
 foreach target : targets
-  if 'deps' in target
-    deps = target['deps']
-  else
-    deps = []
-  endif
-  if 'c_args' in target
-    c_args = target['c_args']
-  else
-    c_args = []
-  endif
+  deps = target.get('deps', [])
+  c_args = target.get('c_args', [])
   name = target['name']
   e = executable(name, target['sources'], dependencies : deps, c_args : c_args, link_with : adlib, include_directories : adlib_inc)
   set_variable(name, e)
 endforeach
 
-test('testsuite', tests, timeout : 600)
-benchmark('array_benchmark', array_benchmark)
-benchmark('hash_benchmark', hash_benchmark)
-benchmark('hash_comparison', hash_comparison)
-benchmark('hashtable_benchmark', hashtable_benchmark)
-benchmark('random_benchmark', random_benchmark)
+if get_option('single-tests')
+  foreach src : tests_sources
+    name = src.substring(0, -2)
+    e = executable(name, [src, 'single_testing.c'], dependencies : m_dep, c_args : ['-D__ADLIB_TESTS__'], link_with : adlib, include_directories : adlib_inc)
+    test(name, e, timeout : 600)
+  endforeach
+endif
