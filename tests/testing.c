@@ -116,6 +116,7 @@ void register_simple_test(const char *file, const char *name,
 void register_range_test(const char *file, const char *name, uint64_t start, uint64_t end,
 			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed)
 {
+	assert(start <= end);
 	add_test((struct test){
 			.type = TEST_TYPE_RANGE,
 			.file = file,
@@ -487,18 +488,6 @@ static bool print_test_results(struct test *test)
 		if (work->passed) {
 			continue;
 		}
-		switch (test->type) {
-		case TEST_TYPE_SIMPLE:
-			break;
-		case TEST_TYPE_RANGE: {
-			printf("  " FAILED " on range: [%" PRIu64 ", %" PRIu64 "]\n",
-			       work->range.start, work->range.end);
-			break;
-		}
-		case TEST_TYPE_RANDOM: {
-			break;
-		}
-		}
 		print_test_output("STDOUT", work->stdout_fd);
 		print_test_output("STDERR", work->stderr_fd);
 	}
@@ -615,11 +604,9 @@ NEGATIVE_SIMPLE_TEST(selftest2)
 	return false;
 }
 
-RANGE_TEST(selftest3, 13, 17)
+RANGE_TEST(selftest3, UINT64_MAX - 1, UINT64_MAX)
 {
-	CHECK(start <= end);
-	CHECK(13 <= start && end <= 17);
-	// fprintf(stderr, "%lu-%lu\n", (unsigned long)start, (unsigned long)end);
+	CHECK(UINT64_MAX - 1 <= value && value <= UINT64_MAX);
 	return true;
 }
 

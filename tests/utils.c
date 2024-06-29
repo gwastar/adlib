@@ -9,12 +9,11 @@
 
 RANGE_TEST(ilog2, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		double lg2 = log2(x != 0 ? (double)x : 1.0);
-		if (ilog2((uint32_t)x) != (unsigned int)lg2 ||
-		    ilog2((int32_t)x) != ilog2((uint64_t)x)) {
-			return false;
-		}
+	uint64_t x = value;
+	double lg2 = log2(x != 0 ? (double)x : 1.0);
+	if (ilog2((uint32_t)x) != (unsigned int)lg2 ||
+	    ilog2((int32_t)x) != ilog2((uint64_t)x)) {
+		return false;
 	}
 	return true;
 }
@@ -31,12 +30,11 @@ RANDOM_TEST(ilog2_rand_64, 1u << 30)
 
 RANGE_TEST(ilog10, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		double lg10 = log10(x != 0 ? (double)x : 1.0);
-		if (ilog10((uint32_t)x) != (unsigned int)lg10 ||
-		    ilog10((int32_t)x) != ilog10((uint64_t)x)) {
-			return false;
-		}
+	uint64_t x = value;
+	double lg10 = log10(x != 0 ? (double)x : 1.0);
+	if (ilog10((uint32_t)x) != (unsigned int)lg10 ||
+	    ilog10((int32_t)x) != ilog10((uint64_t)x)) {
+		return false;
 	}
 	return true;
 }
@@ -81,24 +79,22 @@ static unsigned int hackers_delight_clz64(uint64_t x)
 
 RANGE_TEST(clz32, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_clz32(x);
-		if (clz((uint32_t)x) != reference ||
-		    clz((int32_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_clz32(x);
+	if (clz((uint32_t)x) != reference ||
+	    clz((int32_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
 
 RANGE_TEST(clz64, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_clz64(x);
-		if (clz((uint64_t)x) != reference ||
-		    clz((int64_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_clz64(x);
+	if (clz((uint64_t)x) != reference ||
+	    clz((int64_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
@@ -140,25 +136,24 @@ static unsigned int hackers_delight_ctz64(uint64_t x)
 
 RANGE_TEST(ctz32, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_ctz32(x);
-		if (ctz((uint32_t)x) != reference ||
-		    ctz((int32_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_ctz32(x);
+	if (ctz((uint32_t)x) != reference ||
+	    ctz((int32_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
 
 RANGE_TEST(ctz64, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_ctz64(x);
-		if (ctz((uint64_t)x) != reference ||
-		    ctz((int64_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_ctz64(x);
+	if (ctz((uint64_t)x) != reference ||
+	    ctz((int64_t)x) != reference) {
+		return false;
 	}
+
 	return true;
 }
 
@@ -187,24 +182,23 @@ static unsigned int reference_ffs64(uint64_t x)
 
 RANGE_TEST(ffs32, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = reference_ffs32(x);
-		if (ffs((uint32_t)x) != reference ||
-		    ffs((int32_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = reference_ffs32(x);
+	if (ffs((uint32_t)x) != reference ||
+	    ffs((int32_t)x) != reference) {
+		return false;
 	}
+
 	return true;
 }
 
 RANGE_TEST(ffs64, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = reference_ffs64(x);
-		if (ffs((uint64_t)x) != reference ||
-		    ffs((int64_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = reference_ffs64(x);
+	if (ffs((uint64_t)x) != reference ||
+	    ffs((int64_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
@@ -237,24 +231,22 @@ static unsigned int hackers_delight_popcount64(uint64_t x)
 
 RANGE_TEST(popcount32, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_popcount32(x);
-		if (popcount((uint32_t)x) != reference ||
-		    popcount((int32_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_popcount32(x);
+	if (popcount((uint32_t)x) != reference ||
+	    popcount((int32_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
 
 RANGE_TEST(popcount64, 0, UINT32_MAX)
 {
-	for (uint64_t x = start; x <= end; x++) {
-		unsigned int reference = hackers_delight_popcount64(x);
-		if (popcount((uint64_t)x) != reference ||
-		    popcount((int64_t)x) != reference) {
-			return false;
-		}
+	uint64_t x = value;
+	unsigned int reference = hackers_delight_popcount64(x);
+	if (popcount((uint64_t)x) != reference ||
+	    popcount((int64_t)x) != reference) {
+		return false;
 	}
 	return true;
 }
@@ -408,16 +400,16 @@ RANDOM_TEST(endianness, 1u << 16)
 
 SIMPLE_TEST(min_max_value)
 {
-#define CHECK_MIN_MAX_SIGNED(type)				\
-	do {							\
+#define CHECK_MIN_MAX_SIGNED(type)					\
+	do {								\
 		type min = (type)(1llu << (sizeof(type) * 8 - 1));	\
-		type max = ~min;				\
-		CHECK(min_value(type) == min);			\
-		CHECK(min_value(min) == min);			\
-		CHECK(max_value(type) == max);			\
-		CHECK(max_value(max) == max);			\
-		CHECK(_Generic(min_value((type)0), type : 1));	\
-		CHECK(_Generic(max_value((type)0), type : 1));	\
+		type max = ~min;					\
+		CHECK(min_value(type) == min);				\
+		CHECK(min_value(min) == min);				\
+		CHECK(max_value(type) == max);				\
+		CHECK(max_value(max) == max);				\
+		CHECK(_Generic(min_value((type)0), type : 1));		\
+		CHECK(_Generic(max_value((type)0), type : 1));		\
 	} while (0)
 
 #define CHECK_MIN_MAX_UNSIGNED(type)				\
@@ -470,7 +462,7 @@ SIMPLE_TEST(to_unsigned)
 		type val = -1;						\
 		CHECK(to_unsigned(val) == val);				\
 		CHECK(_Generic(to_unsigned((type)0), type : 1));	\
-		CHECK(_Generic((to_unsigned_type(type))0, type : 1)); \
+		CHECK(_Generic((to_unsigned_type(type))0, type : 1));	\
 	} while (0)
 
 #if CHAR_MIN < 0
@@ -578,40 +570,39 @@ SIMPLE_TEST(overflow8)
 
 RANGE_TEST(overflow16, 0, UINT16_MAX)
 {
-	for (uint64_t a = start; a <= end; a++) {
-		for (uint64_t b = 0; b <= UINT16_MAX; b++) {
-			{
-				uint16_t x = a, y = b, r;
-				uint32_t sum = (uint32_t)x + (uint32_t)y;
-				bool sum_overflow = sum > UINT16_MAX;
-				CHECK(add_overflow(x, y, &r) == sum_overflow);
-				CHECK(r == (uint16_t)sum);
-				uint16_t difference = x - y;
-				bool difference_overflow = y > x;
-				CHECK(sub_overflow(x, y, &r) == difference_overflow);
-				CHECK(r == difference);
-				uint32_t product = (uint32_t)x * (uint32_t)y;
-				bool product_overflow = product > UINT16_MAX;
-				CHECK(mul_overflow(x, y, &r) == product_overflow);
-				CHECK(r == (uint16_t)product);
-			}
-			{
-				int16_t x = a, y = b, r;
-				int16_t sum16 = (uint16_t)x + (uint16_t)y;
-				int32_t sum32 = (int32_t)x + (int32_t)y;
-				bool sum_overflow = sum16 != sum32;
-				CHECK(add_overflow(x, y, &r) == sum_overflow);
-				CHECK(r == sum16);
-				int16_t difference16 = (uint16_t)x - (uint16_t)y;
-				int32_t difference32 = (int32_t)x - (int32_t)y;
-				bool difference_overflow = difference16 != difference32;
-				CHECK(sub_overflow(x, y, &r) == difference_overflow);
-				CHECK(r == difference16);
-				int32_t product = (int32_t)x * (int32_t)y;
-				bool product_overflow = product < INT16_MIN || product > INT16_MAX;
-				CHECK(mul_overflow(x, y, &r) == product_overflow);
-				CHECK(r == (int16_t)product);
-			}
+	uint64_t a = value;
+	for (uint64_t b = 0; b <= UINT16_MAX; b++) {
+		{
+			uint16_t x = a, y = b, r;
+			uint32_t sum = (uint32_t)x + (uint32_t)y;
+			bool sum_overflow = sum > UINT16_MAX;
+			CHECK(add_overflow(x, y, &r) == sum_overflow);
+			CHECK(r == (uint16_t)sum);
+			uint16_t difference = x - y;
+			bool difference_overflow = y > x;
+			CHECK(sub_overflow(x, y, &r) == difference_overflow);
+			CHECK(r == difference);
+			uint32_t product = (uint32_t)x * (uint32_t)y;
+			bool product_overflow = product > UINT16_MAX;
+			CHECK(mul_overflow(x, y, &r) == product_overflow);
+			CHECK(r == (uint16_t)product);
+		}
+		{
+			int16_t x = a, y = b, r;
+			int16_t sum16 = (uint16_t)x + (uint16_t)y;
+			int32_t sum32 = (int32_t)x + (int32_t)y;
+			bool sum_overflow = sum16 != sum32;
+			CHECK(add_overflow(x, y, &r) == sum_overflow);
+			CHECK(r == sum16);
+			int16_t difference16 = (uint16_t)x - (uint16_t)y;
+			int32_t difference32 = (int32_t)x - (int32_t)y;
+			bool difference_overflow = difference16 != difference32;
+			CHECK(sub_overflow(x, y, &r) == difference_overflow);
+			CHECK(r == difference16);
+			int32_t product = (int32_t)x * (int32_t)y;
+			bool product_overflow = product < INT16_MIN || product > INT16_MAX;
+			CHECK(mul_overflow(x, y, &r) == product_overflow);
+			CHECK(r == (int16_t)product);
 		}
 	}
 	return true;

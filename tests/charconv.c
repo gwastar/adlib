@@ -593,8 +593,9 @@ RANDOM_TEST(to_chars_random, 1u << 22)
 	return check_from_number(random_seed);
 }
 
-static bool check_base_counting(unsigned int base)
+RANGE_TEST(to_chars_bases, 2, 36)
 {
+	unsigned int base = value;
 	const char *alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
 	assert(base <= strlen(alphabet));
 	unsigned char digits[64] = {0};
@@ -614,16 +615,6 @@ static bool check_base_counting(unsigned int base)
 			if (digits[j] != 0) {
 				break;
 			}
-		}
-	}
-	return true;
-}
-
-RANGE_TEST(to_chars_bases, 2, 36)
-{
-	for (unsigned int base = start; base <= end; base++) {
-		if (unlikely(!check_base_counting(base))) {
-			return false;
 		}
 	}
 	return true;

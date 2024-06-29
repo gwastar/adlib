@@ -19,8 +19,9 @@
 
 #pragma once
 
+#include <inttypes.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <stdio.h>
 #include "compiler.h"
 
 _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
@@ -52,12 +53,22 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	static bool test_##name(void)
 
 #define _RANGE_TEST(name, start_, end_, should_succeed)			\
-	static bool test_##name(uint64_t start, uint64_t end);		\
+	static bool test_##name(uint64_t);				\
+	static bool _test_##name##_helper(uint64_t _start, uint64_t _end) \
+	{								\
+		for (uint64_t _x = _start; _x <= _end && _x >= _start; _x++) { \
+			if (unlikely(!test_##name(_x))) {		\
+				fprintf(stderr, "test failed with input: %" PRIu64 "\n", _x); \
+				return false;				\
+			}						\
+		}							\
+		return true;						\
+	}								\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_range_test(__FILE__, #name, start_, end_, test_##name, should_succeed); \
+		register_range_test(__FILE__, #name, start_, end_, _test_##name##_helper, should_succeed); \
 	}								\
-	static bool test_##name(uint64_t start, uint64_t end)
+	static bool test_##name(uint64_t value)
 
 #define _RANDOM_TEST(name, num_values, should_succeed)			\
 	static bool test_##name(uint64_t);				\
