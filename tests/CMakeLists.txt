@@ -11,10 +11,6 @@ add_standalone(hash_comparison)
 add_standalone(hashtable_benchmark)
 add_standalone(random_benchmark)
 
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads REQUIRED)
-
 include(FindPkgConfig)
 if(${PKG_CONFIG_FOUND})
   pkg_check_modules(XXHASH libxxhash>=0.8.0)
@@ -57,7 +53,6 @@ set(TEST_SOURCES
 
 add_executable(tests testing.c ${TEST_SOURCES})
 target_compile_definitions(tests PRIVATE __ADLIB_TESTS__)
-target_link_libraries(tests ad-static)
-target_link_libraries(tests Threads::Threads m)
+target_link_libraries(tests ad-static m)
 
 add_test(NAME run_testsuite COMMAND $<TARGET_FILE:tests>)

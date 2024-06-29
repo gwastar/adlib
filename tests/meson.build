@@ -1,5 +1,4 @@
 m_dep = cc.find_library('m', required : false)
-thread_dep = dependency('threads')
 
 hash_comparison_dependencies = [
   ['xxhash', 'libxxhash', '>=0.8'],
@@ -43,7 +42,7 @@ targets = [
   {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
   {'name': 'random_benchmark', 'sources': 'random_benchmark.c',},
-  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': [m_dep, thread_dep], 'c_args': ['-D__ADLIB_TESTS__']},
+  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': m_dep, 'c_args': ['-D__ADLIB_TESTS__']},
 ]
 
 foreach target : targets

@@ -52,7 +52,7 @@ struct range_test {
 
 struct random_test {
 	uint64_t num_values;
-	bool (*f)(uint64_t, uint64_t);
+	bool (*f)(uint64_t num_values, uint64_t seed);
 };
 
 struct test {
