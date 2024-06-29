@@ -21,8 +21,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <signal.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,7 +32,6 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <threads.h>
 #include <time.h>
 #include <unistd.h>
 #include "compiler.h"
