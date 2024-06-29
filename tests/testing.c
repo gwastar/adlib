@@ -200,8 +200,7 @@ struct worker {
 	struct list_head link;
 	struct test *test;
 	pid_t pid;
-	int stdout_fd;
-	int stderr_fd;
+	int output_fd;
 	bool passed;
 	uint64_t runtime_ns;
 	union {
@@ -280,8 +279,8 @@ static void worker_start(struct worker *worker)
 		return;
 	}
 
-	if (dup2(worker->stdout_fd, STDOUT_FILENO) == -1 ||
-	    dup2(worker->stderr_fd, STDERR_FILENO) == -1) {
+	if (dup2(worker->output_fd, STDOUT_FILENO) == -1 ||
+	    dup2(worker->output_fd, STDERR_FILENO) == -1) {
 		perror("dup2 failed");
 		exit(EXIT_FAILURE);
 	}
@@ -300,13 +299,8 @@ static struct worker *test_create_workers(struct test *test, size_t n)
 	test->num_workers = n;
 	for (size_t i = 0; i < n; i++) {
 		workers[i].test = test;
-		workers[i].stdout_fd = memfd_create("test stdout", MFD_CLOEXEC);
-		if (workers[i].stdout_fd == -1) {
-			perror("memfd_create failed");
-			exit(EXIT_FAILURE);
-		}
-		workers[i].stderr_fd = memfd_create("test stderr", MFD_CLOEXEC);
-		if (workers[i].stderr_fd == -1) {
+		workers[i].output_fd = memfd_create("test output", MFD_CLOEXEC);
+		if (workers[i].output_fd == -1) {
 			perror("memfd_create failed");
 			exit(EXIT_FAILURE);
 		}
@@ -413,16 +407,18 @@ static void print_time(uint64_t ns, FILE *file)
 	fprintf(file, "%.1f %s", t, unit);
 }
 
-static void print_test_output(const char *name, int fd)
+static uint64_t fd_get_size(int fd)
 {
 	struct stat stat;
 	if (fstat(fd, &stat) != 0) {
 		perror("fstat failed");
 		exit(EXIT_FAILURE);
 	}
-	if (stat.st_size == 0) {
-		return;
-	}
+	return stat.st_size;
+}
+
+static void print_test_output(int fd)
+{
 	if (lseek(fd, 0, SEEK_SET) != 0) {
 		perror("lseek failed");
 		exit(EXIT_FAILURE);
@@ -432,7 +428,6 @@ static void print_test_output(const char *name, int fd)
 		perror("fdopen failed");
 		exit(EXIT_FAILURE);
 	}
-	printf("    %s:\n", name);
 	bool newline = true;
 	for (;;) {
 		char buf[4096];
@@ -444,17 +439,20 @@ static void print_test_output(const char *name, int fd)
 			break;
 		}
 		if (newline) {
-			fputs("      ", stdout);
+			fputs("    ", stdout);
 		}
 		fputs(buf, stdout);
 		newline = buf[strlen(buf) - 1] == '\n';
 	}
-	putchar('\n');
+	if (!newline) {
+		putchar('\n');
+	}
 	fclose(f);
 }
 
-#define RED "\033[31m"
-#define GREEN "\033[32m"
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define CYAN "\033[1;36m"
 #define CLEAR_LINE "\033[2K\r"
 #define RESET "\033[0m"
 
@@ -470,7 +468,7 @@ static bool print_test_results(struct test *test)
 		runtime += work->runtime_ns;
 		test_passed &= work->passed;
 	}
-	printf("\r[%s/%s] %s (", test->file, test->name, test_passed ? PASSED : FAILED);
+	printf(CLEAR_LINE "[%s/%s] %s (", test->file, test->name, test_passed ? PASSED : FAILED);
 	print_time(runtime, stdout);
 	puts(")");
 	if (test_passed) {
@@ -478,11 +476,11 @@ static bool print_test_results(struct test *test)
 	}
 	for (size_t j = 0; j < test->num_workers; j++) {
 		struct worker *work = &test->workers[j];
-		if (work->passed) {
+		if (work->passed || fd_get_size(work->output_fd) == 0) {
 			continue;
 		}
-		print_test_output("STDOUT", work->stdout_fd);
-		print_test_output("STDERR", work->stderr_fd);
+		printf("  " CYAN "[worker %zu]" RESET "\n", j + 1);
+		print_test_output(work->output_fd);
 	}
 	return false;
 }
