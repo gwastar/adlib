@@ -52,7 +52,7 @@ struct range_test {
 
 struct random_test {
 	uint64_t num_values;
-	bool (*f)(uint64_t);
+	bool (*f)(uint64_t, uint64_t);
 };
 
 struct test {
@@ -131,7 +131,7 @@ void register_range_test(const char *file, const char *name, uint64_t start, uin
 }
 
 void register_random_test(const char *file, const char *name, uint64_t num_values,
-			  bool (*f)(uint64_t), bool should_succeed)
+			  bool (*f)(uint64_t, uint64_t), bool should_succeed)
 {
 	add_test((struct test){
 			.type = TEST_TYPE_RANDOM,
@@ -221,13 +221,13 @@ static struct worker *to_worker(struct list_head *ptr)
 	return ptr ? container_of(ptr, struct worker, link) : NULL;
 }
 
-static uint64_t splitmix64(uint64_t *state)
-{
-	uint64_t z = (*state += 0x9e3779b97f4a7c15);
-	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
-	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
-	return z ^ (z >> 31);
-}
+// static uint64_t splitmix64(uint64_t *state)
+// {
+// 	uint64_t z = (*state += 0x9e3779b97f4a7c15);
+// 	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+// 	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+// 	return z ^ (z >> 31);
+// }
 
 static void splitmix64_skip(uint64_t *state, uint64_t skip)
 {
@@ -244,16 +244,9 @@ static bool run_range_test(bool (*f)(uint64_t start, uint64_t end), uint64_t sta
 	return f(start, end);
 }
 
-static bool run_random_test(bool (*f)(uint64_t random), uint64_t num_values, uint64_t seed)
+static bool run_random_test(bool (*f)(uint64_t num_values, uint64_t seed), uint64_t num_values, uint64_t seed)
 {
-	for (uint64_t i = 0; i < num_values; i++) {
-		uint64_t r = splitmix64(&seed);
-		if (!f(r)) {
-			fprintf(stderr, "test failed with random value: %" PRIu64 "\n", r);
-			return false;
-		}
-	}
-	return true;
+	return f(num_values, seed);
 }
 
 static bool run_test(struct worker *worker)
@@ -610,12 +603,16 @@ RANGE_TEST(selftest3, UINT64_MAX - 1, UINT64_MAX)
 	return true;
 }
 
-RANDOM_TEST(selftest4, 9)
+RANDOM_TEST(selftest4, 2)
 {
 	(void)random_seed;
+#if 0
+	if (random_seed % 2 == 0) {
+		fputs("Hello world", stdout);
+		return false;
+	}
+#endif
 	return true;
-	// fprintf(stderr, "%lu\n", (unsigned long)random_seed);
-	// return false;
 }
 
 static int compare_tests(const void *_a, const void *_b)

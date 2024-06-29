@@ -72,9 +72,24 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
 #define _RANDOM_TEST(name, num_values, should_succeed)			\
 	static bool test_##name(uint64_t);				\
+	static bool _test_##name##_helper(uint64_t _num_values, uint64_t _seed) \
+	{								\
+		for (uint64_t _i = 0; _i < _num_values; _i++) {		\
+			/* splitmix64 */				\
+			uint64_t _z = (_seed += 0x9e3779b97f4a7c15);	\
+			_z = (_z ^ (_z >> 30)) * 0xbf58476d1ce4e5b9;	\
+			_z = (_z ^ (_z >> 27)) * 0x94d049bb133111eb;	\
+			_z = _z ^ (_z >> 31);				\
+			if (unlikely(!test_##name(_z))) {		\
+				fprintf(stderr, "test failed with input: %" PRIu64 "\n", _z); \
+				return false;				\
+			}						\
+		}							\
+		return true;						\
+	}								\
 	static _attr_constructor void register_simple_test_##name(void)	\
 	{								\
-		register_random_test(__FILE__, #name, num_values, test_##name, should_succeed); \
+		register_random_test(__FILE__, #name, num_values, _test_##name##_helper, should_succeed); \
 	}								\
 	static bool test_##name(uint64_t random_seed)
 
@@ -84,6 +99,6 @@ void register_simple_test(const char *file, const char *name,
 void register_range_test(const char *file, const char *name, uint64_t start, uint64_t end,
 			 bool (*f)(uint64_t start, uint64_t end), bool should_succeed);
 void register_random_test(const char *file, const char *name, uint64_t num_values,
-			  bool (*f)(uint64_t), bool should_succeed);
+			  bool (*f)(uint64_t num_values, uint64_t seed), bool should_succeed);
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);
