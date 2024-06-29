@@ -1,12 +1,9 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
-#include <time.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "macros.h"
 #include "random.h"
 #include "rb_tree.h"
-#include "macros.h"
 #include "testing.h"
 
 static inline bool rb_is_red(const struct rb_node *node)

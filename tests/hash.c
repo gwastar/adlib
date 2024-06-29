@@ -1,11 +1,8 @@
-#include <assert.h>
 #include <math.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "hash.h"
-#include "random.h"
 #include "testing.h"
 
 // TODO test this on a big-endian machine

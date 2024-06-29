@@ -1,6 +1,5 @@
-#include <assert.h>
-#include <stdio.h>
 #include <string.h>
+#include "config.h"
 #include "dbuf.h"
 #include "testing.h"
 

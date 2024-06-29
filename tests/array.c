@@ -2,9 +2,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "array.h"
 #include "config.h"
 #include "compiler.h"

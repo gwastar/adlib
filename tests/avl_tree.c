@@ -1,9 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
-#include <time.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include "avl_tree.h"
 #include "macros.h"
 #include "random.h"

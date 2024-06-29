@@ -7,7 +7,6 @@
 #include <string.h>
 #include "charconv.h"
 #include "compiler.h"
-#include "random.h"
 #include "testing.h"
 
 static bool check_from_number_binary(uint64_t x)

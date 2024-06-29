@@ -1,9 +1,6 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <assert.h>
-#include <string.h>
 #include <stdbool.h>
-#include <time.h>
+#include <stdint.h>
+#include <string.h>
 #include "array.h"
 #include "hashtable.h"
 #include "random.h"
