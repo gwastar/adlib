@@ -20,29 +20,29 @@ static _attr_unused void print_array(int *arr, bool print_reverse)
 {
 	size_t len = array_length(arr);
 	size_t limit = array_capacity(arr);
-	printf("{\n\tlen = %zu,\n\tlimit = %zu,\n\tval = {", len, limit);
+	test_log("{\n\tlen = %zu,\n\tlimit = %zu,\n\tval = {", len, limit);
 	size_t i = 0;
 	array_foreach(arr, cur) {
-		printf("%i", *cur);
+		test_log("%i", *cur);
 		if (i != len - 1) {
-			printf(", ");
+			test_log(", ");
 		}
 		i++;
 	}
 
 	if (print_reverse) {
-		printf("},\n\treverse = {");
+		test_log("},\n\treverse = {");
 		array_foreach_reverse(arr, cur) {
-			printf("%i", *cur);
+			test_log("%i", *cur);
 			i--;
 			if (i != 0) {
-				printf(", ");
+				test_log(", ");
 			}
 		}
 		assert(i == 0);
 	}
 
-	printf("}\n}\n");
+	test_log("}\n}\n");
 }
 
 static bool check_array_content(size_t length, int *arr, ...)
@@ -525,7 +525,7 @@ SIMPLE_TEST(array)
 	for (size_t i = 0; i < 5; i++) {
 		array_shuffle(arr1, (size_t(*)(void))random);
 		array_foreach(arr1, cur) {
-			printf("%i ", *cur);
+			test_log("%i ", *cur);
 		}
 		putchar('\r');
 		fflush(stdout);

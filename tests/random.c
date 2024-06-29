@@ -35,9 +35,9 @@ static bool check_stats(double *numbers, size_t n, double min, double max, bool 
 	double dev_mean = fabs(1.0 - mean / target_mean);
 	double dev_stddev = fabs(1.0 - stddev / target_stddev);
 
-	// printf("target: mean = %g, stddev = %g\n", target_mean, target_stddev);
-	// printf("actual: mean = %g, stddev = %g\n", mean, stddev);
-	// printf("deviation: mean = %g%%, stddev = %g%%\n", dev_mean, dev_stddev);
+	test_log("target: mean = %g, stddev = %g\n", target_mean, target_stddev);
+	test_log("actual: mean = %g, stddev = %g\n", mean, stddev);
+	test_log("deviation: mean = %g%%, stddev = %g%%\n", dev_mean, dev_stddev);
 
 	CHECK(dev_mean < 0.001);
 	CHECK(dev_stddev < 0.001);
@@ -143,7 +143,7 @@ RANDOM_TEST(random, 2)
 			nfalse++;
 		}
 	}
-	// printf("ntrue = %zu, nfalse = %zu\n", ntrue, nfalse);
+	test_log("ntrue = %zu, nfalse = %zu\n", ntrue, nfalse);
 	CHECK(fabs((double)ntrue - nfalse) / N < 0.001);
 
 	free(numbers);

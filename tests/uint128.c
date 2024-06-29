@@ -53,7 +53,7 @@ static void print_hexadecimal(void *p, size_t size)
 {
 	unsigned char *c = p;
 	for (size_t i = 0; i < size; i++) {
-		printf("%02x", c[i]);
+		test_log("%02x", c[i]);
 	}
 }
 
@@ -64,13 +64,13 @@ static void print_hexadecimal(void *p, size_t size)
 		result_t r1 = _##uint128_##name##_generic(__VA_ARGS__);	\
 		result_t r2 = _##uint128_##name##_u128(__VA_ARGS__);	\
 		if (memcmp(&r1, &r2, sizeof(r1)) != 0) {		\
-			printf("%s: a=%016" PRIx64 "%016" PRIx64 ", b=%016" PRIx64 "%016" PRIx64 "\n", \
-			       #name, a.high, a.low, b.high, b.low);	\
-			printf("got:      ");				\
+			test_log("%s: a=%016" PRIx64 "%016" PRIx64 ", b=%016" PRIx64 "%016" PRIx64 "\n", \
+				 #name, a.high, a.low, b.high, b.low);	\
+			test_log("got:      ");				\
 			print_hexadecimal(&r1, sizeof(r1));		\
-			printf("\nexpected: ");				\
+			test_log("\nexpected: ");			\
 			print_hexadecimal(&r2, sizeof(r2));		\
-			printf("\n");					\
+			test_log("\n");					\
 			return false;					\
 		}							\
 		result_t r3 = uint128_##name(__VA_ARGS__);		\

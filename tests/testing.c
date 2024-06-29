@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -147,7 +148,15 @@ void register_random_test(const char *file, const char *name, uint64_t num_value
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond)
 {
-	fprintf(stderr, "CHECK failed: %s:%u: %s: %s\n", file, line, func, cond);
+	test_log("[%s:%u: %s] CHECK failed: %s\n", file, line, func, cond);
+}
+
+void test_log(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
 }
 
 struct list_head {

@@ -21,7 +21,6 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include "compiler.h"
 
 _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
@@ -58,7 +57,7 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	{								\
 		for (uint64_t _x = _start; _x <= _end && _x >= _start; _x++) { \
 			if (unlikely(!test_##name(_x))) {		\
-				fprintf(stderr, "test failed with input: %" PRIu64 "\n", _x); \
+				test_log("test failed with input: %" PRIu64 "\n", _x); \
 				return false;				\
 			}						\
 		}							\
@@ -81,7 +80,7 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 			_z = (_z ^ (_z >> 27)) * 0x94d049bb133111eb;	\
 			_z = _z ^ (_z >> 31);				\
 			if (unlikely(!test_##name(_z))) {		\
-				fprintf(stderr, "test failed with input: %" PRIu64 "\n", _z); \
+				test_log("test failed with input: %" PRIu64 "\n", _z); \
 				return false;				\
 			}						\
 		}							\
@@ -102,3 +101,5 @@ void register_random_test(const char *file, const char *name, uint64_t num_value
 			  bool (*f)(uint64_t num_values, uint64_t seed), bool should_succeed);
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);
+
+void test_log(const char *fmt, ...) _attr_format_printf(1, 2);
