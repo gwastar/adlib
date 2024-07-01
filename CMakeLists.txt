@@ -6,7 +6,12 @@ include(CheckIPOSupported)
 include(CheckSymbolExists)
 include(GNUInstallDirs)
 
-set(CMAKE_DEFAULT_BUILD_TYPE Release)
+get_property(gen_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(gen_multi)
+  set(CMAKE_DEFAULT_BUILD_TYPE Release)
+elseif(NOT (CMAKE_BUILD_TYPE OR DEFINED ENV{CMAKE_BUILD_TYPE}))
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+endif()
 
 check_ipo_supported(RESULT lto_supported)
 if(${lto_supported})
