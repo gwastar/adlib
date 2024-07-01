@@ -26,10 +26,10 @@ workflow:
       allow_failure: true
 
 .use-ccache:
-  # Use ccache transparently, and print stats before/after
   variables:
-    CCACHE_BASEDIR: $CI_PROJECT_DIR
-    CCACHE_DIR: $CI_PROJECT_DIR/_ccache
+    CCACHE_BASEDIR: "$CI_PROJECT_DIR"
+    CCACHE_DIR: "$CI_PROJECT_DIR/_ccache"
+    CMAKE_C_COMPILER_LAUNCHER: "ccache"
   before_script:
     - export PATH="/usr/lib/ccache:$PATH"
     - ccache --zero-stats || true
@@ -53,6 +53,16 @@ workflow:
   script:
     - meson setup ${MESON_COMMON_FLAGS} ${MESON_FLAGS} _${CI_JOB_NAME_SLUG}
     - meson compile -C _${CI_JOB_NAME_SLUG}
+
+.build-cmake:
+  extends: .use-ccache
+  stage: build
+  artifacts: !reference [.build-meson, artifacts]
+  variables:
+    CMAKE_COMMON_FLAGS: "-GNinja"
+  script:
+    - cmake ${CMAKE_COMMON_FLAGS} ${CMAKE_FLAGS} -B _${CI_JOB_NAME_SLUG}
+    - cmake --build _${CI_JOB_NAME_SLUG}
 
 .use-clang:
   variables:
@@ -94,6 +104,13 @@ build-asan-ubsan:
 #     - .expensive-job
 #   variables:
 #     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
+
+build-cmake-gcc-release:
+  extends:
+    - .build-cmake
+    - .expensive-job
+  variables:
+    CMAKE_FLAGS: "-DCMAKE_BUILD_TYPE=Release"
 
 .test:
   stage: test
