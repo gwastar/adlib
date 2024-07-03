@@ -649,14 +649,13 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	unsigned int nthreads = 0;
-	const char *accept_file_substr = NULL;
-	const char *accept_file_exact = NULL;
-	const char *accept_name_substr = NULL;
-	const char *accept_name_exact = NULL;
-	const char *reject_file_substr = NULL;
-	const char *reject_file_exact = NULL;
-	const char *reject_name_substr = NULL;
-	const char *reject_name_exact = NULL;
+	struct match_arg {
+		const char *string;
+		bool file;
+		bool exact;
+		bool reject;
+	} *match_args = calloc(argc, sizeof(match_args[0]));
+	size_t num_match_args = 0;
 	bool seed_initialized = false;
 	bool reject = false;
 	for (;;) {
@@ -672,35 +671,17 @@ int main(int argc, char **argv)
 			nthreads = atoi(optarg);
 			break;
 		case 'n':
-			reject = true;
 			break;
 		case 'f':
-			if (reject) {
-				reject_file_substr = optarg;
-			} else {
-				accept_file_substr = optarg;
-			}
-			break;
 		case 'F':
-			if (reject) {
-				reject_file_exact = optarg;
-			} else {
-				accept_file_exact = optarg;
-			}
-			break;
 		case 't':
-			if (reject) {
-				reject_name_substr = optarg;
-			} else {
-				accept_name_substr = optarg;
-			}
-			break;
 		case 'T':
-			if (reject) {
-				reject_name_exact = optarg;
-			} else {
-				accept_name_exact = optarg;
-			}
+			match_args[num_match_args++] = (struct match_arg) {
+				.string = optarg,
+				.file = rv == 'f' || rv == 'F',
+				.exact = rv == 'F' || rv == 'T',
+				.reject = reject,
+			};
 			break;
 		case 's':
 			errno = 0;
@@ -716,9 +697,7 @@ int main(int argc, char **argv)
 			seed_initialized = true;
 			break;
 		}
-		if (rv != 'n') {
-			reject = false;
-		}
+		reject = rv == 'n';
 	}
 	argv += optind;
 	argc -= optind;
@@ -734,41 +713,27 @@ int main(int argc, char **argv)
 		}
 	}
 
-	struct list_head queue = list_head_init(&queue);
-
 	size_t num_enabled = 0;
 	for (size_t i = 0; i < num_tests; i++) {
-		tests[i].enabled = false;
-		if (accept_file_substr && !strstr(tests[i].file, accept_file_substr)) {
-			continue;
+		tests[i].enabled = num_match_args == 0;
+		for (size_t j = 0; j < num_match_args; j++) {
+			struct match_arg *m = &match_args[j];
+			const char *s = m->file ? tests[i].file : tests[i].name;
+			bool match = m->exact ? strcmp(s, m->string) == 0 : !!strstr(s, m->string);
+			if (!match) {
+				continue;
+			}
+			tests[i].enabled = !m->reject;
 		}
-		if (accept_file_exact && strcmp(tests[i].file, accept_file_exact) != 0) {
-			continue;
+		if (tests[i].enabled) {
+			num_enabled++;
 		}
-		if (accept_name_substr && !strstr(tests[i].name, accept_name_substr)) {
-			continue;
-		}
-		if (accept_name_exact && strcmp(tests[i].name, accept_name_exact) != 0) {
-			continue;
-		}
-		if (reject_file_substr && strstr(tests[i].file, reject_file_substr)) {
-			continue;
-		}
-		if (reject_file_exact && strcmp(tests[i].file, reject_file_exact) == 0) {
-			continue;
-		}
-		if (reject_name_substr && strstr(tests[i].name, reject_name_substr)) {
-			continue;
-		}
-		if (reject_name_exact && strcmp(tests[i].name, reject_name_exact) == 0) {
-			continue;
-		}
-		tests[i].enabled = true;
-		num_enabled++;
 	}
 
 	qsort(tests, num_tests, sizeof(tests[0]), compare_tests);
 	num_tests = num_enabled;
+
+	struct list_head queue = list_head_init(&queue);
 	for (size_t i = 0; i < num_tests; i++) {
 		queue_test_work(&queue, &tests[i], nthreads);
 	}
@@ -777,6 +742,7 @@ int main(int argc, char **argv)
 
 	free_workers();
 	free(tests);
+	free(match_args);
 
 	return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
