@@ -317,26 +317,26 @@ static struct worker *test_create_workers(struct test *test, size_t n)
 	return workers;
 }
 
-static void queue_simple_test_work(struct list_head *queue, struct test *test, unsigned int nthreads)
+static void queue_simple_test_work(struct list_head *queue, struct test *test, unsigned int num_jobs)
 {
-	(void)nthreads;
+	(void)num_jobs;
 	struct worker *worker = test_create_workers(test, 1);
 	list_push_tail(queue, &worker->link);
 }
 
-static void queue_range_test_work(struct list_head *queue, struct test *test, unsigned int nthreads)
+static void queue_range_test_work(struct list_head *queue, struct test *test, unsigned int num_jobs)
 {
 	uint64_t start = test->range_test.start;
 	uint64_t end = test->range_test.end;
 	uint64_t n = end - start;
-	if (nthreads - 1 > n) {
-		nthreads = n + 1;
+	if (num_jobs - 1 > n) {
+		num_jobs = n + 1;
 	}
-	uint64_t per_thread = n / nthreads;
-	uint64_t rem = n % nthreads + 1;
+	uint64_t per_thread = n / num_jobs;
+	uint64_t rem = n % num_jobs + 1;
 	uint64_t cur = start - 1;
-	struct worker *workers = test_create_workers(test, nthreads);
-	for (unsigned int t = 0; t < nthreads; t++) {
+	struct worker *workers = test_create_workers(test, num_jobs);
+	for (unsigned int t = 0; t < num_jobs; t++) {
 		workers[t].range.start = cur + 1;
 		cur += per_thread;
 		if (rem) {
@@ -349,18 +349,18 @@ static void queue_range_test_work(struct list_head *queue, struct test *test, un
 	assert(cur == end);
 }
 
-static void queue_random_test_work(struct list_head *queue, struct test *test, unsigned int nthreads)
+static void queue_random_test_work(struct list_head *queue, struct test *test, unsigned int num_jobs)
 {
 	uint64_t n = test->random_test.num_values;
-	if (nthreads > n) {
-		nthreads = n;
+	if (num_jobs > n) {
+		num_jobs = n;
 	}
-	uint64_t per_thread = n / nthreads;
-	uint64_t rem = n % nthreads;
+	uint64_t per_thread = n / num_jobs;
+	uint64_t rem = n % num_jobs;
 	uint64_t total = 0;
 	uint64_t seed = global_seed; // we just use the same seed for every random test
-	struct worker *workers = test_create_workers(test, nthreads);
-	for (unsigned int t = 0; t < nthreads; t++) {
+	struct worker *workers = test_create_workers(test, num_jobs);
+	for (unsigned int t = 0; t < num_jobs; t++) {
 		uint64_t num_values = per_thread;
 		if (rem) {
 			num_values++;
@@ -375,18 +375,18 @@ static void queue_random_test_work(struct list_head *queue, struct test *test, u
 	assert(total == n);
 }
 
-static void queue_test_work(struct list_head *queue, struct test *test, unsigned int nthreads)
+static void queue_test_work(struct list_head *queue, struct test *test, unsigned int num_jobs)
 {
 	assert(test->enabled);
 	switch (test->type) {
 	case TEST_TYPE_SIMPLE:
-		queue_simple_test_work(queue, test, nthreads);
+		queue_simple_test_work(queue, test, num_jobs);
 		break;
 	case TEST_TYPE_RANGE:
-		queue_range_test_work(queue, test, nthreads);
+		queue_range_test_work(queue, test, num_jobs);
 		break;
 	case TEST_TYPE_RANDOM:
-		queue_random_test_work(queue, test, nthreads);
+		queue_random_test_work(queue, test, num_jobs);
 		break;
 	}
 	assert(test->num_workers != 0);
@@ -531,9 +531,9 @@ static struct worker *wait_for_workers(struct list_head *running)
 	return worker;
 }
 
-static bool run(struct list_head *queue, size_t nthreads)
+static bool run(struct list_head *queue, size_t num_jobs)
 {
-	assert(nthreads > 0);
+	assert(num_jobs > 0);
 
 	struct timespec start, end;
 	{
@@ -550,7 +550,7 @@ static bool run(struct list_head *queue, size_t nthreads)
 
 	while (completed_cursor < num_tests) {
 		fprintf(stderr, CLEAR_LINE "%zu/%zu", num_completed, num_tests);
-		while (workers_running < nthreads) {
+		while (workers_running < num_jobs) {
 			struct worker *worker = to_worker(list_pop_head(queue));
 			if (!worker) {
 				break;
@@ -664,9 +664,9 @@ int main(int argc, char **argv)
 {
 	if (!tests) {
 		fputs("no tests were registered", stderr);
-		return 0;
+		return EXIT_SUCCESS;
 	}
-	unsigned int nthreads = 0;
+	unsigned int num_jobs = 0;
 	struct match_arg {
 		const char *string;
 		bool file;
@@ -686,7 +686,7 @@ int main(int argc, char **argv)
 			usage(argv[0]);
 			return EXIT_FAILURE;
 		case 'j':
-			nthreads = atoi(optarg);
+			num_jobs = atoi(optarg);
 			break;
 		case 'n':
 			break;
@@ -720,8 +720,8 @@ int main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 
-	if (nthreads == 0) {
-		nthreads = get_nprocs();
+	if (num_jobs == 0) {
+		num_jobs = get_nprocs();
 	}
 
 	if (!seed_initialized) {
@@ -753,10 +753,10 @@ int main(int argc, char **argv)
 
 	struct list_head queue = list_head_init(&queue);
 	for (size_t i = 0; i < num_tests; i++) {
-		queue_test_work(&queue, &tests[i], nthreads);
+		queue_test_work(&queue, &tests[i], num_jobs);
 	}
 
-	bool success = run(&queue, nthreads);
+	bool success = run(&queue, num_jobs);
 
 	free_workers();
 	free(tests);
