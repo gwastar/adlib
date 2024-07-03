@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 		}
 		switch (rv) {
 		case '?':
-			fprintf(stderr, "Usage: %s -s seed\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-s <seed>]\n", argv[0]);
 			return 1;
 		case 's':
 			errno = 0;

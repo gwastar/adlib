@@ -642,6 +642,24 @@ static int compare_tests(const void *_a, const void *_b)
 	return strcmp(a->name, b->name); // TODO maybe sort by order in file instead (using __COUNTER__)?
 }
 
+static void usage(char *executable_path)
+{
+	printf("Usage: %s [-j <num_jobs>] [-s <seed>] [-f/-F <filename>] [-t/-T <name>] [-n]\n",
+	       executable_path);
+	puts("");
+	puts("-j    specify the number of jobs to run in parallel");
+	puts("-s    set a fixed seed for the random tests, otherwise the seed is random");
+	puts("-f    run all tests in files that contain this substring");
+	puts("-F    same as -f but the entire filename needs to match");
+	puts("-t    run all tests whose name contains this substring");
+	puts("-T    same as -t but the entire name needs to match");
+	puts("-n    combine this with -f/-F/-t/-T to reject matching tests instead");
+	puts("");
+	puts("Test filters like -f, -F, -t, -T can be specified multiple times. They are");
+	puts("evaluated in order. So '-t selftest -nT selftest2' would run all selftests");
+	puts("except 'selftest2', but '-nT selftest2 -t selftest' would run all selftests.");
+}
+
 int main(int argc, char **argv)
 {
 	if (!tests) {
@@ -659,14 +677,14 @@ int main(int argc, char **argv)
 	bool seed_initialized = false;
 	bool reject = false;
 	for (;;) {
-		int rv = getopt(argc, argv, "j:f:F:t:T:s:n");
+		int rv = getopt(argc, argv, "hj:f:F:t:T:s:n");
 		if (rv == -1) {
 			break;
 		}
 		switch (rv) {
-		case '?':
-			fprintf(stderr, "Usage: %s TODO\n", argv[0]);
-			return 1;
+		default:
+			usage(argv[0]);
+			return EXIT_FAILURE;
 		case 'j':
 			nthreads = atoi(optarg);
 			break;
