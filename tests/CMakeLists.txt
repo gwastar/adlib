@@ -9,6 +9,7 @@ add_standalone(array_benchmark)
 add_standalone(hash_benchmark)
 add_standalone(hash_comparison)
 add_standalone(hashtable_benchmark)
+add_standalone(heap_benchmark)
 add_standalone(random_benchmark)
 
 include(FindPkgConfig)
@@ -44,6 +45,7 @@ set(TEST_SOURCES
   hash.c
   hashmap.c
   hashset.c
+  heap.c
   json.c
   random.c
   rb_tree.c

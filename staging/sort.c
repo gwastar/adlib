@@ -45,7 +45,7 @@ static int int_is_sorted(int *arr, size_t n)
 static int (*int_cmp_ptr)(const void *a, const void *b) = int_cmp;
 
 DEFINE_SORTFUNC(integer_sort, int, 16, int_cmp_ptr(a, b))
-DEFINE_MINHEAP(intheap, int, int_cmp_ptr(a, b) > 0)
+DEFINE_BINHEAP(intheap, int, int_cmp_ptr(a, b) > 0)
 
 static unsigned long long ns_elapsed(struct timespec *start, struct timespec *end)
 {

@@ -6,7 +6,6 @@ set(EXECUTABLES
   bitmap
   cbuf
   error
-  heap
   lfqueue
   list
   locktest

@@ -35,7 +35,7 @@
 		return (__VA_ARGS__);					\
 	}								\
 									\
-	DEFINE_MINHEAP(_##name##_heap, type, _##name##_cmp(a, b) > 0)	\
+	DEFINE_BINHEAP(_##name##_heap, type, _##name##_cmp(a, b) > 0)	\
 									\
 	static inline void _##name##_swap(type *a, type *b)		\
 	{								\

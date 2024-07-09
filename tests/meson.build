@@ -27,6 +27,7 @@ tests_sources = [
   'hash.c',
   'hashmap.c',
   'hashset.c',
+  'heap.c',
   'json.c',
   'random.c',
   'rb_tree.c',
@@ -41,6 +42,7 @@ targets = [
   {'name': 'hash_benchmark', 'sources': 'hash_benchmark.c',},
   {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
+  {'name': 'heap_benchmark', 'sources': 'heap_benchmark.c',},
   {'name': 'random_benchmark', 'sources': 'random_benchmark.c',},
   {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': m_dep, 'c_args': ['-D__ADLIB_TESTS__']},
 ]
