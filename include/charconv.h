@@ -20,6 +20,20 @@
 #pragma once
 
 #include "compiler.h"
+#include "fortify.h"
+
+#define __CHARCONV_FOREACH_INTTYPE(f)		\
+	f(char, char)				\
+	f(schar, signed char)			\
+	f(uchar, unsigned char)			\
+	f(short, short)				\
+	f(ushort, unsigned short)		\
+	f(int, int)				\
+	f(uint, unsigned int)			\
+	f(long, long)				\
+	f(ulong, unsigned long)			\
+	f(llong, long long)			\
+	f(ullong, unsigned long long)
 
 enum to_chars_flags {
 	TO_CHARS_DEFAULT = 0, // equivalent to TO_CHARS_DECIMAL, allows passing literal 0 for convenience
@@ -36,31 +50,58 @@ enum to_chars_flags {
 	TO_CHARS_UPPERCASE = 512, // %x -> %X
 };
 
-// TODO fortify these functions?
-// pass NULL for 'buf' to get the required size
-size_t to_chars_char(char *buf, char val, unsigned int flags);
-size_t to_chars_schar(char *buf, signed char val, unsigned int flags);
-size_t to_chars_uchar(char *buf, unsigned char val, unsigned int flags);
-size_t to_chars_short(char *buf, short val, unsigned int flags);
-size_t to_chars_ushort(char *buf, unsigned short val, unsigned int flags);
-size_t to_chars_int(char *buf, int val, unsigned int flags);
-size_t to_chars_uint(char *buf, unsigned int val, unsigned int flags);
-size_t to_chars_long(char *buf, long val, unsigned int flags);
-size_t to_chars_ulong(char *buf, unsigned long val, unsigned int flags);
-size_t to_chars_llong(char *buf, long long val, unsigned int flags);
-size_t to_chars_ullong(char *buf, unsigned long long val, unsigned int flags);
-#define to_chars(buf, val, flags) _Generic(val,				\
-					   char : to_chars_char(buf, (char)val, flags), \
-					   unsigned char : to_chars_uchar(buf, (unsigned char)val, flags), \
-					   unsigned short : to_chars_ushort(buf, (unsigned short)val, flags), \
-					   unsigned int : to_chars_uint(buf, (unsigned int)val, flags), \
-					   unsigned long : to_chars_ulong(buf, (unsigned long)val, flags), \
-					   unsigned long long : to_chars_ullong(buf, (unsigned long long)val, flags), \
-					   signed char : to_chars_schar(buf, (signed char)val, flags), \
-					   signed short : to_chars_short(buf, (signed short)val, flags), \
-					   signed int : to_chars_int(buf, (signed int)val, flags), \
-					   signed long : to_chars_long(buf, (signed long)val, flags), \
-					   signed long long : to_chars_llong(buf, (signed long long)val, flags))
+// if the buffer is too small, these functions return the required size without touching the buffer
+size_t to_chars_char(char *buf, size_t bufsize, char val, unsigned int flags);
+size_t to_chars_schar(char *buf, size_t bufsize, signed char val, unsigned int flags);
+size_t to_chars_uchar(char *buf, size_t bufsize, unsigned char val, unsigned int flags);
+size_t to_chars_short(char *buf, size_t bufsize, short val, unsigned int flags);
+size_t to_chars_ushort(char *buf, size_t bufsize, unsigned short val, unsigned int flags);
+size_t to_chars_int(char *buf, size_t bufsize, int val, unsigned int flags);
+size_t to_chars_uint(char *buf, size_t bufsize, unsigned int val, unsigned int flags);
+size_t to_chars_long(char *buf, size_t bufsize, long val, unsigned int flags);
+size_t to_chars_ulong(char *buf, size_t bufsize, unsigned long val, unsigned int flags);
+size_t to_chars_llong(char *buf, size_t bufsize, long long val, unsigned int flags);
+size_t to_chars_ullong(char *buf, size_t bufsize, unsigned long long val, unsigned int flags);
+#define to_chars(buf, bufsize, val, flags)				\
+	_Generic(val,							\
+		 char : to_chars_char(buf, bufsize, (char)val, flags),	\
+		 unsigned char : to_chars_uchar(buf, bufsize, (unsigned char)val, flags), \
+		 unsigned short : to_chars_ushort(buf, bufsize, (unsigned short)val, flags), \
+		 unsigned int : to_chars_uint(buf, bufsize, (unsigned int)val, flags), \
+		 unsigned long : to_chars_ulong(buf, bufsize, (unsigned long)val, flags), \
+		 unsigned long long : to_chars_ullong(buf, bufsize, (unsigned long long)val, flags), \
+		 signed char : to_chars_schar(buf, bufsize, (signed char)val, flags), \
+		 signed short : to_chars_short(buf, bufsize, (signed short)val, flags), \
+		 signed int : to_chars_int(buf, bufsize, (signed int)val, flags), \
+		 signed long : to_chars_long(buf, bufsize, (signed long)val, flags), \
+		 signed long long : to_chars_llong(buf, bufsize, (signed long long)val, flags))
+
+#ifdef __FORTIFY_ENABLED
+
+#define _to_chars_fortified(name, type)					\
+	static __always_inline size_t _to_chars_##name##_fortified(char *buf, size_t bufsize, \
+								   type val, unsigned int flags) \
+	{								\
+		_fortify_check(_fortify_bos(buf) >= bufsize);		\
+		return to_chars_##name(buf, bufsize, val, flags);	\
+	}
+
+__CHARCONV_FOREACH_INTTYPE(_to_chars_fortified)
+#undef _to_chars_fortified
+
+#define to_chars_char(buf, bufsize, val, flags)   _to_chars_char_fortified(buf, bufsize, val, flags)
+#define to_chars_schar(buf, bufsize, val, flags)  _to_chars_schar_fortified(buf, bufsize, val, flags)
+#define to_chars_uchar(buf, bufsize, val, flags)  _to_chars_uchar_fortified(buf, bufsize, val, flags)
+#define to_chars_short(buf, bufsize, val, flags)  _to_chars_short_fortified(buf, bufsize, val, flags)
+#define to_chars_ushort(buf, bufsize, val, flags) _to_chars_ushort_fortified(buf, bufsize, val, flags)
+#define to_chars_int(buf, bufsize, val, flags)    _to_chars_int_fortified(buf, bufsize, val, flags)
+#define to_chars_uint(buf, bufsize, val, flags)   _to_chars_uint_fortified(buf, bufsize, val, flags)
+#define to_chars_long(buf, bufsize, val, flags)   _to_chars_long_fortified(buf, bufsize, val, flags)
+#define to_chars_ulong(buf, bufsize, val, flags)  _to_chars_ulong_fortified(buf, bufsize, val, flags)
+#define to_chars_llong(buf, bufsize, val, flags)  _to_chars_llong_fortified(buf, bufsize, val, flags)
+#define to_chars_ullong(buf, bufsize, val, flags) _to_chars_ullong_fortified(buf, bufsize, val, flags)
+
+#endif
 
 #if 0 // TODO implement
 enum from_chars_flags {

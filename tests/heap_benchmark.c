@@ -137,7 +137,7 @@ static void stringheap_benchmark(void)
 	srand(12345);
 	for (size_t i = 0; i < n; i++) {
 		arr[i] = strings + i * 32;
-		to_chars(arr[i], rand(), 0);
+		to_chars(arr[i], 32, rand(), 0);
 	}
 
 	struct timespec start, end;

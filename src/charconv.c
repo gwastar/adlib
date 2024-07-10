@@ -143,9 +143,9 @@ static const char __to_chars_lut_base16_upper[512] = {
 
 #define _to_chars_impl(suffix, uint_t, int_t)				\
 	static _attr_always_inline					\
-	size_t _to_chars_helper##suffix(char *buf, uint_t uval, size_t bits, bool is_signed, \
-					unsigned int base, bool leading_zeros, bool sign_always, \
-					bool uppercase)			\
+	size_t _to_chars_helper##suffix(char *buf, size_t bufsize, uint_t uval, size_t bits, \
+					bool is_signed, unsigned int base, bool leading_zeros, \
+					bool sign_always, bool uppercase) \
 	{								\
 		assert(2 <= base && base <= 36);			\
 		char sign_char = 0;					\
@@ -225,7 +225,7 @@ static const char __to_chars_lut_base16_upper[512] = {
 		}							\
 		}							\
 		size_t total_length = n + (sign_char ? 1 : 0);		\
-		if (!buf) {						\
+		if (!buf || bufsize < total_length) {			\
 			return total_length;				\
 		}							\
 		char *p = buf;						\
@@ -254,7 +254,8 @@ static const char __to_chars_lut_base16_upper[512] = {
 		return total_length;					\
 	}								\
 									\
-	static size_t _to_chars##suffix(char *buf, uint_t uval, size_t bits, unsigned int flags, bool is_signed) \
+	static size_t _to_chars##suffix(char *buf, size_t bufsize, uint_t uval, size_t bits, \
+					unsigned int flags, bool is_signed) \
 	{								\
 		if (likely(flags == TO_CHARS_DEFAULT)) {		\
 			flags |= TO_CHARS_DECIMAL;			\
@@ -264,42 +265,35 @@ static const char __to_chars_lut_base16_upper[512] = {
 		bool sign_always = unlikely(flags & TO_CHARS_PLUS_SIGN); \
 		bool uppercase = unlikely(flags & TO_CHARS_UPPERCASE);	\
 		if (likely(base == 10)) {				\
-			return _to_chars_helper##suffix(buf, uval, bits, is_signed, 10, leading_zeros, sign_always, uppercase);	\
+			return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, 10, \
+							leading_zeros, sign_always, uppercase);	\
 		}							\
 		if (likely(base == 16)) {				\
-			return _to_chars_helper##suffix(buf, uval, bits, is_signed, 16, leading_zeros, sign_always, uppercase);	\
+			return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, 16, \
+							leading_zeros, sign_always, uppercase);	\
 		}							\
 		if (likely(base == 2)) {				\
-			return _to_chars_helper##suffix(buf, uval, bits, is_signed, 2, leading_zeros, sign_always, uppercase); \
+			return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, 2,	\
+							leading_zeros, sign_always, uppercase); \
 		}							\
 		if (likely(base == 8)) {				\
-			return _to_chars_helper##suffix(buf, uval, bits, is_signed, 8, leading_zeros, sign_always, uppercase); \
+			return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, 8,	\
+							leading_zeros, sign_always, uppercase); \
 		}							\
 		assert(2 <= base && base <= 36);			\
-		return _to_chars_helper##suffix(buf, uval, bits, is_signed, base, leading_zeros, sign_always, uppercase); \
+		return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, base, \
+						leading_zeros, sign_always, uppercase); \
 	}
 
 _to_chars_impl(32, uint32_t, int32_t)
 _to_chars_impl(64, uint64_t, int64_t)
 
-#define __CHARCONV_FOREACH_INTTYPE(f)		\
-	f(char, char)				\
-	f(schar, signed char)			\
-	f(uchar, unsigned char)			\
-	f(short, short)				\
-	f(ushort, unsigned short)		\
-	f(int, int)				\
-	f(uint, unsigned int)			\
-	f(long, long)				\
-	f(ulong, unsigned long)			\
-	f(llong, long long)			\
-	f(ullong, unsigned long long)
 #define __TO_CHARS_FUNC(name, type)					\
-	size_t to_chars_##name(char *buf, type val, unsigned int flags) \
+	size_t (to_chars_##name)(char *buf, size_t bufsize, type val, unsigned int flags) \
 	{								\
-		return sizeof(type) <= 4 ? _to_chars32(buf, val, sizeof(type) * 8, flags, type_is_signed(type)) : \
-			_to_chars64(buf, val, sizeof(type) * 8, flags, type_is_signed(type)); \
+		return sizeof(type) <= 4 ?				\
+			_to_chars32(buf, bufsize, val, sizeof(type) * 8, flags, type_is_signed(type)) : \
+			_to_chars64(buf, bufsize, val, sizeof(type) * 8, flags, type_is_signed(type)); \
 	}
 __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC
-#undef __CHARCONV_FOREACH_INTTYPE
