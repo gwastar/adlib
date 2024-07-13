@@ -150,7 +150,7 @@ static const char __to_chars_lut_base16_upper[512] = {
 	{								\
 		assert(2 <= base && base <= 36);			\
 		char sign_char = 0;					\
-		if (base == 10 && is_signed) {				\
+		if (is_signed) {					\
 			int_t sval = uval;				\
 			if (sval < 0) {					\
 				uval = -(uint_t)sval;			\
@@ -166,8 +166,9 @@ static const char __to_chars_lut_base16_upper[512] = {
 		const char *alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"; \
 		uint_t tmp = uval;					\
 		if (leading_zeros) {					\
+			/* determine number of characters based on max value */	\
 			tmp = mask;					\
-			if (base == 10 && is_signed) {			\
+			if (is_signed) {				\
 				tmp = tmp / 2 + 1;			\
 			}						\
 		}							\
@@ -258,10 +259,10 @@ static const char __to_chars_lut_base16_upper[512] = {
 	static size_t _to_chars##suffix(char *buf, size_t bufsize, uint_t uval, size_t bits, \
 					unsigned int flags, bool is_signed) \
 	{								\
-		if (likely(flags == TO_CHARS_DEFAULT)) {		\
-			flags |= TO_CHARS_DECIMAL;			\
-		}							\
 		unsigned int base = flags & __TO_CHARS_BASE_MASK;	\
+		if (base == 0) {					\
+			base = 10;					\
+		}							\
 		bool leading_zeros = unlikely(flags & TO_CHARS_LEADING_ZEROS); \
 		bool sign_always = unlikely(flags & TO_CHARS_PLUS_SIGN); \
 		bool uppercase = unlikely(flags & TO_CHARS_UPPERCASE);	\

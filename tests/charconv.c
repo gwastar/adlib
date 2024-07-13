@@ -9,47 +9,59 @@
 #include "compiler.h"
 #include "fortify.h"
 #include "testing.h"
+#include "utils.h"
 
-static bool check_from_number_binary(uint64_t x)
+static bool check_from_number_binary(uint64_t val)
 {
 	// printf doesn't support binary yet...
-	char str[64];
+	char str[128];
 	size_t len;
-	len = to_chars(str, sizeof(str), (uint64_t)x, TO_CHARS_BINARY);
-	assert(len <= sizeof(str));
+	uint64_t u64 = val;
+	len = to_chars(str, sizeof(str), u64, TO_CHARS_BINARY);
+	CHECK(len == 64 || (u64 >> len) == 0);
 	for (size_t i = 0; i < len; i++) {
 		CHECK(str[i] == '0' || str[i] == '1');
-		uint32_t b1 = (x >> i) & 1;
+		uint32_t b1 = (u64 >> i) & 1;
 		uint32_t b2 = str[len - i - 1] - '0';
-		CHECK((b1 ^ b2) == 0);
+		CHECK(b1 == b2); // TODO
 	}
-	CHECK(len == 64 || (x >> len) == 0);
-	len = to_chars(str, sizeof(str), (int64_t)x, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS |
+	int64_t s64 = val;
+	len = to_chars(str, sizeof(str), s64, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS |
 		       TO_CHARS_PLUS_SIGN | TO_CHARS_UPPERCASE);
-	CHECK(len == 64);
-	for (size_t i = 0; i < len; i++) {
-		CHECK(str[i] == '0' || str[i] == '1');
-		uint32_t b1 = (x >> i) & 1;
-		uint32_t b2 = str[len - i - 1] - '0';
-		CHECK((b1 ^ b2) == 0);
+	CHECK(len == 65);
+	CHECK(str[0] == (s64 < 0 ? '-' : '+'));
+	if (s64 < 0) {
+		s64 = -s64;
+	}
+	for (size_t i = 0; i < len - 1; i++) {
+		CHECK(str[len - 1 - i] == '0' || str[len - 1 - i] == '1');
+		uint32_t b1 = (s64 >> i) & 1;
+		uint32_t b2 = str[len - 1 - i] - '0';
+		CHECK(b1 == b2);
 	}
 
-	len = to_chars(str, sizeof(str), (uint32_t)x, TO_CHARS_BINARY);
+	uint32_t u32 = val;
+	len = to_chars(str, sizeof(str), u32, TO_CHARS_BINARY);
+	CHECK(len == 32 || (u32 >> len) == 0);
 	for (size_t i = 0; i < len; i++) {
 		CHECK(str[i] == '0' || str[i] == '1');
-		uint32_t b1 = (x >> i) & 1;
+		uint32_t b1 = (u32 >> i) & 1;
 		uint32_t b2 = str[len - i - 1] - '0';
-		CHECK((b1 ^ b2) == 0);
+		CHECK(b1 == b2); // TODO
 	}
-	CHECK(((x & UINT32_MAX) >> len) == 0);
-	len = to_chars(str, sizeof(str), (int32_t)x, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS |
+	int32_t s32 = val;
+	len = to_chars(str, sizeof(str), s32, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS |
 		       TO_CHARS_PLUS_SIGN | TO_CHARS_UPPERCASE);
-	CHECK(len == 32);
-	for (size_t i = 0; i < len; i++) {
-		CHECK(str[i] == '0' || str[i] == '1');
-		uint32_t b1 = (x >> i) & 1;
-		uint32_t b2 = str[len - i - 1] - '0';
-		CHECK((b1 ^ b2) == 0);
+	CHECK(len == 33);
+	CHECK(str[0] == (s32 < 0 ? '-' : '+'));
+	if (s32 < 0) {
+		s32 = -s32;
+	}
+	for (size_t i = 0; i < len - 1; i++) {
+		CHECK(str[len - 1 - i] == '0' || str[len - 1 - i] == '1');
+		uint32_t b1 = (s32 >> i) & 1;
+		uint32_t b2 = str[len - 1 - i] - '0';
+		CHECK(b1 == b2);
 	}
 	return true;
 }
@@ -72,7 +84,7 @@ static bool check_from_number(uint64_t x)
 		" %" PRIu32
 		" %" PRIo32
 		" %" PRIx32
-		// " %010" PRId32
+		// " %010" PRId32 // printf includes sign bit in the 10 chars, we don't
 		" %010" PRIu32
 		" %011" PRIo32
 		" %08" PRIx32
@@ -89,7 +101,7 @@ static bool check_from_number(uint64_t x)
 		" %" PRIu64
 		" %" PRIo64
 		" %" PRIx64
-		// " %019" PRId64
+		// " %019" PRId64 // same as above
 		" %020" PRIu64
 		" %022" PRIo64
 		" %016" PRIx64
@@ -160,10 +172,12 @@ static bool check_from_number(uint64_t x)
 		}
 		char *reference = strtok_r(NULL, " ", &save_ptr);
 		assert(reference);
-		// unsigned long long ull = tests[i].is_64bit ? u64 : u32;
-		// long long ll = tests[i].is_64bit ? s64 : s32;
-		// printf("[%zu] %*s != %s (%llu %lld %d %d %u)\n", i + 1, (int)len, str, reference,
-		//        ull, ll, tests[i].is_64bit, tests[i].is_signed, tests[i].flags);
+		// if (len != strlen(reference) || memcmp(str, reference, len) != 0) {
+		// 	unsigned long long ull = tests[i].is_64bit ? u64 : u32;
+		// 	long long ll = tests[i].is_64bit ? s64 : s32;
+		// 	test_log("[%zu] %.*s != %s (%llu %lld %d %d %u)\n", i + 1, (int)len, str, reference,
+		// 		 ull, ll, tests[i].is_64bit, tests[i].is_signed, tests[i].flags);
+		// }
 		CHECK(len == strlen(reference));
 		CHECK(memcmp(str, reference, len) == 0);
 	}
@@ -171,10 +185,26 @@ static bool check_from_number(uint64_t x)
 	return check_from_number_binary(x);
 }
 
+static bool check_binary(const char *str, size_t len, unsigned long long val, bool negative)
+{
+	// test_log("%.*s %zu %llu %d\n", (int)len, str, len, val, negative);
+	if (negative) {
+		CHECK(len > 1 && str[0] == '-');
+		str++;
+		len--;
+		val = -val;
+	}
+	for (size_t i = 0; i < len; i++) {
+		unsigned long long b1 = (val >> i) & 1;
+		uint32_t b2 = str[len - i - 1] - '0';
+		CHECK(b1 == b2);
+	}
+	return true;
+}
 
 SIMPLE_TEST(to_chars)
 {
-	char str[64];
+	char str[256];
 	size_t len;
 #define CHECK_TO_CHARS(expected) CHECK(len == strlen(expected) && memcmp(str, expected, len) == 0)
 
@@ -254,6 +284,7 @@ SIMPLE_TEST(to_chars)
 
 #define CHECK_TO_CHARS_BINARY(type)					\
 	do {								\
+		bool is_signed = type_is_signed(type);			\
 		len = to_chars(str, sizeof(str), (type)0, TO_CHARS_BINARY); \
 		CHECK_TO_CHARS("0");					\
 		len = to_chars(str, sizeof(str), (type)1, TO_CHARS_BINARY); \
@@ -271,35 +302,21 @@ SIMPLE_TEST(to_chars)
 		len = to_chars(str, sizeof(str), (type)64, TO_CHARS_BINARY); \
 		CHECK_TO_CHARS("1000000");				\
 		len = to_chars(str, sizeof(str), (type)128, TO_CHARS_BINARY); \
-		CHECK_TO_CHARS("10000000");				\
+		CHECK_TO_CHARS(((type)128 < 0) ? "-10000000" : "10000000"); \
 		len = to_chars(str, sizeof(str), (type)10, TO_CHARS_BINARY); \
 		CHECK_TO_CHARS("1010");					\
 		len = to_chars(str, sizeof(str), (type)123, TO_CHARS_BINARY | TO_CHARS_PLUS_SIGN); \
-		CHECK_TO_CHARS("1111011");				\
+		CHECK_TO_CHARS(is_signed ? "+1111011" : "1111011");	\
 		long long signed_min_val = 1llu << (sizeof(type) * 8 - 1); \
 		long long signed_max_val = (type)~signed_min_val;	\
 		len = to_chars(str, sizeof(str), (type)signed_min_val, TO_CHARS_BINARY); \
-		unsigned long long x = signed_min_val;			\
-		for (size_t i = 0; i < len; i++) {			\
-			unsigned long long b1 = (x >> i) & 1;		\
-			uint32_t b2 = str[len - i - 1] - '0';		\
-			CHECK((b1 ^ b2) == 0);				\
-		}							\
+		CHECK(check_binary(str, len, signed_min_val, is_signed)); \
 		len = to_chars(str, sizeof(str), (type)signed_max_val, TO_CHARS_BINARY); \
-		x = signed_max_val;					\
-		for (size_t i = 0; i < len; i++) {			\
-			unsigned long long b1 = (x >> i) & 1;		\
-			uint32_t b2 = str[len - i - 1] - '0';		\
-			CHECK((b1 ^ b2) == 0);				\
-		}							\
+		CHECK(check_binary(str, len, signed_max_val, false));	\
 		len = to_chars(str, sizeof(str), (type)-1, TO_CHARS_BINARY); \
-		x = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8);	\
-		for (size_t i = 0; i < len; i++) {			\
-			unsigned long long b1 = (x >> i) & 1;		\
-			uint32_t b2 = str[len - i - 1] - '0';		\
-			CHECK((b1 ^ b2) == 0);				\
-		}							\
-	} while (0)
+		unsigned long long minus_one = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8); \
+		CHECK(check_binary(str, len, minus_one, is_signed));	\
+} while (0)
 
 	CHECK_TO_CHARS_BINARY(char);
 	CHECK_TO_CHARS_BINARY(unsigned char);
@@ -315,6 +332,7 @@ SIMPLE_TEST(to_chars)
 
 #define CHECK_TO_CHARS_OCTAL(type)					\
 	do {								\
+		bool is_signed = type_is_signed(type);			\
 		len = to_chars(str, sizeof(str), (type)0, TO_CHARS_OCTAL); \
 		CHECK_TO_CHARS("0");					\
 		len = to_chars(str, sizeof(str), (type)1, TO_CHARS_OCTAL); \
@@ -326,12 +344,12 @@ SIMPLE_TEST(to_chars)
 		len = to_chars(str, sizeof(str), (type)10, TO_CHARS_OCTAL); \
 		CHECK_TO_CHARS("12");					\
 		len = to_chars(str, sizeof(str), (type)123, TO_CHARS_OCTAL | TO_CHARS_PLUS_SIGN); \
-		CHECK_TO_CHARS("173");					\
+		CHECK_TO_CHARS(is_signed ? "+173" : "173");		\
 		long long signed_min_val = 1llu << (sizeof(type) * 8 - 1); \
 		long long signed_max_val = (type)~signed_min_val;	\
 		len = to_chars(str, sizeof(str), (type)signed_min_val, TO_CHARS_OCTAL); \
 		char signed_min_val_str[32];				\
-		sprintf(signed_min_val_str, "%llo", signed_min_val);	\
+		sprintf(signed_min_val_str, "%s%llo", is_signed ? "-" : "", signed_min_val); \
 		CHECK_TO_CHARS(signed_min_val_str);			\
 		len = to_chars(str, sizeof(str), (type)signed_max_val, TO_CHARS_OCTAL); \
 		char signed_max_val_str[32];				\
@@ -341,7 +359,7 @@ SIMPLE_TEST(to_chars)
 		char unsigned_max_val_str[32];				\
 		unsigned long long unsigned_max_val = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8); \
 		sprintf(unsigned_max_val_str, "%llo", unsigned_max_val); \
-		CHECK_TO_CHARS(unsigned_max_val_str);			\
+		CHECK_TO_CHARS(is_signed ? "-1" : unsigned_max_val_str); \
 	} while (0)
 
 	CHECK_TO_CHARS_OCTAL(char);
@@ -358,6 +376,7 @@ SIMPLE_TEST(to_chars)
 
 #define CHECK_TO_CHARS_HEXADECIMAL(type)				\
 	do {								\
+		bool is_signed = type_is_signed(type);			\
 		len = to_chars(str, sizeof(str), (type)0, TO_CHARS_HEXADECIMAL);	\
 		CHECK_TO_CHARS("0");					\
 		len = to_chars(str, sizeof(str), (type)1, TO_CHARS_HEXADECIMAL);	\
@@ -367,14 +386,14 @@ SIMPLE_TEST(to_chars)
 		len = to_chars(str, sizeof(str), (type)10, TO_CHARS_HEXADECIMAL);	\
 		CHECK_TO_CHARS("a");					\
 		len = to_chars(str, sizeof(str), (type)123, TO_CHARS_HEXADECIMAL | TO_CHARS_PLUS_SIGN); \
-		CHECK_TO_CHARS("7b");					\
+		CHECK_TO_CHARS(is_signed ? "+7b" : "7b");		\
 		len = to_chars(str, sizeof(str), (type)123, TO_CHARS_HEXADECIMAL | TO_CHARS_PLUS_SIGN | TO_CHARS_UPPERCASE); \
-		CHECK_TO_CHARS("7B");					\
+		CHECK_TO_CHARS(is_signed ? "+7B" : "7B");		\
 		long long signed_min_val = 1llu << (sizeof(type) * 8 - 1); \
 		long long signed_max_val = (type)~signed_min_val;	\
 		len = to_chars(str, sizeof(str), (type)signed_min_val, TO_CHARS_HEXADECIMAL); \
 		char signed_min_val_str[32];				\
-		sprintf(signed_min_val_str, "%llx", signed_min_val);	\
+		sprintf(signed_min_val_str, "%s%llx", is_signed ? "-" : "", signed_min_val); \
 		CHECK_TO_CHARS(signed_min_val_str);			\
 		len = to_chars(str, sizeof(str), (type)signed_max_val, TO_CHARS_HEXADECIMAL); \
 		char signed_max_val_str[32];				\
@@ -384,7 +403,7 @@ SIMPLE_TEST(to_chars)
 		char unsigned_max_val_str[32];				\
 		unsigned long long unsigned_max_val = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8); \
 		sprintf(unsigned_max_val_str, "%llx", unsigned_max_val); \
-		CHECK_TO_CHARS(unsigned_max_val_str);			\
+		CHECK_TO_CHARS(is_signed ? "-1" : unsigned_max_val_str); \
 	} while (0)
 
 	CHECK_TO_CHARS_HEXADECIMAL(char);
@@ -512,53 +531,53 @@ SIMPLE_TEST(to_chars)
 	len = to_chars(str, sizeof(str), (uint8_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("ff");
 	len = to_chars(str, sizeof(str), (int8_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("ff");
+	CHECK_TO_CHARS("-01");
 	len = to_chars(str, sizeof(str), (uint16_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("ffff");
 	len = to_chars(str, sizeof(str), (int16_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("ffff");
+	CHECK_TO_CHARS("-0001");
 	len = to_chars(str, sizeof(str), (uint32_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("ffffffff");
 	len = to_chars(str, sizeof(str), (int32_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("ffffffff");
+	CHECK_TO_CHARS("-00000001");
 	len = to_chars(str, sizeof(str), (uint64_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("ffffffffffffffff");
 	len = to_chars(str, sizeof(str), (int64_t)-1, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("ffffffffffffffff");
+	CHECK_TO_CHARS("-0000000000000001");
 
 	len = to_chars(str, sizeof(str), (uint8_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("377");
 	len = to_chars(str, sizeof(str), (int8_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("377");
+	CHECK_TO_CHARS("-001");
 	len = to_chars(str, sizeof(str), (uint16_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("177777");
 	len = to_chars(str, sizeof(str), (int16_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("177777");
+	CHECK_TO_CHARS("-000001");
 	len = to_chars(str, sizeof(str), (uint32_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("37777777777");
 	len = to_chars(str, sizeof(str), (int32_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("37777777777");
+	CHECK_TO_CHARS("-00000000001");
 	len = to_chars(str, sizeof(str), (uint64_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("1777777777777777777777");
 	len = to_chars(str, sizeof(str), (int64_t)-1, TO_CHARS_OCTAL | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("1777777777777777777777");
+	CHECK_TO_CHARS("-0000000000000000000001");
 
 	len = to_chars(str, sizeof(str), (uint8_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("11111111");
 	len = to_chars(str, sizeof(str), (int8_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("11111111");
+	CHECK_TO_CHARS("-00000001");
 	len = to_chars(str, sizeof(str), (uint16_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("1111111111111111");
 	len = to_chars(str, sizeof(str), (int16_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("1111111111111111");
+	CHECK_TO_CHARS("-0000000000000001");
 	len = to_chars(str, sizeof(str), (uint32_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("11111111111111111111111111111111");
 	len = to_chars(str, sizeof(str), (int32_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("11111111111111111111111111111111");
+	CHECK_TO_CHARS("-00000000000000000000000000000001");
 	len = to_chars(str, sizeof(str), (uint64_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("1111111111111111111111111111111111111111111111111111111111111111");
 	len = to_chars(str, sizeof(str), (int64_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("1111111111111111111111111111111111111111111111111111111111111111");
+	CHECK_TO_CHARS("-0000000000000000000000000000000000000000000000000000000000000001");
 
 	for (unsigned long long i = 2; i <= 36; i++) {
 		len = to_chars(str, sizeof(str), 0, i);
@@ -589,6 +608,19 @@ SIMPLE_TEST(to_chars)
 	CHECK(memcmp(str, "xxxxxxxxxx", 10) == 0);
 	len = to_chars(str, 10, 1234567890, TO_CHARS_DECIMAL);
 	CHECK_TO_CHARS("1234567890");
+
+	// the unsigned max value in base 3 has one more char than the signed max value
+	len = to_chars(str, sizeof(str), (int)1, 3 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("00000000000000000001");
+	len = to_chars(str, sizeof(str), (unsigned int)1, 3 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("000000000000000000001");
+	// same with base 6, test with + sign and negative value
+	len = to_chars(str, sizeof(str), (int)1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
+	CHECK_TO_CHARS("+000000000001");
+	len = to_chars(str, sizeof(str), (int)-1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
+	CHECK_TO_CHARS("-000000000001");
+	len = to_chars(str, sizeof(str), (unsigned int)1, 6 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("0000000000001");
 
 	return true;
 }
