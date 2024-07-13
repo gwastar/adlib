@@ -4970,7 +4970,7 @@ SIMPLE_TEST(dstring)
 	return true;
 }
 
-#if defined(_FORTIFY_SOURCE) && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
+#if _FORTIFY_SOURCE >= 1 && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
 
 NEGATIVE_SIMPLE_TEST(fortify_from_chars)
 {
