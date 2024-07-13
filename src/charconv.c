@@ -299,3 +299,95 @@ _to_chars_impl(64, uint64_t, int64_t)
 	}
 __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC
+
+// TODO add 32 bit version for performance?
+// TODO try open coding the isalnum and isdigit checks for better performance and correctness (locale?)
+// TODO try lookup tables like the libcxx implementation
+struct from_chars_result _from_chars(const char *chars, size_t maxlen, uint64_t *retval,
+				     unsigned char base, unsigned long long cutoff, unsigned char cutlim)
+{
+	unsigned long long res = 0;
+	bool overflow = false;
+	size_t i;
+	for (i = 0; i < maxlen; i++) {
+		unsigned char c = chars[i];
+		if (!isalnum(c)) {
+			break;
+		}
+		if (isdigit(c)) {
+			c -= '0';
+		} else {
+			c = (c | 32) + 10 - 'a';
+		}
+		if (c >= base) {
+			break;
+		}
+		if (res > cutoff || (res == cutoff && c > cutlim)) {
+			overflow = true;
+			continue;
+		}
+		res = res * base + c;
+	}
+	*retval = res;
+	bool ok = !overflow && (i == maxlen) && likely(i != 0);
+	return (struct from_chars_result) {
+		.ok = ok,
+		.overflow = overflow,
+		.nchars = i
+	};
+}
+
+static size_t _from_chars_detect_base(const char *chars, size_t maxlen, unsigned int flags,
+				       unsigned char *base)
+{
+	unsigned char b = flags & __FROM_CHARS_BASE_MASK;
+	if (b != FROM_CHARS_AUTODETECT_BASE) {
+		*base = b;
+		return 0;
+	}
+	if (maxlen <= 1 || chars[0] != '0') {
+		*base = 10;
+		return 0;
+	}
+	if (chars[1] == 'x' || chars[1] == 'X') {
+		*base = 16;
+		return 2;
+	}
+	if (chars[1] == 'b' || chars[1] == 'B') {
+		*base = 2;
+		return 2;
+	}
+	if (chars[1] == 'o' || chars[1] == 'O') {
+		*base = 8;
+		return 2;
+	}
+	*base = 10;
+	return 0;
+}
+
+#define __FROM_CHARS_FUNC(name, type)					\
+	struct from_chars_result (from_chars_##name)(const char *chars, size_t maxlen, type *retval, \
+						     unsigned int flags) \
+	{								\
+		typedef to_unsigned_type(type) unsigned_type;		\
+		bool negative = false;					\
+		size_t i = 0;						\
+		if (type_is_signed(type) && likely(maxlen > 0) && (chars[0] == '-' || chars[0] == '+')) { \
+			negative = chars[0] == '-';			\
+			i = 1;						\
+		}							\
+		unsigned char base;					\
+		i += _from_chars_detect_base(chars + i, maxlen - i, flags, &base); \
+		_fortify_check(2 <= base && base <= 36);		\
+		unsigned long long cutoff = ((unsigned_type)max_value(type) + negative) / base; \
+		unsigned char cutlim = ((unsigned_type)max_value(type) + negative) % base; \
+		uint64_t v;						\
+		struct from_chars_result res = _from_chars(chars + i, maxlen - i, &v, base, cutoff, cutlim); \
+		res.nchars += i;					\
+		if (res.ok) {						\
+			*retval = negative ? -v : v;			\
+		}							\
+		return res;						\
+	}
+__CHARCONV_FOREACH_INTTYPE(__FROM_CHARS_FUNC)
+#undef __FROM_CHARS_FUNC

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <string.h>
 #include "compiler.h"
 #include "fortify.h"
 
@@ -103,9 +104,9 @@ __CHARCONV_FOREACH_INTTYPE(_to_chars_fortified)
 
 #endif
 
-#if 0 // TODO implement
 enum from_chars_flags {
-	FROM_CHARS_AUTODETECT_BASE = 0, // autodetect base according to C syntax
+	 // autodetect base according to the prefix (0b/0B -> 2, 0o/0O -> 8, 0x/0X -> 16, else 10)
+	FROM_CHARS_AUTODETECT_BASE = 0,
 
 	FROM_CHARS_BINARY = 2, // %b
 	FROM_CHARS_OCTAL = 8, // %o
@@ -113,31 +114,77 @@ enum from_chars_flags {
 	FROM_CHARS_HEXADECIMAL = 16, // %x
 
 	__FROM_CHARS_BASE_MASK = 63, // base must be between 2 and 36 inclusive
-
-	// TODO FROM_CHARS_SKIP_LEADING_WHITESPACE
 };
 
-size_t from_chars_char(char *chars, size_t nchars, char *retval, unsigned int flags);
-size_t from_chars_schar(char *chars, size_t nchars, signed char *retval, unsigned int flags);
-size_t from_chars_uchar(char *chars, size_t nchars, unsigned char *retval, unsigned int flags);
-size_t from_chars_short(char *chars, size_t nchars, short *retval, unsigned int flags);
-size_t from_chars_ushort(char *chars, size_t nchars, unsigned short *retval, unsigned int flags);
-size_t from_chars_int(char *chars, size_t nchars, int *retval, unsigned int flags);
-size_t from_chars_uint(char *chars, size_t nchars, unsigned int *retval, unsigned int flags);
-size_t from_chars_long(char *chars, size_t nchars, long *retval, unsigned int flags);
-size_t from_chars_ulong(char *chars, size_t nchars, unsigned long *retval, unsigned int flags);
-size_t from_chars_llong(char *chars, size_t nchars, long long *retval, unsigned int flags);
-size_t from_chars_ullong(char *chars, size_t nchars, unsigned long long *retval, unsigned int flags);
-#define from_chars(chars, nchars, retval, flags) _Generic(retval,	\
-							  char * : from_chars_char(chars, nchars, (char *)retval, flags), \
-							  unsigned char * : from_chars_char(chars, nchars, (unsigned char *)retval, flags), \
-							  unsigned short * : from_chars_char(chars, nchars, (unsigned short *)retval, flags), \
-							  unsigned int * : from_chars_char(chars, nchars, (unsigned int *)retval, flags), \
-							  unsigned long * : from_chars_char(chars, nchars, (unsigned long *)retval, flags), \
-							  unsigned long long * : from_chars_char(chars, nchars, (unsigned long long *)retval, flags), \
-							  signed char * : from_chars_char(chars, nchars, (signed char *)retval, flags), \
-							  signed short * : from_chars_char(chars, nchars, (signed short *)retval, flags), \
-							  signed int * : from_chars_char(chars, nchars, (signed int *)retval, flags), \
-							  signed long * : from_chars_char(chars, nchars, (signed long *)retval, flags), \
-							  signed long long * : from_chars_char(chars, nchars, (signed long long *)retval, flags))
+struct from_chars_result {
+	bool ok;
+	bool overflow;
+	size_t nchars;
+};
+
+struct from_chars_result from_chars_char(const char *chars, size_t maxlen, char *result,
+					 unsigned int flags);
+struct from_chars_result from_chars_schar(const char *chars, size_t maxlen, signed char *result,
+					  unsigned int flags);
+struct from_chars_result from_chars_uchar(const char *chars, size_t maxlen, unsigned char *result,
+					  unsigned int flags);
+struct from_chars_result from_chars_short(const char *chars, size_t maxlen, short *result,
+					  unsigned int flags);
+struct from_chars_result from_chars_ushort(const char *chars, size_t maxlen, unsigned short *result,
+					   unsigned int flags);
+struct from_chars_result from_chars_int(const char *chars, size_t maxlen, int *result,
+					unsigned int flags);
+struct from_chars_result from_chars_uint(const char *chars, size_t maxlen, unsigned int *result,
+					 unsigned int flags);
+struct from_chars_result from_chars_long(const char *chars, size_t maxlen, long *result,
+					 unsigned int flags);
+struct from_chars_result from_chars_ulong(const char *chars, size_t maxlen, unsigned long *result,
+					  unsigned int flags);
+struct from_chars_result from_chars_ullong(const char *chars, size_t maxlen, unsigned long long *retval,
+					   unsigned int flags);
+struct from_chars_result from_chars_llong(const char *chars, size_t maxlen, long long *retval,
+					  unsigned int flags);
+
+#define from_chars(chars, maxlen, result, flags)			\
+	_Generic(result,						\
+		 char * : from_chars_char(chars, maxlen, (char *)result, flags), \
+		 unsigned char * : from_chars_uchar(chars, maxlen, (unsigned char *)result, flags), \
+		 unsigned short * : from_chars_ushort(chars, maxlen, (unsigned short *)result, flags), \
+		 unsigned int * : from_chars_uint(chars, maxlen, (unsigned int *)result, flags), \
+		 unsigned long * : from_chars_ulong(chars, maxlen, (unsigned long *)result, flags), \
+		 unsigned long long * : from_chars_ullong(chars, maxlen, (unsigned long long *)result, flags), \
+		 signed char * : from_chars_schar(chars, maxlen, (signed char *)result, flags), \
+		 signed short * : from_chars_short(chars, maxlen, (signed short *)result, flags), \
+		 signed int * : from_chars_int(chars, maxlen, (signed int *)result, flags), \
+		 signed long * : from_chars_long(chars, maxlen, (signed long *)result, flags), \
+		 signed long long * : from_chars_llong(chars, maxlen, (signed long long *)result, flags))
+
+#ifdef __FORTIFY_ENABLED
+
+#define _from_chars_fortified(name, type)				\
+	static __always_inline						\
+	struct from_chars_result _from_chars_##name##_fortified(const char *chars, size_t maxlen, \
+								type *result, unsigned int flags) \
+	{								\
+		/* TODO this check might be a bit too expensive */	\
+		_fortify_check(_fortify_bos(chars) >= maxlen ||		\
+			       memchr(chars, '\0', _fortify_bos_safe(chars))); \
+		return from_chars_##name(chars, maxlen, result, flags);	\
+	}
+
+__CHARCONV_FOREACH_INTTYPE(_from_chars_fortified)
+#undef _from_chars_fortified
+
+#define from_chars_char(chars, maxlen, result, flags)   _from_chars_char_fortified(chars, maxlen, result, flags)
+#define from_chars_schar(chars, maxlen, result, flags)  _from_chars_schar_fortified(chars, maxlen, result, flags)
+#define from_chars_uchar(chars, maxlen, result, flags)  _from_chars_uchar_fortified(chars, maxlen, result, flags)
+#define from_chars_short(chars, maxlen, result, flags)  _from_chars_short_fortified(chars, maxlen, result, flags)
+#define from_chars_ushort(chars, maxlen, result, flags) _from_chars_ushort_fortified(chars, maxlen, result, flags)
+#define from_chars_int(chars, maxlen, result, flags)    _from_chars_int_fortified(chars, maxlen, result, flags)
+#define from_chars_uint(chars, maxlen, result, flags)   _from_chars_uint_fortified(chars, maxlen, result, flags)
+#define from_chars_long(chars, maxlen, result, flags)   _from_chars_long_fortified(chars, maxlen, result, flags)
+#define from_chars_ulong(chars, maxlen, result, flags)  _from_chars_ulong_fortified(chars, maxlen, result, flags)
+#define from_chars_llong(chars, maxlen, result, flags)  _from_chars_llong_fortified(chars, maxlen, result, flags)
+#define from_chars_ullong(chars, maxlen, result, flags) _from_chars_ullong_fortified(chars, maxlen, result, flags)
+
 #endif

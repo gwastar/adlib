@@ -677,3 +677,284 @@ NEGATIVE_SIMPLE_TEST(to_chars_fortified)
 __CHARCONV_FOREACH_INTTYPE(TO_CHARS_FORTIFY_TEST)
 
 #endif
+
+static void increment(char *str, size_t *len, unsigned int base)
+{
+	char max_char = base <= 10 ? '0' + base - 1 : 'a' + base - 11;
+	for (size_t i = *len; i-- > 0;) {
+		assert((str[i] >= '0' && str[i] <= '9') || (str[i] >= 'a' && str[i] <= 'z'));
+		assert(str[i] <= max_char);
+		if (str[i] == '9') {
+			str[i] = 'a';
+		} else {
+			str[i]++;
+		}
+		if (str[i] <= max_char) {
+			return;
+		}
+		str[i] = '0';
+	}
+	memmove(str + 1, str, *len);
+	str[0] = '1';
+	(*len)++;
+}
+
+SIMPLE_TEST(from_chars_overflow)
+{
+	const char *str1 = "9223372036854775808";
+	long long val;
+	unsigned long long uval;
+	struct from_chars_result res = from_chars_llong(str1, strlen(str1), &val, 10);
+	CHECK(!res.ok && res.overflow && res.nchars == strlen(str1));
+	const char *str2 = "-9223372036854775809";
+	res = from_chars_llong(str2, strlen(str2), &val, 10);
+	CHECK(!res.ok && res.overflow && res.nchars == strlen(str2));
+	const char *str3 = "18446744073709551616";
+	res = from_chars_ullong(str3, strlen(str3), &uval, 10);
+	CHECK(!res.ok && res.overflow && res.nchars == strlen(str3));
+
+#define TEST(name, type)						\
+	for (unsigned int base = 0; base <= 36; base++) {		\
+		if (base == 1) {					\
+			continue;					\
+		}							\
+		char str[128];						\
+		size_t len = to_chars(str, sizeof(str), max_value(type), base); \
+		increment(str, &len, base == 0 ? 10 : base);		\
+		type val;						\
+		struct from_chars_result res = from_chars(str, len, &val, base); \
+		CHECK(!res.ok && res.overflow && res.nchars == len);	\
+		if (type_is_unsigned(type)) {				\
+			continue;					\
+		}							\
+		len = to_chars(str, sizeof(str), min_value(type), base); \
+		len--;							\
+		increment(str + 1, &len, base == 0 ? 10 : base);	\
+		len++;							\
+		res = from_chars(str, len, &val, base);			\
+		CHECK(!res.ok && res.overflow && res.nchars == len);	\
+	}
+
+	__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+	return true;
+}
+
+static void add_prefix(char *str, size_t *len, const char *prefix)
+{
+	size_t l = *len;
+	size_t n = strlen(prefix);
+	*len += n;
+	if (str[0] == '-') {
+		str++;
+		l--;
+	}
+	memmove(str + n, str, l);
+	memcpy(str, prefix, n);
+}
+
+SIMPLE_TEST(from_chars_prefixes)
+{
+	static const struct { const char *prefix; unsigned int base; } prefixes[] = {
+		{ "0b", 2 },
+		{ "0B", 2 },
+		{ "0o", 8 },
+		{ "0O", 8 },
+		{ "0x", 16 },
+		{ "0X", 16 },
+	};
+
+#define TEST(name, type)						\
+	{								\
+		const type values[] = {					\
+			min_value(type),				\
+			min_value(type) + 1,				\
+			min_value(type) >> 1,				\
+			min_value(type) >> 2,				\
+			-123,						\
+			-100,						\
+			-1,						\
+			0,						\
+			1,						\
+			100,						\
+			123,						\
+			max_value(type) >> 2,				\
+			max_value(type) >> 1,				\
+			max_value(type) - 1,				\
+			max_value(type),				\
+		};							\
+		for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) { \
+			for (size_t p = 0; p < sizeof(prefixes) / sizeof(prefixes[0]); p++) { \
+				const char *prefix = prefixes[p].prefix; \
+				unsigned int base = prefixes[p].base;	\
+				char buf[128];				\
+				type val;				\
+				size_t n = to_chars(buf, sizeof(buf), values[i], base); \
+				add_prefix(buf, &n, prefix);		\
+				struct from_chars_result res = from_chars(buf, n, &val, 0); \
+				CHECK(res.ok && !res.overflow && n == res.nchars && val == values[i]); \
+			}						\
+		}							\
+	}
+
+	__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+	return true;
+}
+
+SIMPLE_TEST(from_chars_edge_cases)
+{
+#define TEST(name, type)						\
+	{								\
+		type values[] = {					\
+			min_value(type),				\
+			min_value(type) + 1,				\
+			-1,						\
+			0,						\
+			1,						\
+			max_value(type) - 1,				\
+			max_value(type),				\
+		};							\
+		for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) { \
+			for (unsigned int base = 0; base <= 36; base++) { \
+				if (base == 1) {			\
+					continue;			\
+				}					\
+				char buf[128];				\
+				size_t n = to_chars(buf, sizeof(buf), values[i], base); \
+				type val;				\
+				struct from_chars_result res = from_chars(buf, n, &val, base); \
+				CHECK(res.ok && !res.overflow && n == res.nchars && val == values[i]); \
+			}						\
+		}							\
+	}
+
+	__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+		return true;
+}
+
+SIMPLE_TEST(from_chars_invalid_inputs)
+{
+#define TEST(name, type)						\
+	for (unsigned int base = 0; base <= 36; base++) {		\
+		if (base == 1) {					\
+			continue;					\
+		}							\
+		type val;						\
+		struct from_chars_result res;				\
+		res = from_chars("", 0, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == 0);	\
+		res = from_chars("", 1, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == 0);	\
+		res = from_chars("-", 1, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == type_is_signed(type)); \
+		res = from_chars("+", 1, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == type_is_signed(type)); \
+		res = from_chars("-", 2, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == type_is_signed(type)); \
+		char c = base == 0 ? 'a' : (base < 10 ? ('0' + base) : ('a' + base)); \
+		res = from_chars(&c, 1, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == 0);	\
+		char c2[] = { '0', c };					\
+		res = from_chars(c2, 2, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == 1);	\
+		char c3[] = { '1', c };					\
+		res = from_chars(c3, 2, &val, base);			\
+		CHECK(!res.ok && !res.overflow && res.nchars == 1);	\
+	}
+
+__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+	return true;
+}
+
+RANDOM_TEST(charconv_roundtrip, 1u << 18)
+{
+#define TEST(name, type)						\
+	for (unsigned int base = 0; base <= 36; base++) {		\
+		if (base == 1) {					\
+			continue;					\
+		}							\
+		char buf[128];						\
+		type val = (type)random_seed;				\
+		size_t n = to_chars(buf, sizeof(buf), val, base);	\
+		type retval;						\
+		struct from_chars_result res = from_chars(buf, n, &retval, base); \
+		CHECK(res.ok && !res.overflow && res.nchars == n && retval == val); \
+	}
+
+	__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+	return true;
+}
+
+RANDOM_TEST(charconv_roundtrip_flags, 1u << 14)
+{
+#define TEST(name, type)						\
+	for (unsigned int base = 0; base <= 36; base++) {		\
+		if (base == 1) {					\
+			continue;					\
+		}							\
+		char buf[256];						\
+		type val = (type)random_seed;				\
+		{							\
+			size_t n = to_chars(buf, sizeof(buf), val, base | TO_CHARS_LEADING_ZEROS); \
+			type retval;					\
+			struct from_chars_result res = from_chars_##name(buf, n, &retval, base); \
+			CHECK(res.ok && !res.overflow && res.nchars == n && retval == val); \
+		}							\
+		{							\
+			size_t n = to_chars(buf, sizeof(buf), val, base | TO_CHARS_PLUS_SIGN); \
+			type retval;					\
+			struct from_chars_result res = from_chars_##name(buf, n, &retval, base); \
+			CHECK(res.ok && !res.overflow && res.nchars == n && retval == val); \
+		}							\
+		{							\
+			size_t n = to_chars(buf, sizeof(buf), val, base | TO_CHARS_UPPERCASE); \
+			type retval;					\
+			struct from_chars_result res = from_chars_##name(buf, n, &retval, base); \
+			CHECK(res.ok && !res.overflow && res.nchars == n && retval == val); \
+		}							\
+		{							\
+			unsigned int flags = base | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN | TO_CHARS_UPPERCASE; \
+			size_t n = to_chars(buf, sizeof(buf), val, flags); \
+			type retval;					\
+			struct from_chars_result res = from_chars_##name(buf, n, &retval, base); \
+			CHECK(res.ok && !res.overflow && res.nchars == n && retval == val); \
+		}							\
+	}
+
+	__CHARCONV_FOREACH_INTTYPE(TEST);
+#undef TEST
+
+	return true;
+}
+
+#if _FORTIFY_SOURCE >= 1 && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
+
+NEGATIVE_SIMPLE_TEST(from_chars_fortified)
+{
+	const char str[] = { '1', '2', '3' };
+	int val;
+	from_chars(str, 4, &val, 0);
+	return true;
+}
+
+#define FROM_CHARS_FORTIFY_TEST(name, type)			\
+	NEGATIVE_SIMPLE_TEST(from_chars_##name##_fortified)	\
+	{							\
+		const char str[] = { '1', '2', '3' };		\
+		type val;					\
+		from_chars_##name(str, 4, &val, 0);		\
+		return true;					\
+	}							\
+
+__CHARCONV_FOREACH_INTTYPE(FROM_CHARS_FORTIFY_TEST)
+
+#endif
