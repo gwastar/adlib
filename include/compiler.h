@@ -283,7 +283,7 @@
 #ifdef HAVE_BUILTIN_OBJECT_SIZE
 # define _bos(ptr, type)                     __builtin_object_size(ptr, type)
 #else
-# define _bos(ptr, type)                     ((size_t)-1)
+# define _bos(ptr, type)                     ((((type) & 2) == 0 ? (size_t)-1 : (size_t)0)
 #endif
 
 #ifdef HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE
