@@ -45,9 +45,9 @@ enum to_chars_flags {
 
 	__TO_CHARS_BASE_MASK = 63, // base must be between 2 and 36 inclusive
 
-	TO_CHARS_LEADING_ZEROS = 128, // %0n with n=maxlen for the specified conversion
-	TO_CHARS_PLUS_SIGN = 256, // %+
-	TO_CHARS_UPPERCASE = 512, // %x -> %X
+	TO_CHARS_LEADING_ZEROS = 64, // %0n with n=maxlen for the specified conversion
+	TO_CHARS_PLUS_SIGN = 128, // %+
+	TO_CHARS_UPPERCASE = 256, // %x -> %X
 };
 
 // if the buffer is too small, these functions return the required size without touching the buffer

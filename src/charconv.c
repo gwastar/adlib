@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "charconv.h"
+#include "compiler.h"
 #include "utils.h"
 
 static const char __to_chars_lut_base2[64] = {
@@ -280,7 +281,7 @@ static const char __to_chars_lut_base16_upper[512] = {
 			return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, 8,	\
 							leading_zeros, sign_always, uppercase); \
 		}							\
-		assert(2 <= base && base <= 36);			\
+		_fortify_check(2 <= base && base <= 36);		\
 		return _to_chars_helper##suffix(buf, bufsize, uval, bits, is_signed, base, \
 						leading_zeros, sign_always, uppercase); \
 	}

@@ -171,8 +171,6 @@ static bool check_from_number(uint64_t x)
 	return check_from_number_binary(x);
 }
 
-#define __STRINGIFY(x) #x
-#define STRINGIFY(x) __STRINGIFY(x)
 
 SIMPLE_TEST(to_chars)
 {
@@ -627,7 +625,7 @@ RANGE_TEST(to_chars_bases, 2, 36)
 	return true;
 }
 
-#ifdef __FORTIFY_ENABLED
+#if _FORTIFY_SOURCE >= 1 && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
 
 NEGATIVE_SIMPLE_TEST(to_chars_fortified)
 {
