@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -299,8 +300,27 @@ _to_chars_impl(64, uint64_t, int64_t)
 __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC
 
+static const unsigned char from_chars_lut[UCHAR_MAX] = {
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	00,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+	-1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, -1, -1, -1, -1, -1,
+	-1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+};
+
 // TODO add 32 bit version for performance?
-// TODO try lookup tables like the libcxx implementation
+// TODO try the strategy from the libcxx or stdlibc++ implementation
 struct from_chars_result _from_chars(const char *chars, size_t maxlen, uint64_t *retval,
 				     unsigned char base, unsigned long long cutoff, unsigned char cutlim)
 {
@@ -308,14 +328,7 @@ struct from_chars_result _from_chars(const char *chars, size_t maxlen, uint64_t 
 	bool overflow = false;
 	size_t i;
 	for (i = 0; i < maxlen; i++) {
-		unsigned char c = chars[i];
-		if ('0' <= c && c <= '9') {
-			c -= '0';
-		} else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
-			c = (c | 32) + 10 - 'a';
-		} else {
-			break;
-		}
+		unsigned char c = from_chars_lut[(unsigned char)chars[i]];
 		if (c >= base) {
 			break;
 		}
@@ -367,6 +380,7 @@ static size_t _from_chars_detect_base(const char *chars, size_t maxlen, unsigned
 						     unsigned int flags) \
 	{								\
 		typedef to_unsigned_type(type) unsigned_type;		\
+		/* TODO prefetch lookup table? */			\
 		bool negative = false;					\
 		size_t i = 0;						\
 		if (type_is_signed(type) && likely(maxlen > 0) && (chars[0] == '-' || chars[0] == '+')) { \
