@@ -27,7 +27,9 @@
 #include "compiler.h"
 #include "utils.h"
 
-static const char __to_chars_lut_base2[64] = {
+#define CACHELINE_SIZE 64 // TODO
+
+static _Alignas(CACHELINE_SIZE) const char __to_chars_lut_base2[64] = {
 	'0', '0', '0', '0',
 	'0', '0', '0', '1',
 	'0', '0', '1', '0',
@@ -46,7 +48,7 @@ static const char __to_chars_lut_base2[64] = {
 	'1', '1', '1', '1',
 };
 
-static const char __to_chars_lut_base8[128] = {
+static _Alignas(CACHELINE_SIZE) const char __to_chars_lut_base8[128] = {
 	'0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7',
 	'1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7',
 	'2', '0', '2', '1', '2', '2', '2', '3', '2', '4', '2', '5', '2', '6', '2', '7',
@@ -57,7 +59,7 @@ static const char __to_chars_lut_base8[128] = {
 	'7', '0', '7', '1', '7', '2', '7', '3', '7', '4', '7', '5', '7', '6', '7', '7',
 };
 
-static const char __to_chars_lut_base10[200] = {
+static _Alignas(CACHELINE_SIZE) const char __to_chars_lut_base10[200] = {
 	'0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7', '0', '8', '0', '9',
 	'1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7', '1', '8', '1', '9',
 	'2', '0', '2', '1', '2', '2', '2', '3', '2', '4', '2', '5', '2', '6', '2', '7', '2', '8', '2', '9',
@@ -70,7 +72,7 @@ static const char __to_chars_lut_base10[200] = {
 	'9', '0', '9', '1', '9', '2', '9', '3', '9', '4', '9', '5', '9', '6', '9', '7', '9', '8', '9', '9',
 };
 
-static const char __to_chars_lut_base16[512] = {
+static _Alignas(CACHELINE_SIZE) const char __to_chars_lut_base16[512] = {
 	'0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7',
 	'0', '8', '0', '9', '0', 'a', '0', 'b', '0', 'c', '0', 'd', '0', 'e', '0', 'f',
 	'1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7',
@@ -105,7 +107,7 @@ static const char __to_chars_lut_base16[512] = {
 	'f', '8', 'f', '9', 'f', 'a', 'f', 'b', 'f', 'c', 'f', 'd', 'f', 'e', 'f', 'f',
 };
 
-static const char __to_chars_lut_base16_upper[512] = {
+static _Alignas(CACHELINE_SIZE) const char __to_chars_lut_base16_upper[512] = {
 	'0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0', '7',
 	'0', '8', '0', '9', '0', 'A', '0', 'B', '0', 'C', '0', 'D', '0', 'E', '0', 'F',
 	'1', '0', '1', '1', '1', '2', '1', '3', '1', '4', '1', '5', '1', '6', '1', '7',
@@ -300,7 +302,7 @@ _to_chars_impl(64, uint64_t, int64_t)
 __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC
 
-static const unsigned char from_chars_lut[UCHAR_MAX] = {
+static _Alignas(CACHELINE_SIZE) const unsigned char from_chars_lut[UCHAR_MAX] = {
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
