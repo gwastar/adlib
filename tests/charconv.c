@@ -678,6 +678,38 @@ __CHARCONV_FOREACH_INTTYPE(TO_CHARS_FORTIFY_TEST)
 
 #endif
 
+SIMPLE_TEST(from_chars)
+{
+	int intval;
+	struct from_chars_result res = from_chars("123", 4, &intval, 0);
+	CHECK(res.ok && !res.overflow && res.nchars == 3);
+	CHECK(intval == 123);
+	res = from_chars("-123", -1, &intval, 0);
+	CHECK(res.ok && !res.overflow && res.nchars == 4);
+	CHECK(intval == -123);
+	signed char charval;
+	res = from_chars("-128", -1, &charval, 0);
+	CHECK(res.ok && !res.overflow && res.nchars == 4);
+	CHECK(charval == -128);
+	res = from_chars("-129", -1, &charval, 0);
+	CHECK(!res.ok && res.overflow && res.nchars == 4);
+	CHECK(charval == -128); // unchanged
+	res = from_chars("127", -1, &charval, 0);
+	CHECK(res.ok && !res.overflow && res.nchars == 3);
+	CHECK(charval == 127);
+	res = from_chars("128", -1, &charval, 0);
+	CHECK(!res.ok && res.overflow && res.nchars == 3);
+	CHECK(charval == 127); // unchanged
+	unsigned char ucharval;
+	res = from_chars("2550", 3, &ucharval, 0);
+	CHECK(res.ok && !res.overflow && res.nchars == 3);
+	CHECK(ucharval == 255);
+	res = from_chars("2560", 3, &ucharval, 0);
+	CHECK(!res.ok && res.overflow && res.nchars == 3);
+	CHECK(ucharval == 255); // unchanged
+	return true;
+}
+
 static void increment(char *str, size_t *len, unsigned int base)
 {
 	char max_char = base <= 10 ? '0' + base - 1 : 'a' + base - 11;

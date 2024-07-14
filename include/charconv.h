@@ -64,18 +64,18 @@ size_t to_chars_ulong(char *buf, size_t bufsize, unsigned long val, unsigned int
 size_t to_chars_llong(char *buf, size_t bufsize, long long val, unsigned int flags);
 size_t to_chars_ullong(char *buf, size_t bufsize, unsigned long long val, unsigned int flags);
 #define to_chars(buf, bufsize, val, flags)				\
-	_Generic(val,							\
-		 char : to_chars_char(buf, bufsize, (char)val, flags),	\
-		 unsigned char : to_chars_uchar(buf, bufsize, (unsigned char)val, flags), \
-		 unsigned short : to_chars_ushort(buf, bufsize, (unsigned short)val, flags), \
-		 unsigned int : to_chars_uint(buf, bufsize, (unsigned int)val, flags), \
-		 unsigned long : to_chars_ulong(buf, bufsize, (unsigned long)val, flags), \
-		 unsigned long long : to_chars_ullong(buf, bufsize, (unsigned long long)val, flags), \
-		 signed char : to_chars_schar(buf, bufsize, (signed char)val, flags), \
-		 signed short : to_chars_short(buf, bufsize, (signed short)val, flags), \
-		 signed int : to_chars_int(buf, bufsize, (signed int)val, flags), \
-		 signed long : to_chars_long(buf, bufsize, (signed long)val, flags), \
-		 signed long long : to_chars_llong(buf, bufsize, (signed long long)val, flags))
+	_Generic((val),							\
+		 char : to_chars_char(buf, bufsize, (char)(val), flags), \
+		 unsigned char : to_chars_uchar(buf, bufsize, (unsigned char)(val), flags), \
+		 unsigned short : to_chars_ushort(buf, bufsize, (unsigned short)(val), flags), \
+		 unsigned int : to_chars_uint(buf, bufsize, (unsigned int)(val), flags), \
+		 unsigned long : to_chars_ulong(buf, bufsize, (unsigned long)(val), flags), \
+		 unsigned long long : to_chars_ullong(buf, bufsize, (unsigned long long)(val), flags), \
+		 signed char : to_chars_schar(buf, bufsize, (signed char)(val), flags), \
+		 signed short : to_chars_short(buf, bufsize, (signed short)(val), flags), \
+		 signed int : to_chars_int(buf, bufsize, (signed int)(val), flags), \
+		 signed long : to_chars_long(buf, bufsize, (signed long)(val), flags), \
+		 signed long long : to_chars_llong(buf, bufsize, (signed long long)(val), flags))
 
 #ifdef __FORTIFY_ENABLED
 
@@ -146,18 +146,18 @@ struct from_chars_result from_chars_llong(const char *chars, size_t maxlen, long
 					  unsigned int flags);
 
 #define from_chars(chars, maxlen, result, flags)			\
-	_Generic(result,						\
-		 char * : from_chars_char(chars, maxlen, (char *)result, flags), \
-		 unsigned char * : from_chars_uchar(chars, maxlen, (unsigned char *)result, flags), \
-		 unsigned short * : from_chars_ushort(chars, maxlen, (unsigned short *)result, flags), \
-		 unsigned int * : from_chars_uint(chars, maxlen, (unsigned int *)result, flags), \
-		 unsigned long * : from_chars_ulong(chars, maxlen, (unsigned long *)result, flags), \
-		 unsigned long long * : from_chars_ullong(chars, maxlen, (unsigned long long *)result, flags), \
-		 signed char * : from_chars_schar(chars, maxlen, (signed char *)result, flags), \
-		 signed short * : from_chars_short(chars, maxlen, (signed short *)result, flags), \
-		 signed int * : from_chars_int(chars, maxlen, (signed int *)result, flags), \
-		 signed long * : from_chars_long(chars, maxlen, (signed long *)result, flags), \
-		 signed long long * : from_chars_llong(chars, maxlen, (signed long long *)result, flags))
+	_Generic((result),						\
+		 char * : from_chars_char(chars, maxlen, (char *)(result), flags), \
+		 unsigned char * : from_chars_uchar(chars, maxlen, (unsigned char *)(result), flags), \
+		 unsigned short * : from_chars_ushort(chars, maxlen, (unsigned short *)(result), flags), \
+		 unsigned int * : from_chars_uint(chars, maxlen, (unsigned int *)(result), flags), \
+		 unsigned long * : from_chars_ulong(chars, maxlen, (unsigned long *)(result), flags), \
+		 unsigned long long * : from_chars_ullong(chars, maxlen, (unsigned long long *)(result), flags), \
+		 signed char * : from_chars_schar(chars, maxlen, (signed char *)(result), flags), \
+		 signed short * : from_chars_short(chars, maxlen, (signed short *)(result), flags), \
+		 signed int * : from_chars_int(chars, maxlen, (signed int *)(result), flags), \
+		 signed long * : from_chars_long(chars, maxlen, (signed long *)(result), flags), \
+		 signed long long * : from_chars_llong(chars, maxlen, (signed long long *)(result), flags))
 
 #ifdef __FORTIFY_ENABLED
 

@@ -329,7 +329,7 @@ struct from_chars_result _from_chars(const char *chars, size_t maxlen, uint64_t 
 		res = res * base + c;
 	}
 	*retval = res;
-	bool ok = !overflow && (i == maxlen) && likely(i != 0);
+	bool ok = !overflow && (i == maxlen || chars[i] == '\0') && likely(i != 0);
 	return (struct from_chars_result) {
 		.ok = ok,
 		.overflow = overflow,
