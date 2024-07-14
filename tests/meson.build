@@ -39,6 +39,7 @@ targets = [
   {'name': 'array_benchmark', 'sources': 'array_benchmark.c',},
   {'name': 'btree_map_benchmark', 'sources': 'btree_map_benchmark.c',},
   {'name': 'btree_set_benchmark', 'sources': 'btree_set_benchmark.c',},
+  {'name': 'charconv_benchmark', 'sources': 'charconv_benchmark.c',},
   {'name': 'hash_benchmark', 'sources': 'hash_benchmark.c',},
   {'name': 'hash_comparison', 'sources': 'hash_comparison.c', 'deps': hash_comparison_deps, 'c_args': hash_comparison_c_args},
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
