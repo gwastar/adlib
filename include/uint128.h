@@ -3,7 +3,15 @@
 
 #define UINT128_MAX ((uint128_t){.low = UINT64_MAX, .high = UINT64_MAX })
 
-#ifdef HAVE_INT128
+#if defined(HAVE_INT128) || defined(__ADLIB_TESTS__)
+# define __UINT128_ENABLE_NATIVE
+#endif
+
+#if !defined(HAVE_INT128) || defined(__ADLIB_TESTS__)
+# define __UINT128_ENABLE_GENERIC
+#endif
+
+#ifdef __UINT128_ENABLE_NATIVE
 __extension__ typedef unsigned __int128 _u128_t;
 #endif
 
@@ -19,12 +27,12 @@ typedef union uint128 {
 		uint64_t low;
 	};
 #endif
-#ifdef HAVE_INT128
+#ifdef __UINT128_ENABLE_NATIVE
 	_u128_t u128;
 #endif
 } uint128_t;
 
-#ifdef HAVE_INT128
+#ifdef __UINT128_ENABLE_NATIVE
 
 static _attr_always_inline uint128_t _uint128_from_u128(_u128_t u128)
 {
@@ -115,7 +123,7 @@ static _attr_always_inline int _uint128_cmp_u128(uint128_t a, uint128_t b)
 
 #endif // HAVE_INT128
 
-#if !defined(HAVE_INT128) || defined(__ADLIB_TESTS__)
+#ifdef __UINT128_ENABLE_GENERIC
 
 static _attr_always_inline uint128_t _uint128_from_high_low_bits_generic(uint64_t high, uint64_t low)
 {
