@@ -26,14 +26,11 @@
 #if _FORTIFY_SOURCE >= 1
 # define __FORTIFY_ENABLED 1
 # if _FORTIFY_SOURCE >= 3
-#  define _fortify_bos(ptr) _bdos(ptr, 1) // accesses in range _fortify_bos() <= byte_idx are out of bounds
-#  define _fortify_bos_safe(ptr) _bdos(ptr, 3) // accesses in range 0 <= byte_idx < _fortify_bos_safe() are safe
+#  define _fortify_bos(ptr) _bdos(ptr, 1)
 # elif _FORTIFY_SOURCE == 2
 #  define _fortify_bos(ptr) _bos(ptr, 1)
-#  define _fortify_bos_safe(ptr) _bos(ptr, 3)
 # elif _FORTIFY_SOURCE == 1
 #  define _fortify_bos(ptr) _bos(ptr, 0)
-#  define _fortify_bos_safe(ptr) _bos(ptr, 2)
 #endif
 # define _fortify_check(cond)						\
 	((void)(likely(cond) || (_fortify_check_failed(#cond, __FILE__, __LINE__), 0)))
