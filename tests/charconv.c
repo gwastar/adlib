@@ -707,6 +707,15 @@ SIMPLE_TEST(from_chars)
 	res = from_chars("2560", 3, &ucharval, 0);
 	CHECK(!res.ok && res.overflow && res.nchars == 3);
 	CHECK(ucharval == 255); // unchanged
+
+	res = from_chars("1:2", 3, &intval, 0);
+	CHECK(!res.ok && !res.overflow && res.nchars == 1);
+	res = from_chars("1@2", 3, &intval, 0);
+	CHECK(!res.ok && !res.overflow && res.nchars == 1);
+	res = from_chars("1[2", 3, &intval, 0);
+	CHECK(!res.ok && !res.overflow && res.nchars == 1);
+	res = from_chars("1`2", 3, &intval, 0);
+	CHECK(!res.ok && !res.overflow && res.nchars == 1);
 	return true;
 }
 

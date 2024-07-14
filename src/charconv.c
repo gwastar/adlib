@@ -18,7 +18,6 @@
  */
 
 #include <assert.h>
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -301,23 +300,21 @@ __CHARCONV_FOREACH_INTTYPE(__TO_CHARS_FUNC)
 #undef __TO_CHARS_FUNC
 
 // TODO add 32 bit version for performance?
-// TODO try open coding the isalnum and isdigit checks for better performance and correctness (locale?)
 // TODO try lookup tables like the libcxx implementation
 struct from_chars_result _from_chars(const char *chars, size_t maxlen, uint64_t *retval,
 				     unsigned char base, unsigned long long cutoff, unsigned char cutlim)
 {
-	unsigned long long res = 0;
+	uint64_t res = 0;
 	bool overflow = false;
 	size_t i;
 	for (i = 0; i < maxlen; i++) {
 		unsigned char c = chars[i];
-		if (!isalnum(c)) {
-			break;
-		}
-		if (isdigit(c)) {
+		if ('0' <= c && c <= '9') {
 			c -= '0';
-		} else {
+		} else if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
 			c = (c | 32) + 10 - 'a';
+		} else {
+			break;
 		}
 		if (c >= base) {
 			break;
