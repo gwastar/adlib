@@ -976,26 +976,3 @@ RANDOM_TEST(charconv_roundtrip_flags, 1u << 14)
 
 	return true;
 }
-
-#if _FORTIFY_SOURCE >= 1 && (defined(HAVE_BUILTIN_DYNAMIC_OBJECT_SIZE) || defined(HAVE_BUILTIN_OBJECT_SIZE))
-
-NEGATIVE_SIMPLE_TEST(from_chars_fortified)
-{
-	const char str[] = { '1', '2', '3' };
-	int val;
-	from_chars(str, 4, &val, 0);
-	return true;
-}
-
-#define FROM_CHARS_FORTIFY_TEST(name, type)			\
-	NEGATIVE_SIMPLE_TEST(from_chars_##name##_fortified)	\
-	{							\
-		const char str[] = { '1', '2', '3' };		\
-		type val;					\
-		from_chars_##name(str, 4, &val, 0);		\
-		return true;					\
-	}							\
-
-__CHARCONV_FOREACH_INTTYPE(FROM_CHARS_FORTIFY_TEST)
-
-#endif

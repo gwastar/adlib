@@ -158,33 +158,3 @@ struct from_chars_result from_chars_llong(const char *chars, size_t maxlen, long
 		 signed int * : from_chars_int(chars, maxlen, (signed int *)(result), flags), \
 		 signed long * : from_chars_long(chars, maxlen, (signed long *)(result), flags), \
 		 signed long long * : from_chars_llong(chars, maxlen, (signed long long *)(result), flags))
-
-#ifdef __FORTIFY_ENABLED
-
-#define _from_chars_fortified(name, type)				\
-	static __always_inline						\
-	struct from_chars_result _from_chars_##name##_fortified(const char *chars, size_t maxlen, \
-								type *result, unsigned int flags) \
-	{								\
-		/* TODO this check might be a bit too expensive */	\
-		_fortify_check(_fortify_bos(chars) >= maxlen ||		\
-			       memchr(chars, '\0', _fortify_bos_safe(chars))); \
-		return from_chars_##name(chars, maxlen, result, flags);	\
-	}
-
-__CHARCONV_FOREACH_INTTYPE(_from_chars_fortified)
-#undef _from_chars_fortified
-
-#define from_chars_char(chars, maxlen, result, flags)   _from_chars_char_fortified(chars, maxlen, result, flags)
-#define from_chars_schar(chars, maxlen, result, flags)  _from_chars_schar_fortified(chars, maxlen, result, flags)
-#define from_chars_uchar(chars, maxlen, result, flags)  _from_chars_uchar_fortified(chars, maxlen, result, flags)
-#define from_chars_short(chars, maxlen, result, flags)  _from_chars_short_fortified(chars, maxlen, result, flags)
-#define from_chars_ushort(chars, maxlen, result, flags) _from_chars_ushort_fortified(chars, maxlen, result, flags)
-#define from_chars_int(chars, maxlen, result, flags)    _from_chars_int_fortified(chars, maxlen, result, flags)
-#define from_chars_uint(chars, maxlen, result, flags)   _from_chars_uint_fortified(chars, maxlen, result, flags)
-#define from_chars_long(chars, maxlen, result, flags)   _from_chars_long_fortified(chars, maxlen, result, flags)
-#define from_chars_ulong(chars, maxlen, result, flags)  _from_chars_ulong_fortified(chars, maxlen, result, flags)
-#define from_chars_llong(chars, maxlen, result, flags)  _from_chars_llong_fortified(chars, maxlen, result, flags)
-#define from_chars_ullong(chars, maxlen, result, flags) _from_chars_ullong_fortified(chars, maxlen, result, flags)
-
-#endif
