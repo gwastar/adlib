@@ -70,9 +70,7 @@ build-gcc-release:
     MESON_FLAGS: "-Dbuildtype=release"
 
 build-gcc-debug:
-  extends:
-    - .build-meson
-    - .expensive-job
+  extends: .build-meson
   variables:
     MESON_FLAGS: "-Dbuildtype=debug -Dsingle-tests=true -Dc_args=-Og -Ddisable-feature-detection=true"
 
@@ -80,7 +78,6 @@ build-clang-release:
   extends:
     - .build-meson
     - .use-clang
-    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=release"
 
@@ -88,22 +85,11 @@ build-asan-ubsan:
   extends:
     - .build-meson
     - .use-clang
-    - .expensive-job
   variables:
     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=address,undefined -Db_lundef=false"
 
-# build-msan:
-#   extends:
-#     - .build-meson
-#     - .use-clang
-#     - .expensive-job
-#   variables:
-#     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=memory -Db_lundef=false"
-
 build-cmake-gcc-release:
-  extends:
-    - .build-cmake
-    - .expensive-job
+  extends: .build-cmake
   variables:
     CMAKE_FLAGS: "-DCMAKE_BUILD_TYPE=Release"
 
@@ -117,25 +103,13 @@ test-gcc-release:
   needs: [build-gcc-release]
 
 test-gcc-debug:
-  extends:
-    - .test
-    - .expensive-job
+  extends: .test
   needs: [build-gcc-debug]
 
 test-clang-release:
-  extends:
-    - .test
-    - .expensive-job
+  extends: .test
   needs: [build-clang-release]
 
 test-asan-ubsan:
-  extends:
-    - .test
-    - .expensive-job
+  extends: .test
   needs: [build-asan-ubsan]
-
-# test-msan:
-#   extends:
-#     - .test
-#     - .expensive-job
-#   needs: [build-msan]
