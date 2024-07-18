@@ -74,7 +74,7 @@ build-gcc-debug:
     - .build-meson
     - .expensive-job
   variables:
-    MESON_FLAGS: "-Dbuildtype=debug -Dsingle-tests=true"
+    MESON_FLAGS: "-Dbuildtype=debug -Dsingle-tests=true -Dc_args=-Og -Ddisable-feature-detection=true"
 
 build-clang-release:
   extends:
