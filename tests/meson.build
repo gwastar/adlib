@@ -31,6 +31,7 @@ tests_sources = [
   'json.c',
   'random.c',
   'rb_tree.c',
+  'selftests.c',
   'uint128.c',
   'utils.c',
 ]
@@ -45,7 +46,7 @@ targets = [
   {'name': 'hashtable_benchmark', 'sources': 'hashtable_benchmark.c',},
   {'name': 'heap_benchmark', 'sources': 'heap_benchmark.c',},
   {'name': 'random_benchmark', 'sources': 'random_benchmark.c',},
-  {'name': 'tests', 'sources': tests_sources + 'testing.c', 'deps': m_dep, 'c_args': ['-D__ADLIB_TESTS__']},
+  {'name': 'tests', 'sources': tests_sources + ['testing.c', 'testing_common.c'], 'deps': m_dep, 'c_args': ['-D__ADLIB_TESTS__']},
 ]
 
 foreach target : targets
@@ -59,7 +60,7 @@ endforeach
 if get_option('single-tests')
   foreach src : tests_sources
     name = src.substring(0, -2)
-    e = executable(name, [src, 'single_testing.c'], dependencies : m_dep, c_args : ['-D__ADLIB_TESTS__'], link_with : adlib, include_directories : adlib_inc)
+    e = executable(name, [src, 'single_testing.c', 'testing_common.c'], dependencies : m_dep, c_args : ['-D__ADLIB_TESTS__'], link_with : adlib, include_directories : adlib_inc)
     test(name, e, timeout : 600)
   endforeach
 endif

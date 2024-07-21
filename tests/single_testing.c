@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,11 +121,21 @@ void check_failed(const char *func, const char *file, unsigned int line, const c
 	test_log("[%s:%u: %s] CHECK failed: %s\n", file, line, func, cond);
 }
 
+#if 0
 void test_log(const char *fmt, ...)
 {
 	(void)fmt;
 	// TODO print into an fmemopen file?
 }
+#else
+void test_log(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+#endif
 
 static int compare_tests(const void *_a, const void *_b)
 {

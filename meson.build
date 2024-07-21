@@ -17,6 +17,7 @@ c_args = [
   '-Wimplicit-fallthrough',
   '-Wimplicit-fallthrough=5',
   '-Wno-language-extension-token',
+  '-Wswitch-enum',
   '-fstrict-flex-arrays=3',
 
   '-fno-semantic-interposition',
