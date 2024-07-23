@@ -23,6 +23,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,8 +36,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include "compiler.h"
-#include "macros.h"
 #include "testing.h"
 
 static uint64_t global_seed;
@@ -223,6 +222,9 @@ struct worker {
 		} random;
 	};
 };
+
+#define container_of(ptr, type, member)					\
+	((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
 
 static struct worker *to_worker(struct list_head *ptr)
 {
@@ -663,7 +665,7 @@ static void usage(char *executable_path)
 int main(int argc, char **argv)
 {
 	if (!tests) {
-		fputs("no tests were registered", stderr);
+		fputs("no tests were registered\n", stderr);
 		return EXIT_SUCCESS;
 	}
 	unsigned int num_jobs = 0;

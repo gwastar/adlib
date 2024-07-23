@@ -125,21 +125,6 @@ set(SOURCES
   utils.c
 )
 
-foreach(SOURCE IN LISTS SOURCES)
-  get_filename_component(BASENAME ${SOURCE} NAME_WLE)
-  string(TOUPPER ${BASENAME} OPTION_NAME)
-  string(PREPEND OPTION_NAME DISABLE_)
-  option(${OPTION_NAME} "disable ${SOURCE}" OFF)
-  if(${OPTION_NAME})
-    list(REMOVE_ITEM SOURCES ${SOURCE})
-  endif()
-endforeach()
-
-list(LENGTH SOURCES NUM_SOURCES)
-if(${NUM_SOURCES} EQUAL 0)
-  message(FATAL_ERROR "You have disabled all sources.")
-endif()
-
 list(TRANSFORM SOURCES PREPEND src/)
 
 set(SOURCE_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -176,9 +161,15 @@ if(${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME})
   endif()
 endif()
 
+option(ENABLE_BENCHMARKS "enable tests" OFF)
+if(${ENABLE_BENCHMARKS})
+  add_subdirectory(benchmarks)
+endif()
+
 option(ENABLE_TESTS "enable tests" ON)
 if(${ENABLE_TESTS})
   enable_testing()
+  add_subdirectory(testing)
   add_subdirectory(tests)
 endif()
 

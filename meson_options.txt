@@ -1,5 +1,6 @@
 option('tests', type : 'boolean', value : true, description : 'enable tests')
 option('single-tests', type : 'boolean', value : false, description : 'enable single tests')
+option('benchmarks', type : 'boolean', value : false, description : 'enable benchmarks')
 option('staging', type : 'boolean', value : false, description : 'compile code in staging')
 option('disable-feature-detection', type : 'boolean', value : false, description : 'disable detection for compiler builtins and non-standard library functions to test the fallback codepaths')
 option('array-initial-size', type : 'integer', value : 8, description : 'Initial size of a dynamic array')

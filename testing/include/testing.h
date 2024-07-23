@@ -21,13 +21,10 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include "compiler.h"
-
-_Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
 #define CHECK(cond)							\
 	do {								\
-		if (unlikely(!(cond)))  {				\
+		if (__builtin_expect(!(cond), 0))  {			\
 			check_failed(__func__, __FILE__, __LINE__, #cond); \
 			return false;					\
 		}							\
@@ -45,7 +42,7 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 
 #define _SIMPLE_TEST(name, should_succeed)				\
 	static bool test_##name(void);					\
-	static _attr_constructor void register_simple_test_##name(void)	\
+	static __attribute__((constructor)) void register_simple_test_##name(void) \
 	{								\
 		register_simple_test(__FILE__, #name, test_##name, should_succeed); \
 	}								\
@@ -56,14 +53,14 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 	static bool _test_##name##_helper(uint64_t _start, uint64_t _end) \
 	{								\
 		for (uint64_t _x = _start; _x <= _end && _x >= _start; _x++) { \
-			if (unlikely(!test_##name(_x))) {		\
+			if (__builtin_expect(!test_##name(_x), 0)) {	\
 				test_log("test failed with input: %" PRIu64 "\n", _x); \
 				return false;				\
 			}						\
 		}							\
 		return true;						\
 	}								\
-	static _attr_constructor void register_simple_test_##name(void)	\
+	static __attribute__((constructor)) void register_simple_test_##name(void) \
 	{								\
 		register_range_test(__FILE__, #name, start_, end_, _test_##name##_helper, should_succeed); \
 	}								\
@@ -79,19 +76,18 @@ _Static_assert(HAVE_ATTR_CONSTRUCTOR, "");
 			_z = (_z ^ (_z >> 30)) * 0xbf58476d1ce4e5b9;	\
 			_z = (_z ^ (_z >> 27)) * 0x94d049bb133111eb;	\
 			_z = _z ^ (_z >> 31);				\
-			if (unlikely(!test_##name(_z))) {		\
+			if (__builtin_expect(!test_##name(_z), 0)) {	\
 				test_log("test failed with input: %" PRIu64 "\n", _z); \
 				return false;				\
 			}						\
 		}							\
 		return true;						\
 	}								\
-	static _attr_constructor void register_simple_test_##name(void)	\
+	static __attribute__((constructor)) void register_simple_test_##name(void) \
 	{								\
 		register_random_test(__FILE__, #name, num_values, _test_##name##_helper, should_succeed); \
 	}								\
 	static bool test_##name(uint64_t random_seed)
-
 
 void register_simple_test(const char *file, const char *name,
 			  bool (*f)(void), bool should_succeed);
@@ -102,4 +98,4 @@ void register_random_test(const char *file, const char *name, uint64_t num_value
 
 void check_failed(const char *func, const char *file, unsigned int line, const char *cond);
 
-void test_log(const char *fmt, ...) _attr_format_printf(1, 2);
+void test_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

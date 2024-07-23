@@ -41,7 +41,7 @@ workflow:
   stage: build
   artifacts:
     paths:
-      - "${CI_PROJECT_DIR}/_${CI_JOB_NAME_SLUG}/tests/tests"
+      - "${CI_PROJECT_DIR}/_${CI_JOB_NAME_SLUG}/tests/testsuite"
     expire_in: 1 week
   variables:
     MESON_COMMON_FLAGS: "-Dc_args=-Werror"
@@ -72,7 +72,7 @@ build-gcc-release:
 build-gcc-debug:
   extends: .build-meson
   variables:
-    MESON_FLAGS: "-Dbuildtype=debug -Dsingle-tests=true -Dc_args=-Og -Ddisable-feature-detection=true"
+    MESON_FLAGS: "-Dbuildtype=debug -Dsingle-tests=true -Dbenchmarks=true -Dc_args=-Og -Ddisable-feature-detection=true"
 
 build-clang-release:
   extends:
@@ -88,15 +88,15 @@ build-asan-ubsan:
   variables:
     MESON_FLAGS: "-Dbuildtype=debugoptimized -Db_sanitize=address,undefined -Db_lundef=false"
 
-build-cmake-gcc-release:
+build-cmake-gcc-debug:
   extends: .build-cmake
   variables:
-    CMAKE_FLAGS: "-DCMAKE_BUILD_TYPE=Release"
+    CMAKE_FLAGS: "-DENABLE_SINGLE_TESTS=ON -DENABLE_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Debug"
 
 .test:
   stage: test
   script:
-    - "_${CI_JOB_NAME_SLUG/test/build}/tests/tests"
+    - "_${CI_JOB_NAME_SLUG/test/build}/tests/testsuite"
 
 test-gcc-release:
   extends: .test

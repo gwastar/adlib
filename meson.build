@@ -25,7 +25,7 @@ c_args = [
 
   #'-march=native',
   #'-mtune=native',
-  
+
   # '-fanalyzer',
   # '-Wsuggest-attribute=pure',
   # '-Wsuggest-attribute=const',
@@ -79,7 +79,7 @@ if not disable_feature_detection
   cdata.set('HAVE_BUILTIN_SUB_OVERFLOW', cc.has_function('__builtin_sub_overflow'))
   cdata.set('HAVE_BUILTIN_POPCOUNT', cc.has_function('__builtin_popcount'))
   cdata.set('HAVE_BUILTIN_UNREACHABLE', cc.has_function('__builtin_unreachable'))
-  
+
   cdata.set('HAVE_STRNLEN', cc.has_function('strnlen', args : '-D_GNU_SOURCE'))
   cdata.set('HAVE_MEMMEM', cc.has_function('memmem', args : '-D_GNU_SOURCE'))
   cdata.set('HAVE_MEMRCHR', cc.has_function('memrchr', args : '-D_GNU_SOURCE'))
@@ -117,7 +117,12 @@ adlib = library('adlib', prefixed_sources, include_directories : adlib_inc, inst
 
 install_subdir('include', install_dir : 'include/adlib', strip_directory : true, install_tag : 'devel', exclude_files : 'config.h.in')
 
+if get_option('benchmarks')
+  subdir('benchmarks')
+endif
+
 if get_option('tests')
+  subdir('testing')
   subdir('tests')
 endif
 

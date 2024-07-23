@@ -1,63 +1,57 @@
 project(adlib-tests)
 
-macro(add_standalone NAME)
-  add_executable(${NAME} ${NAME}.c ${ARGN})
-  target_link_libraries(${NAME} ad-static)
-endmacro()
-
-add_standalone(array_benchmark)
-add_standalone(btree_map_benchmark)
-add_standalone(btree_set_benchmark)
-add_standalone(charconv_benchmark)
-add_standalone(hash_benchmark)
-add_standalone(hash_comparison)
-add_standalone(hashtable_benchmark)
-add_standalone(heap_benchmark)
-add_standalone(random_benchmark)
-
-include(FindPkgConfig)
-if(${PKG_CONFIG_FOUND})
-  pkg_check_modules(XXHASH libxxhash>=0.8.0)
-  if(${XXHASH_FOUND})
-    target_include_directories(hash_comparison PRIVATE ${XXHASH_INCLUDE_DIRS})
-    target_link_libraries(hash_comparison ${XXHASH_LIBRARIES})
-    target_compile_definitions(hash_comparison PRIVATE HAVE_XXHASH)
-  endif()
-  pkg_check_modules(GCRYPT libgcrypt>=1.10)
-  if(${GCRYPT_FOUND})
-    target_include_directories(hash_comparison PRIVATE ${GCRYPT_INCLUDE_DIRS})
-    target_link_libraries(hash_comparison ${GCRYPT_LIBRARIES})
-    target_compile_definitions(hash_comparison PRIVATE HAVE_GCRYPT)
-  endif()
-  pkg_check_modules(GNUTLS gnutls>=3.8)
-  if(${GNUTLS_FOUND})
-    target_include_directories(hash_comparison PRIVATE ${GNUTLS_INCLUDE_DIRS})
-    target_link_libraries(hash_comparison ${GNUTLS_LIBRARIES})
-    target_compile_definitions(hash_comparison PRIVATE HAVE_GNUTLS)
-  endif()
-endif()
-
-set(TEST_SOURCES
-  array.c
-  avl_tree.c
-  btree_map.c
-  btree_set.c
-  charconv.c
-  dbuf.c
-  dstring.c
-  hash.c
-  hashmap.c
-  hashset.c
-  heap.c
-  json.c
-  random.c
-  rb_tree.c
-  uint128.c
-  utils.c
+set(TESTS
+  array
+  avl_tree
+  btree_map
+  btree_set
+  charconv
+  dbuf
+  dstring
+  hash
+  hashmap
+  hashset
+  heap
+  json
+  random
+  rb_tree
+  uint128
+  utils
 )
 
-add_executable(tests testing.c ${TEST_SOURCES})
-target_compile_definitions(tests PRIVATE __ADLIB_TESTS__)
-target_link_libraries(tests ad-static m)
+get_target_property(TESTING_INCLUDES testing INCLUDE_DIRECTORIES)
 
-add_test(NAME run_testsuite COMMAND $<TARGET_FILE:tests>)
+# build a static library out of each source file so that we don't compile every file twice
+foreach(TEST IN LISTS TESTS)
+  add_library(_${TEST} STATIC ${TEST}.c)
+  target_compile_definitions(_${TEST} PRIVATE __ADLIB_TESTS__)
+  target_link_libraries(_${TEST} ad-static m)
+  target_include_directories(_${TEST} PRIVATE ${TESTING_INCLUDES})
+endforeach()
+
+# cmake doesn't allow add_executable with no sources
+set(DUMMY_FILE ${CMAKE_CURRENT_BINARY_DIR}/null.c)
+file(WRITE ${DUMMY_FILE} "")
+
+add_executable(testsuite ${DUMMY_FILE})
+target_compile_definitions(testsuite PRIVATE __ADLIB_TESTS__)
+list(TRANSFORM TESTS PREPEND _ OUTPUT_VARIABLE PREFIXED_TESTS)
+target_link_libraries(testsuite
+  -Wl,--whole-archive
+  ${PREFIXED_TESTS}
+  -Wl,--no-whole-archive
+  testing
+)
+
+if(${ENABLE_SINGLE_TESTS})
+  foreach(TEST IN LISTS TESTS)
+    add_executable(${TEST} ${DUMMY_FILE})
+    target_link_libraries(${TEST}
+      -Wl,--whole-archive
+      _${TEST}
+      -Wl,--no-whole-archive
+      single_testing
+    )
+    add_test(NAME ${TEST} COMMAND $<TARGET_FILE:${TEST}>)
+  endforeach()
+endif()
