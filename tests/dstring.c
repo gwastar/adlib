@@ -24,15 +24,17 @@ static int sign(int x)
 	return x < 0 ? -1 : (x > 0 ? 1 : 0);
 }
 
+static const char abc[] = "abcdefghijklmnopqrstuvwxyz";
+static const char a256[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-=_+[]\\;',./{}|:\"<>?abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-=_+[]\\;',./{}|:\"<>?abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$";
+#define STRLEN(s) (sizeof(s) - 1)
+static const size_t abc_len = STRLEN(abc);
+static const size_t a256_len = STRLEN(a256);
+_Static_assert(STRLEN(abc) == 26, "");
+_Static_assert(STRLEN(a256) == 256, "");
+#undef STRLEN
+
 SIMPLE_TEST(dstring)
 {
-	const char *abc = "abcdefghijklmnopqrstuvwxyz";
-	const char *a256 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-=_+[]\\;',./{}|:\"<>?abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$%^&*()-=_+[]\\;',./{}|:\"<>?abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`~!@#$";
-	size_t abc_len = strlen(abc);
-	size_t a256_len = strlen(a256);
-	CHECK(abc_len == 26);
-	CHECK(a256_len == 256);
-
 	dstr_t dstr = dstr_from_cstr("abc");
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, "def");
@@ -76,8 +78,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_rfind_cstr(dstr, "xyz", DSTR_NPOS) == 2597);
 	CHECK(dstr_rfind_cstr(dstr, "uvw", DSTR_NPOS) == 2594);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_constructors)
+{
+	dstr_t dstr = dstr_new();
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
@@ -138,8 +144,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_length(dstr) == a256_len);
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_resize)
+{
+	dstr_t dstr = dstr_new();
 	dstr_resize(&dstr, 0);
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
@@ -228,8 +238,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_reserve_shrink)
+{
+	dstr_t dstr = dstr_new();
 	dstr_reserve(&dstr, abc_len);
 	CHECK(dstr_capacity(dstr) - dstr_length(dstr) >= abc_len);
 	CHECK(sanity_check(dstr));
@@ -265,8 +279,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_capacity(dstr) == 0);
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_append)
+{
+	dstr_t dstr = dstr_new();
 	dstr_t dstr2 = dstr_copy(dstr);
 	CHECK(dstr_is_empty(dstr2));
 	CHECK(sanity_check(dstr2));
@@ -526,8 +544,12 @@ SIMPLE_TEST(dstring)
 	CHECK(strcmp(dstr + abc_len, a256) == 0);
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_uninitialized)
+{
+	dstr_t dstr = dstr_new();
 	char *m = dstr_append_uninitialized(&dstr, abc_len);
 	strcpy(m, abc);
 	CHECK(dstr_equal_cstr(dstr, abc));
@@ -573,8 +595,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_insert)
+{
+	dstr_t dstr = dstr_new();
 	dstr_insert_cstr(&dstr, 0, "");
 	dstr_insert_char(&dstr, 0, 'a');
 	CHECK(strcmp(dstr, "a") == 0);
@@ -603,7 +629,7 @@ SIMPLE_TEST(dstring)
 	dstr_free(&dstr);
 
 	for (size_t i = 0; i <= abc_len; i++) {
-		dstr = dstr_new();
+		dstr_t dstr = dstr_new();
 		dstr_insert_cstr(&dstr, 0, abc);
 		CHECK(sanity_check(dstr));
 		dstr_insert_cstr(&dstr, i, a256);
@@ -634,7 +660,7 @@ SIMPLE_TEST(dstring)
 		dstr_free(&dstr);
 
 		dstr = dstr_new();
-		dstr2 = dstr_from_cstr(abc);
+		dstr_t dstr2 = dstr_from_cstr(abc);
 		dstr_insert_dstr(&dstr, 0, dstr2);
 		dstr_free(&dstr2);
 		CHECK(sanity_check(dstr));
@@ -659,7 +685,7 @@ SIMPLE_TEST(dstring)
 	}
 
 	for (size_t i = 0; i <= a256_len; i++) {
-		dstr = dstr_new();
+		dstr_t dstr = dstr_new();
 		dstr_insert_cstr(&dstr, 0, a256);
 		CHECK(sanity_check(dstr));
 		dstr_insert_cstr(&dstr, i, abc);
@@ -690,7 +716,7 @@ SIMPLE_TEST(dstring)
 		dstr_free(&dstr);
 
 		dstr = dstr_new();
-		dstr2 = dstr_from_cstr(a256);
+		dstr_t dstr2 = dstr_from_cstr(a256);
 		dstr_insert_dstr(&dstr, 0, dstr2);
 		dstr_free(&dstr2);
 		CHECK(sanity_check(dstr));
@@ -735,9 +761,13 @@ SIMPLE_TEST(dstring)
 		CHECK(dstr_equal_cstr(dstr, a256));
 	}
 	dstr_free(&dstr);
+	return true;
+}
 
+SIMPLE_TEST(dstring_replace)
+{
 	for (size_t i = 0; i <= abc_len; i++) {
-		dstr = dstr_new();
+		dstr_t dstr = dstr_new();
 		dstr_replace_cstr(&dstr, 0, 0, abc);
 		CHECK(sanity_check(dstr));
 		dstr_replace_cstr(&dstr, i, DSTR_NPOS, a256);
@@ -816,7 +846,7 @@ SIMPLE_TEST(dstring)
 		dstr_free(&dstr);
 
 		dstr = dstr_new();
-		dstr2 = dstr_from_cstr(abc);
+		dstr_t dstr2 = dstr_from_cstr(abc);
 		dstr_replace_dstr(&dstr, 0, 0, dstr2);
 		dstr_free(&dstr2);
 		CHECK(sanity_check(dstr));
@@ -881,7 +911,7 @@ SIMPLE_TEST(dstring)
 	}
 
 	for (size_t i = 0; i <= a256_len; i++) {
-		dstr = dstr_new();
+		dstr_t dstr = dstr_new();
 		dstr_replace_cstr(&dstr, 0, 0, a256);
 		CHECK(sanity_check(dstr));
 		dstr_replace_cstr(&dstr, i, DSTR_NPOS, abc);
@@ -960,7 +990,7 @@ SIMPLE_TEST(dstring)
 		dstr_free(&dstr);
 
 		dstr = dstr_new();
-		dstr2 = dstr_from_cstr(a256);
+		dstr_t dstr2 = dstr_from_cstr(a256);
 		dstr_replace_dstr(&dstr, 0, 0, dstr2);
 		dstr_free(&dstr2);
 		CHECK(sanity_check(dstr));
@@ -1024,7 +1054,7 @@ SIMPLE_TEST(dstring)
 		dstr_free(&dstr);
 	}
 
-	dstr = dstr_from_cstr(abc);
+	dstr_t dstr = dstr_from_cstr(abc);
 	for (size_t i = 0; i < abc_len; i++) {
 		dstr_replace_cstr(&dstr, i % dstr_length(dstr), 1, "");
 		CHECK(sanity_check(dstr));
@@ -1061,8 +1091,12 @@ SIMPLE_TEST(dstring)
 	CHECK(sanity_check(dstr));
 	CHECK(dstr_is_empty(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_erase)
+{
+	dstr_t dstr = dstr_new();
 	dstr_erase(&dstr, 0, 0);
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
@@ -1171,8 +1205,12 @@ SIMPLE_TEST(dstring)
 	}
 	CHECK(dstr_equal_cstr(dstr, a256));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr("---aaa---");
+SIMPLE_TEST(dstring_strip)
+{
+	dstr_t dstr = dstr_from_cstr("---aaa---");
 	dstr_strip(&dstr, "-");
 	CHECK(dstr_equal_cstr(dstr, "aaa"));
 	CHECK(sanity_check(dstr));
@@ -1231,8 +1269,12 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_equal_cstr(dstr, ""));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr(abc);
+SIMPLE_TEST(dstring_to_cstr)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
 	char *cstr = dstr_to_cstr(&dstr);
 	CHECK(!dstr);
 	CHECK(strcmp(cstr, abc) == 0);
@@ -1255,8 +1297,12 @@ SIMPLE_TEST(dstring)
 	CHECK(strcmp(cstr, a256) == 0);
 	free(cstr);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr(abc);
+SIMPLE_TEST(strview_from_cstr)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
 	struct strview view = dstr_view(dstr);
 	CHECK(strview_equal(view, strview_from_cstr(abc)));
 	dstr_free(&dstr);
@@ -1265,14 +1311,18 @@ SIMPLE_TEST(dstring)
 	view = dstr_view(dstr);
 	CHECK(strview_equal(view, strview_from_cstr(a256)));
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr(abc);
+SIMPLE_TEST(dstring_substring)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
 	for (size_t i = 0; i < abc_len / 2; i++) {
-		view = dstr_substring_view(dstr, i, abc_len - 2 * i);
-		dstr2 = dstr_substring_copy(dstr, i, abc_len - 2 * i);
+		struct strview view = dstr_substring_view(dstr, i, abc_len - 2 * i);
+		dstr_t dstr2 = dstr_substring_copy(dstr, i, abc_len - 2 * i);
 		CHECK(sanity_check(dstr2));
 		CHECK(strview_equal(view,
-				     strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
+				    strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
 		CHECK(dstr_equal_view(dstr2, view));
 		dstr_free(&dstr2);
 	}
@@ -1280,11 +1330,11 @@ SIMPLE_TEST(dstring)
 
 	dstr = dstr_from_cstr(a256);
 	for (size_t i = 0; i < a256_len; i++) {
-		view = dstr_substring_view(dstr, i, a256_len - 2 * i);
-		dstr2 = dstr_substring_copy(dstr, i, a256_len - 2 * i);
+		struct strview view = dstr_substring_view(dstr, i, a256_len - 2 * i);
+		dstr_t dstr2 = dstr_substring_copy(dstr, i, a256_len - 2 * i);
 		CHECK(sanity_check(dstr2));
 		CHECK(strview_equal(view,
-				     strview_substring(strview_from_cstr(a256), i, a256_len - 2 * i)));
+				    strview_substring(strview_from_cstr(a256), i, a256_len - 2 * i)));
 		CHECK(dstr_equal_view(dstr2, view));
 		dstr_free(&dstr2);
 	}
@@ -1292,12 +1342,12 @@ SIMPLE_TEST(dstring)
 
 	for (size_t i = 0; i < abc_len / 2; i++) {
 		dstr = dstr_from_cstr(abc);
-		dstr2 = dstr_substring_copy(dstr, i, abc_len - 2 * i);
+		dstr_t dstr2 = dstr_substring_copy(dstr, i, abc_len - 2 * i);
 		dstr_substring(&dstr, i, abc_len - 2 * i);
 		CHECK(sanity_check(dstr));
 		CHECK(sanity_check(dstr2));
 		CHECK(dstr_equal_view(dstr,
-				       strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
+				      strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
 		CHECK(dstr_equal_dstr(dstr, dstr2));
 		dstr_free(&dstr2);
 		dstr_free(&dstr);
@@ -1305,7 +1355,7 @@ SIMPLE_TEST(dstring)
 
 	for (size_t i = 0; i < a256_len; i++) {
 		dstr = dstr_from_cstr(a256);
-		dstr2 = dstr_substring_copy(dstr, i, a256_len - 2 * i);
+		dstr_t dstr2 = dstr_substring_copy(dstr, i, a256_len - 2 * i);
 		dstr_substring(&dstr, i, a256_len - 2 * i);
 		CHECK(sanity_check(dstr));
 		CHECK(sanity_check(dstr2));
@@ -1317,7 +1367,7 @@ SIMPLE_TEST(dstring)
 	}
 
 	dstr = dstr_new();
-	dstr2 = dstr_substring_copy(dstr, 0, 0);
+	dstr_t dstr2 = dstr_substring_copy(dstr, 0, 0);
 	dstr_substring(&dstr, 0, 0);
 	CHECK(dstr_equal_cstr(dstr, ""));
 	CHECK(dstr_equal_dstr(dstr, dstr2));
@@ -1325,13 +1375,17 @@ SIMPLE_TEST(dstring)
 	CHECK(sanity_check(dstr2));
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr("abc");
+SIMPLE_TEST(dstring_compare)
+{
+	dstr_t dstr = dstr_from_cstr("abc");
 	const char *str = "abc";
 	int r = sign(dstr_compare_cstr(dstr, str));
 	CHECK(r == 0);
 	CHECK(sign(dstr_compare_view(dstr, strview_from_cstr(str))) == r);
-	dstr2 = dstr_from_cstr(str);
+	dstr_t dstr2 = dstr_from_cstr(str);
 	CHECK(sign(dstr_compare_dstr(dstr, dstr2)) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
@@ -1575,14 +1629,18 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr("abc");
-	str = "abc";
+SIMPLE_TEST(dstring_find)
+{
+	dstr_t 	dstr = dstr_from_cstr("abc");
+	const char *str = "abc";
 	size_t s = 0;
 	size_t p = dstr_find_cstr(dstr, str, s);
 	CHECK(p == 0);
 	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
+	dstr_t dstr2 = dstr_from_cstr(str);
 	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
@@ -1894,7 +1952,13 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
+	return true;
+}
 
+SIMPLE_TEST(dstring_find_replace)
+{
+	// TODO reduce code duplication
+	dstr_t dstr;
 	const char *haystack = "abc";
 	const char *needle = "abc";
 	const char *replacement = "abc";
@@ -1909,7 +1973,7 @@ SIMPLE_TEST(dstring)
 	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
 	dstr_free(&dstr);
 	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
+	dstr_t dstr2 = dstr_from_cstr(needle);
 	dstr_t dstr3 = dstr_from_cstr(replacement);
 	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
 	dstr_t dstr4 = dstr_from_cstr(result);
@@ -2830,8 +2894,12 @@ SIMPLE_TEST(dstring)
 	dstr_free(&dstr3);
 	dstr_free(&dstr4);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr("abcdefghij0123456789");
+SIMPLE_TEST(dstring_find_of)
+{
+	dstr_t dstr = dstr_from_cstr("abcdefghij0123456789");
 	CHECK(dstr_find_first_of(dstr, "", 0) == DSTR_NPOS);
 	CHECK(dstr_find_first_of(dstr, "a", 0) == 0);
 	CHECK(dstr_find_first_of(dstr, "b", 0) == 1);
@@ -3038,8 +3106,12 @@ SIMPLE_TEST(dstring)
 		CHECK(dstr_find_last_not_of(dstr, a256, i) == DSTR_NPOS);
 	}
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr(abc);
+SIMPLE_TEST(dstring_starts_ends_with)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
 	CHECK(dstr_startswith_cstr(dstr, abc));
 	CHECK(dstr_startswith_view(dstr, strview_from_cstr(abc)));
 	CHECK(dstr_endswith_cstr(dstr, abc));
@@ -3110,7 +3182,7 @@ SIMPLE_TEST(dstring)
 	CHECK(!dstr_startswith_view(dstr, strview_from_cstr("-")));
 	CHECK(!dstr_endswith_cstr(dstr, "-"));
 	CHECK(!dstr_endswith_view(dstr, strview_from_cstr("-")));
-	dstr2 = dstr_substring_copy(dstr, abc_len, DSTR_NPOS);
+	dstr_t dstr2 = dstr_substring_copy(dstr, abc_len, DSTR_NPOS);
 	CHECK(dstr_startswith_cstr(dstr2, "-"));
 	CHECK(dstr_startswith_view(dstr2, strview_from_cstr("-")));
 	CHECK(!dstr_startswith_cstr(dstr2, abc));
@@ -3146,10 +3218,14 @@ SIMPLE_TEST(dstring)
 	CHECK(!dstr_endswith_dstr(dstr, dstr2));
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_from_cstr("");
+SIMPLE_TEST(dstring_split)
+{
+	dstr_t dstr = dstr_from_cstr("");
 	char c = 'x';
-	max = SIZE_MAX;
+	size_t max = SIZE_MAX;
 	size_t count = 1;
 	struct dstr_list dstr_list = dstr_split(dstr, c, max);
 	struct strview_list strview_list = dstr_split_views(dstr, c, max);
@@ -3738,8 +3814,12 @@ SIMPLE_TEST(dstring)
 	dstr_list_free(&dstr_list);
 	strview_list_free(&strview_list);
 	dstr_free(&dstr);
+	return true;
+}
 
-	dstr = dstr_new();
+SIMPLE_TEST(dstring_reserve)
+{
+	dstr_t dstr = dstr_new();
 	dstr_reserve(&dstr, UINT8_MAX + 1);
 	CHECK(sanity_check(dstr));
 	dstr_reserve(&dstr, UINT16_MAX + 1);
@@ -3749,10 +3829,13 @@ SIMPLE_TEST(dstring)
 	dstr_reserve(&dstr, UINT16_MAX + 1);
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
+	return true;
+}
 
-	struct strview view2;
-	view = strview_from_cstr(abc);
-	view2 = strview_from_chars(abc, abc_len);
+SIMPLE_TEST(strview_compare)
+{
+	struct strview view = strview_from_cstr(abc);
+	struct strview view2 = strview_from_chars(abc, abc_len);
 	CHECK(strview_equal_cstr(view, abc));
 	CHECK(strview_equal_cstr(view2, abc));
 	CHECK(strview_equal(view, view2));
@@ -3764,7 +3847,7 @@ SIMPLE_TEST(dstring)
 	CHECK(strview_equal(view, view2));
 
 	view = strview_from_cstr(a256);
-	cstr = strview_to_cstr(view);
+	char *cstr = strview_to_cstr(view);
 	CHECK(strcmp(cstr, a256) == 0);
 	free(cstr);
 
@@ -3793,8 +3876,8 @@ SIMPLE_TEST(dstring)
 	CHECK(strview_equal_cstr(strview_narrow(view, 3, 3), ""));
 
 	view = strview_from_cstr("abc");
-	str = "abc";
-	r = sign(strview_compare_cstr(view, str));
+	const char *str = "abc";
+	int r = sign(strview_compare_cstr(view, str));
 	CHECK(r == 0);
 	CHECK(sign(strview_compare(view, strview_from_cstr(str))) == r);
 	view2 = strview_from_cstr(str);
@@ -3991,14 +4074,18 @@ SIMPLE_TEST(dstring)
 	CHECK(strview_equal(view, strview_from_cstr(str)) == r);
 	view2 = strview_from_cstr(str);
 	CHECK(strview_equal(view, view2) == r);
+	return true;
+}
 
-	view = strview_from_cstr("abc");
-	str = "abc";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
+SIMPLE_TEST(strview_find)
+{
+	struct strview view = strview_from_cstr("abc");
+	const char *str = "abc";
+	size_t s = 0;
+	size_t p = strview_find_cstr(view, str, s);
 	CHECK(p == 0);
 	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
+	struct strview view2 = strview_from_cstr(str);
 	CHECK(strview_find(view, view2, s) == p);
 
 	view = strview_from_cstr("abc");
@@ -4454,8 +4541,12 @@ SIMPLE_TEST(dstring)
 		CHECK(strview_find_last_of(view, a256, i) == i);
 		CHECK(strview_find_last_not_of(view, a256, i) == STRVIEW_NPOS);
 	}
+	return true;
+}
 
-	view = strview_from_cstr("---aaa---");
+SIMPLE_TEST(strview_strip)
+{
+	struct strview view = strview_from_cstr("---aaa---");
 	view = strview_strip(view, "-");
 	CHECK(strview_equal_cstr(view, "aaa"));
 
@@ -4547,7 +4638,7 @@ SIMPLE_TEST(dstring)
 	CHECK(!strview_startswith_cstr(view, abc));
 	CHECK(!strview_startswith(view, strview_from_cstr(abc)));
 
-	dstr = dstr_from_fmt("%s%s", a256, a256);
+	dstr_t dstr = dstr_from_fmt("%s%s", a256, a256);
 	view = dstr_view(dstr);
 	CHECK(strview_startswith_cstr(view, a256));
 	CHECK(strview_startswith(view, strview_from_cstr(a256)));
@@ -4565,7 +4656,7 @@ SIMPLE_TEST(dstring)
 	CHECK(!strview_startswith(view, strview_from_cstr("-")));
 	CHECK(!strview_endswith_cstr(view, "-"));
 	CHECK(!strview_endswith(view, strview_from_cstr("-")));
-	view2 = strview_substring(view, abc_len, STRVIEW_NPOS);
+	struct strview view2 = strview_substring(view, abc_len, STRVIEW_NPOS);
 	CHECK(strview_startswith_cstr(view2, "-"));
 	CHECK(strview_startswith(view2, strview_from_cstr("-")));
 	CHECK(!strview_startswith_cstr(view2, abc));
@@ -4596,10 +4687,10 @@ SIMPLE_TEST(dstring)
 	CHECK(!strview_endswith(view, view2));
 
 	view = strview_from_cstr("");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 1;
-	strview_list = strview_split(view, c, max);
+	char c = 'x';
+	size_t max = SIZE_MAX;
+	size_t count = 1;
+	struct strview_list strview_list = strview_split(view, c, max);
 	CHECK(strview_list.count == count);
 	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
 	strview_list_free(&strview_list);

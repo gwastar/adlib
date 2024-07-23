@@ -202,11 +202,12 @@ static bool check_binary(const char *str, size_t len, unsigned long long val, bo
 	return true;
 }
 
-SIMPLE_TEST(to_chars)
+#define CHECK_TO_CHARS(expected) CHECK(len == strlen(expected) && memcmp(str, expected, len) == 0)
+
+SIMPLE_TEST(to_chars_decimal)
 {
 	char str[256];
 	size_t len;
-#define CHECK_TO_CHARS(expected) CHECK(len == strlen(expected) && memcmp(str, expected, len) == 0)
 
 #define CHECK_TO_CHARS_DECIMAL_UNSIGNED(type)				\
 	do {								\
@@ -282,6 +283,13 @@ SIMPLE_TEST(to_chars)
 	CHECK_TO_CHARS_DECIMAL_SIGNED(signed long);
 	CHECK_TO_CHARS_DECIMAL_SIGNED(signed long long);
 
+	return true;
+}
+
+SIMPLE_TEST(to_chars_binary)
+{
+	char str[256];
+	size_t len;
 #define CHECK_TO_CHARS_BINARY(type)					\
 	do {								\
 		bool is_signed = type_is_signed(type);			\
@@ -316,7 +324,7 @@ SIMPLE_TEST(to_chars)
 		len = to_chars(str, sizeof(str), (type)-1, TO_CHARS_BINARY); \
 		unsigned long long minus_one = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8); \
 		CHECK(check_binary(str, len, minus_one, is_signed));	\
-} while (0)
+	} while (0)
 
 	CHECK_TO_CHARS_BINARY(char);
 	CHECK_TO_CHARS_BINARY(unsigned char);
@@ -373,17 +381,23 @@ SIMPLE_TEST(to_chars)
 	CHECK_TO_CHARS_OCTAL(unsigned long);
 	CHECK_TO_CHARS_OCTAL(long long);
 	CHECK_TO_CHARS_OCTAL(unsigned long long);
+	return true;
+}
 
+SIMPLE_TEST(to_chars_hexadecimal)
+{
+	char str[256];
+	size_t len;
 #define CHECK_TO_CHARS_HEXADECIMAL(type)				\
 	do {								\
 		bool is_signed = type_is_signed(type);			\
-		len = to_chars(str, sizeof(str), (type)0, TO_CHARS_HEXADECIMAL);	\
+		len = to_chars(str, sizeof(str), (type)0, TO_CHARS_HEXADECIMAL); \
 		CHECK_TO_CHARS("0");					\
-		len = to_chars(str, sizeof(str), (type)1, TO_CHARS_HEXADECIMAL);	\
+		len = to_chars(str, sizeof(str), (type)1, TO_CHARS_HEXADECIMAL); \
 		CHECK_TO_CHARS("1");					\
-		len = to_chars(str, sizeof(str), (type)0x10, TO_CHARS_HEXADECIMAL);	\
+		len = to_chars(str, sizeof(str), (type)0x10, TO_CHARS_HEXADECIMAL); \
 		CHECK_TO_CHARS("10");					\
-		len = to_chars(str, sizeof(str), (type)10, TO_CHARS_HEXADECIMAL);	\
+		len = to_chars(str, sizeof(str), (type)10, TO_CHARS_HEXADECIMAL); \
 		CHECK_TO_CHARS("a");					\
 		len = to_chars(str, sizeof(str), (type)123, TO_CHARS_HEXADECIMAL | TO_CHARS_PLUS_SIGN); \
 		CHECK_TO_CHARS(is_signed ? "+7b" : "7b");		\
@@ -399,7 +413,7 @@ SIMPLE_TEST(to_chars)
 		char signed_max_val_str[32];				\
 		sprintf(signed_max_val_str, "%llx", signed_max_val);	\
 		CHECK_TO_CHARS(signed_max_val_str);			\
-		len = to_chars(str, sizeof(str), (type)-1, TO_CHARS_HEXADECIMAL);	\
+		len = to_chars(str, sizeof(str), (type)-1, TO_CHARS_HEXADECIMAL); \
 		char unsigned_max_val_str[32];				\
 		unsigned long long unsigned_max_val = ~0llu >> ((sizeof(long long) - sizeof(type)) * 8); \
 		sprintf(unsigned_max_val_str, "%llx", unsigned_max_val); \
@@ -418,6 +432,14 @@ SIMPLE_TEST(to_chars)
 	CHECK_TO_CHARS_HEXADECIMAL(long long);
 	CHECK_TO_CHARS_HEXADECIMAL(unsigned long long);
 
+	return true;
+}
+
+SIMPLE_TEST(to_chars)
+{
+	char str[256];
+	size_t len;
+
 	len = to_chars(str, sizeof(str), 1234567890, TO_CHARS_DECIMAL);
 	CHECK_TO_CHARS("1234567890");
 	len = to_chars(str, sizeof(str), 2, TO_CHARS_BINARY);
@@ -428,6 +450,69 @@ SIMPLE_TEST(to_chars)
 	CHECK_TO_CHARS("1234567890abcdef");
 	len = to_chars(str, sizeof(str), 0x1234567890abcdef, TO_CHARS_HEXADECIMAL | TO_CHARS_UPPERCASE);
 	CHECK_TO_CHARS("1234567890ABCDEF");
+
+	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_BINARY) == 1);
+	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_OCTAL) == 1);
+	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_HEXADECIMAL) == 1);
+	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_DECIMAL) == 1);
+	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_DECIMAL | TO_CHARS_PLUS_SIGN) == 2);
+
+	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_BINARY) == 1);
+	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_OCTAL) == 1);
+	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_HEXADECIMAL) == 1);
+	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_DECIMAL) == 1);
+	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_DECIMAL | TO_CHARS_PLUS_SIGN) == 2);
+
+	for (unsigned long long i = 2; i <= 36; i++) {
+		len = to_chars(str, sizeof(str), 0, i);
+		CHECK_TO_CHARS("0");
+		len = to_chars(str, sizeof(str), 1, i);
+		CHECK_TO_CHARS("1");
+		len = to_chars(str, sizeof(str), i, i);
+		CHECK_TO_CHARS("10");
+		len = to_chars(str, sizeof(str), i * i, i);
+		CHECK_TO_CHARS("100");
+		len = to_chars(str, sizeof(str), i * i * i, i);
+		CHECK_TO_CHARS("1000");
+		len = to_chars(str, sizeof(str), i * i * i * i, i);
+		CHECK_TO_CHARS("10000");
+		len = to_chars(str, sizeof(str), i * i * i * i * i, i);
+		CHECK_TO_CHARS("100000");
+		len = to_chars(str, sizeof(str), i * i * i * i * i * i, i);
+		CHECK_TO_CHARS("1000000");
+		len = to_chars(str, sizeof(str), i * i * i * i * i * i * i, i);
+		CHECK_TO_CHARS("10000000");
+		len = to_chars(str, sizeof(str), i * i * i * i * i * i * i * i, i);
+		CHECK_TO_CHARS("100000000");
+	}
+
+	memset(str, 'x', 10);
+	CHECK(to_chars(str, 0, 1234567890, TO_CHARS_DECIMAL) == 10);
+	CHECK(to_chars(str, 9, 1234567890, TO_CHARS_DECIMAL) == 10);
+	CHECK(memcmp(str, "xxxxxxxxxx", 10) == 0);
+	len = to_chars(str, 10, 1234567890, TO_CHARS_DECIMAL);
+	CHECK_TO_CHARS("1234567890");
+
+	// the unsigned max value in base 3 has one more char than the signed max value
+	len = to_chars(str, sizeof(str), (int)1, 3 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("00000000000000000001");
+	len = to_chars(str, sizeof(str), (unsigned int)1, 3 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("000000000000000000001");
+	// same with base 6, test with + sign and negative value
+	len = to_chars(str, sizeof(str), (int)1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
+	CHECK_TO_CHARS("+000000000001");
+	len = to_chars(str, sizeof(str), (int)-1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
+	CHECK_TO_CHARS("-000000000001");
+	len = to_chars(str, sizeof(str), (unsigned int)1, 6 | TO_CHARS_LEADING_ZEROS);
+	CHECK_TO_CHARS("0000000000001");
+
+	return true;
+}
+
+SIMPLE_TEST(to_chars_leading_zeros)
+{
+	char str[256];
+	size_t len;
 
 	CHECK(to_chars(NULL, 0, (uint8_t)0, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS) == 8);
 	CHECK(to_chars(NULL, 0, (uint16_t)0, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS) == 16);
@@ -464,18 +549,6 @@ SIMPLE_TEST(to_chars)
 	CHECK(to_chars(NULL, 0, (int16_t)0, TO_CHARS_DECIMAL | TO_CHARS_LEADING_ZEROS) == 5);
 	CHECK(to_chars(NULL, 0, (int32_t)0, TO_CHARS_DECIMAL | TO_CHARS_LEADING_ZEROS) == 10);
 	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_DECIMAL | TO_CHARS_LEADING_ZEROS) == 19);
-
-	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_BINARY) == 1);
-	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_OCTAL) == 1);
-	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_HEXADECIMAL) == 1);
-	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_DECIMAL) == 1);
-	CHECK(to_chars(NULL, 0, (int8_t)0, TO_CHARS_DECIMAL | TO_CHARS_PLUS_SIGN) == 2);
-
-	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_BINARY) == 1);
-	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_OCTAL) == 1);
-	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_HEXADECIMAL) == 1);
-	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_DECIMAL) == 1);
-	CHECK(to_chars(NULL, 0, (int64_t)0, TO_CHARS_DECIMAL | TO_CHARS_PLUS_SIGN) == 2);
 
 	len = to_chars(str, sizeof(str), (uint8_t)0, TO_CHARS_HEXADECIMAL | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("00");
@@ -578,49 +651,6 @@ SIMPLE_TEST(to_chars)
 	CHECK_TO_CHARS("1111111111111111111111111111111111111111111111111111111111111111");
 	len = to_chars(str, sizeof(str), (int64_t)-1, TO_CHARS_BINARY | TO_CHARS_LEADING_ZEROS);
 	CHECK_TO_CHARS("-0000000000000000000000000000000000000000000000000000000000000001");
-
-	for (unsigned long long i = 2; i <= 36; i++) {
-		len = to_chars(str, sizeof(str), 0, i);
-		CHECK_TO_CHARS("0");
-		len = to_chars(str, sizeof(str), 1, i);
-		CHECK_TO_CHARS("1");
-		len = to_chars(str, sizeof(str), i, i);
-		CHECK_TO_CHARS("10");
-		len = to_chars(str, sizeof(str), i * i, i);
-		CHECK_TO_CHARS("100");
-		len = to_chars(str, sizeof(str), i * i * i, i);
-		CHECK_TO_CHARS("1000");
-		len = to_chars(str, sizeof(str), i * i * i * i, i);
-		CHECK_TO_CHARS("10000");
-		len = to_chars(str, sizeof(str), i * i * i * i * i, i);
-		CHECK_TO_CHARS("100000");
-		len = to_chars(str, sizeof(str), i * i * i * i * i * i, i);
-		CHECK_TO_CHARS("1000000");
-		len = to_chars(str, sizeof(str), i * i * i * i * i * i * i, i);
-		CHECK_TO_CHARS("10000000");
-		len = to_chars(str, sizeof(str), i * i * i * i * i * i * i * i, i);
-		CHECK_TO_CHARS("100000000");
-	}
-
-	memset(str, 'x', 10);
-	CHECK(to_chars(str, 0, 1234567890, TO_CHARS_DECIMAL) == 10);
-	CHECK(to_chars(str, 9, 1234567890, TO_CHARS_DECIMAL) == 10);
-	CHECK(memcmp(str, "xxxxxxxxxx", 10) == 0);
-	len = to_chars(str, 10, 1234567890, TO_CHARS_DECIMAL);
-	CHECK_TO_CHARS("1234567890");
-
-	// the unsigned max value in base 3 has one more char than the signed max value
-	len = to_chars(str, sizeof(str), (int)1, 3 | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("00000000000000000001");
-	len = to_chars(str, sizeof(str), (unsigned int)1, 3 | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("000000000000000000001");
-	// same with base 6, test with + sign and negative value
-	len = to_chars(str, sizeof(str), (int)1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
-	CHECK_TO_CHARS("+000000000001");
-	len = to_chars(str, sizeof(str), (int)-1, 6 | TO_CHARS_LEADING_ZEROS | TO_CHARS_PLUS_SIGN);
-	CHECK_TO_CHARS("-000000000001");
-	len = to_chars(str, sizeof(str), (unsigned int)1, 6 | TO_CHARS_LEADING_ZEROS);
-	CHECK_TO_CHARS("0000000000001");
 
 	return true;
 }
@@ -875,7 +905,7 @@ SIMPLE_TEST(from_chars_edge_cases)
 	__CHARCONV_FOREACH_INTTYPE(TEST);
 #undef TEST
 
-		return true;
+	return true;
 }
 
 SIMPLE_TEST(from_chars_invalid_inputs)
@@ -908,7 +938,7 @@ SIMPLE_TEST(from_chars_invalid_inputs)
 		CHECK(!res.ok && !res.overflow && res.nchars == 1);	\
 	}
 
-__CHARCONV_FOREACH_INTTYPE(TEST);
+	__CHARCONV_FOREACH_INTTYPE(TEST);
 #undef TEST
 
 	return true;
