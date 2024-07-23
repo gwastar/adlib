@@ -1957,943 +1957,97 @@ SIMPLE_TEST(dstring_find)
 
 SIMPLE_TEST(dstring_find_replace)
 {
-	// TODO reduce code duplication
-	dstr_t dstr;
-	const char *haystack = "abc";
-	const char *needle = "abc";
-	const char *replacement = "abc";
-	size_t max = SIZE_MAX;
-	const char *result = "abc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr_t dstr2 = dstr_from_cstr(needle);
-	dstr_t dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr_t dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
+	static const struct {
+		const char *haystack;
+		const char *needle;
+		const char *replacement;
+		size_t max;
+		const char *result;
+		bool reverse;
+	} test_cases[] = {
+		{"abc", "abc", "abc", SIZE_MAX, "abc", false},
+		{"abc", "abc", "x", SIZE_MAX, "x", false},
+		{"abc", "abc", a256, SIZE_MAX, a256, false},
+		{"abc", "b", "xxxxx", SIZE_MAX, "axxxxxc", false},
+		{"abc", "a", "xxxxx", SIZE_MAX, "xxxxxbc", false},
+		{"abc", "c", "xxxxx", SIZE_MAX, "abxxxxx", false},
+		{"aaa", "a", "aa", SIZE_MAX, "aaaaaa", false},
+		{"aaa", "a", "aa", 0, "aaa", false},
+		{"aaa", "a", "aa", 1, "aaaa", false},
+		{"aaa", "a", "aa", 2, "aaaaa", false},
+		{"aaa", "a", "aa", 3, "aaaaaa", false},
+		{"", "", "", SIZE_MAX, "", false},
+		{"", "", "a", SIZE_MAX, "a", false},
+		{"", "x", "y", SIZE_MAX, "", false},
+		{"x", "", "a", SIZE_MAX, "axa", false},
+		{"xx", "", "a", SIZE_MAX, "axaxa", false},
+		{"abcabcabc", "abc", "a", SIZE_MAX, "aaa", false},
+		{"abcabcabc", "abc", "a", 1, "aabcabc", false},
+		{"abcabcabc", "abc", "abcdef", SIZE_MAX, "abcdefabcdefabcdef", false},
+		{"abc", "abc", "abc", SIZE_MAX, "abc", true},
+		{"abc", "abc", "x", SIZE_MAX, "x", true},
+		{"abc", "abc", a256, SIZE_MAX, a256, true},
+		{"abc", "b", "xxxxx", SIZE_MAX, "axxxxxc", true},
+		{"abc", "a", "xxxxx", SIZE_MAX, "xxxxxbc", true},
+		{"abc", "c", "xxxxx", SIZE_MAX, "abxxxxx", true},
+		{"aaa", "a", "aa", SIZE_MAX, "aaaaaa", true},
+		{"aaa", "a", "aa", 0, "aaa", true},
+		{"aaa", "a", "aa", 1, "aaaa", true},
+		{"aaa", "a", "aa", 2, "aaaaa", true},
+		{"aaa", "a", "aa", 3, "aaaaaa", true},
+		{"", "", "", SIZE_MAX, "", true},
+		{"", "", "a", SIZE_MAX, "a", true},
+		{"", "x", "y", SIZE_MAX, "", true},
+		{"x", "", "a", SIZE_MAX, "axa", true},
+		{"xx", "", "a", SIZE_MAX, "axaxa", true},
+		{"abcabcabc", "abc", "a", SIZE_MAX, "aaa", true},
+		{"abcabcabc", "abc", "a", 1, "abcabca", true},
+		{"abcabcabc", "abc", "abcdef", SIZE_MAX, "abcdefabcdefabcdef", true},
+		{"abcabcabc", "abc", "a", 2, "abcaa", true},
+	};
 
-	haystack = "abc";
-	needle = "abc";
-	replacement = "x";
-	max = SIZE_MAX;
-	result = "x";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
+	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+		const char *haystack = test_cases[i].haystack;
+		const char *needle = test_cases[i].needle;
+		const char *replacement = test_cases[i].replacement;
+		size_t max = test_cases[i].max;
+		const char *result = test_cases[i].result;
+		bool reverse = test_cases[i].reverse;
+		// test_log("%s %s %s %zu %s\n", haystack, needle, replacement, max, result);
 
-	haystack = "abc";
-	needle = "abc";
-	replacement = a256;
-	max = SIZE_MAX;
-	result = a256;
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "b";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "axxxxxc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "a";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "xxxxxbc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "c";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "abxxxxx";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = SIZE_MAX;
-	result = "aaaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 0;
-	result = "aaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 1;
-	result = "aaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 2;
-	result = "aaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 3;
-	result = "aaaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "";
-	replacement = "";
-	max = SIZE_MAX;
-	result = "";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "a";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "x";
-	replacement = "y";
-	max = SIZE_MAX;
-	result = "";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "x";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "axa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "xx";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "axaxa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "aaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "a";
-	max = 1;
-	result = "aabcabc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "abcdef";
-	max = SIZE_MAX;
-	result = "abcdefabcdefabcdef";
-	dstr = dstr_from_cstr(haystack);
-	dstr_find_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_find_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "abc";
-	replacement = "abc";
-	max = SIZE_MAX;
-	result = "abc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "abc";
-	replacement = "x";
-	max = SIZE_MAX;
-	result = "x";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "abc";
-	replacement = a256;
-	max = SIZE_MAX;
-	result = a256;
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "b";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "axxxxxc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "a";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "xxxxxbc";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abc";
-	needle = "c";
-	replacement = "xxxxx";
-	max = SIZE_MAX;
-	result = "abxxxxx";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = SIZE_MAX;
-	result = "aaaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 0;
-	result = "aaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 1;
-	result = "aaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 2;
-	result = "aaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "aaa";
-	needle = "a";
-	replacement = "aa";
-	max = 3;
-	result = "aaaaaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "";
-	replacement = "";
-	max = SIZE_MAX;
-	result = "";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "a";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "";
-	needle = "x";
-	replacement = "y";
-	max = SIZE_MAX;
-	result = "";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "x";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "axa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "xx";
-	needle = "";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "axaxa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "a";
-	max = SIZE_MAX;
-	result = "aaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "a";
-	max = 1;
-	result = "abcabca";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "abcdef";
-	max = SIZE_MAX;
-	result = "abcdefabcdefabcdef";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
-
-	haystack = "abcabcabc";
-	needle = "abc";
-	replacement = "a";
-	max = 2;
-	result = "abcaa";
-	dstr = dstr_from_cstr(haystack);
-	dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
-	CHECK(dstr_equal_cstr(dstr, result));
-	dstr_free(&dstr);
-	dstr = dstr_from_view(strview_from_cstr(haystack));
-	dstr_rfind_replace_view(&dstr, strview_from_cstr(needle), strview_from_cstr(replacement), max);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
-	dstr_free(&dstr);
-	dstr = dstr_from_chars(haystack, strlen(haystack));
-	dstr2 = dstr_from_cstr(needle);
-	dstr3 = dstr_from_cstr(replacement);
-	dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
-	dstr4 = dstr_from_cstr(result);
-	CHECK(dstr_equal_dstr(dstr, dstr4));
-	dstr_free(&dstr2);
-	dstr_free(&dstr3);
-	dstr_free(&dstr4);
-	dstr_free(&dstr);
+		dstr_t dstr = dstr_from_cstr(haystack);
+		if (reverse) {
+			dstr_rfind_replace_cstr(&dstr, needle, replacement, max);
+		} else {
+			dstr_find_replace_cstr(&dstr, needle, replacement, max);
+		}
+		CHECK(dstr_equal_cstr(dstr, result));
+		dstr_free(&dstr);
+		dstr = dstr_from_view(strview_from_cstr(haystack));
+		if (reverse) {
+			dstr_rfind_replace_view(&dstr, strview_from_cstr(needle),
+						strview_from_cstr(replacement), max);
+		} else {
+			dstr_find_replace_view(&dstr, strview_from_cstr(needle),
+					       strview_from_cstr(replacement), max);
+		}
+		CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
+		dstr_free(&dstr);
+		dstr = dstr_from_chars(haystack, strlen(haystack));
+		dstr_t dstr2 = dstr_from_cstr(needle);
+		dstr_t dstr3 = dstr_from_cstr(replacement);
+		if (reverse) {
+			dstr_rfind_replace_dstr(&dstr, dstr2, dstr3, max);
+		} else {
+			dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
+		}
+		dstr_t dstr4 = dstr_from_cstr(result);
+		CHECK(dstr_equal_dstr(dstr, dstr4));
+		dstr_free(&dstr2);
+		dstr_free(&dstr3);
+		dstr_free(&dstr4);
+		dstr_free(&dstr);
+	}
 	return true;
 }
 
@@ -3223,597 +2377,79 @@ SIMPLE_TEST(dstring_starts_ends_with)
 
 SIMPLE_TEST(dstring_split)
 {
-	dstr_t dstr = dstr_from_cstr("");
-	char c = 'x';
-	size_t max = SIZE_MAX;
-	size_t count = 1;
-	struct dstr_list dstr_list = dstr_split(dstr, c, max);
-	struct strview_list strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
+	const struct {
+		const char *str;
+		char c;
+		bool reverse;
+		size_t max;
+		size_t count;
+		const char **results;
+	} test_cases[] = {
+#define TEST_CASE(reverse, str, c, max, count, ...)			\
+		{str, c, reverse, max, count, (const char *[]){__VA_ARGS__}}
 
-	dstr = dstr_from_cstr("x");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
+		TEST_CASE(false, "", 'x', SIZE_MAX, 1, ""),
+		TEST_CASE(false, "x", 'x', SIZE_MAX, 2, "", ""),
+		TEST_CASE(false, "xx", 'x', SIZE_MAX, 3, "", "", ""),
+		TEST_CASE(false, "axax", 'x', SIZE_MAX, 3, "a", "a", ""),
+		TEST_CASE(false, "axaxa", 'x', SIZE_MAX, 3, "a", "a", "a"),
+		TEST_CASE(false, "xaxa", 'x', SIZE_MAX, 3, "", "a", "a"),
+		TEST_CASE(false, "xax", 'x', SIZE_MAX, 3, "", "a", ""),
+		TEST_CASE(false, "", 'x', 0, 0, NULL),
+		TEST_CASE(false, "x", 'x', 1, 1, ""),
+		TEST_CASE(false, "xx", 'x', 2, 2, "", ""),
+		TEST_CASE(false, "xx", 'x', 1, 1, ""),
+		TEST_CASE(false, "axax", 'x', 2, 2, "a", "a"),
+		TEST_CASE(false, "axax", 'x', 1, 1, "a"),
+		TEST_CASE(false, "axaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(false, "axaxa", 'x', 1, 1, "a"),
+		TEST_CASE(false, "xaxa", 'x', 2, 2, "", "a"),
+		TEST_CASE(false, "xaxa", 'x', 1, 1, ""),
+		TEST_CASE(false, "xax", 'x', 2, 2, "", "a"),
+		TEST_CASE(false, "xax", 'x', 1, 1, ""),
+		TEST_CASE(true, "", 'x', SIZE_MAX, 1, ""),
+		TEST_CASE(true, "x", 'x', SIZE_MAX, 2, "", ""),
+		TEST_CASE(true, "xx", 'x', SIZE_MAX, 3, "", "", ""),
+		TEST_CASE(true, "axax", 'x', SIZE_MAX, 3, "", "a", "a"),
+		TEST_CASE(true, "axaxa", 'x', SIZE_MAX, 3, "a", "a", "a"),
+		TEST_CASE(true, "xaxa", 'x', SIZE_MAX, 3, "a", "a", ""),
+		TEST_CASE(true, "xax", 'x', SIZE_MAX, 3, "", "a", ""),
+		TEST_CASE(true, "", 'x', 0, 0, NULL),
+		TEST_CASE(true, "x", 'x', 1, 1, ""),
+		TEST_CASE(true, "xx", 'x', 2, 2, "", ""),
+		TEST_CASE(true, "xx", 'x', 1, 1, ""),
+		TEST_CASE(true, "axax", 'x', 2, 2, "", "a"),
+		TEST_CASE(true, "axax", 'x', 1, 1, ""),
+		TEST_CASE(true, "axaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(true, "axaxa", 'x', 1, 1, "a"),
+		TEST_CASE(true, "xaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(true, "xaxa", 'x', 1, 1, "a"),
+		TEST_CASE(true, "xax", 'x', 2, 2, "", "a"),
+		TEST_CASE(true, "xax", 'x', 1, 1, ""),
+#undef TEST_CASE
+	};
 
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	c = 'x';
-	max = 0;
-	count = 0;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("x");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_split(dstr, c, max);
-	strview_list = dstr_split_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("x");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[2], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	c = 'x';
-	max = 0;
-	count = 0;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("x");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xx");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("axaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(dstr_equal_cstr(dstr_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("xax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	dstr_list = dstr_rsplit(dstr, c, max);
-	strview_list = dstr_rsplit_views(dstr, c, max);
-	CHECK(dstr_list.count == count);
-	CHECK(strview_list.count == count);
-	CHECK(dstr_equal_cstr(dstr_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	dstr_list_free(&dstr_list);
-	strview_list_free(&strview_list);
-	dstr_free(&dstr);
+	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+		const char *str = test_cases[i].str;
+		char c = test_cases[i].c;
+		bool rev = test_cases[i].reverse;
+		size_t max = test_cases[i].max;
+		size_t count = test_cases[i].count;
+		const char **results = test_cases[i].results;
+		// test_log("%s %c %zu %zu\n", str, c, max, count);
+		dstr_t dstr = dstr_from_cstr(str);
+		struct dstr_list dstr_list = (rev ? dstr_rsplit : dstr_split)(dstr, c, max);
+		struct strview_list strview_list = (rev ? dstr_rsplit_views : dstr_split_views)(dstr, c, max);
+		CHECK(dstr_list.count == count);
+		CHECK(strview_list.count == count);
+		for (size_t j = 0; j < count; j++) {
+			CHECK(dstr_equal_cstr(dstr_list.strings[j], results[j]));
+			CHECK(strview_equal_cstr(strview_list.strings[j], results[j]));
+		}
+		dstr_list_free(&dstr_list);
+		strview_list_free(&strview_list);
+		dstr_free(&dstr);
+	}
 	return true;
 }
 
@@ -4079,268 +2715,58 @@ SIMPLE_TEST(strview_compare)
 
 SIMPLE_TEST(strview_find)
 {
-	struct strview view = strview_from_cstr("abc");
-	const char *str = "abc";
-	size_t s = 0;
-	size_t p = strview_find_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	struct strview view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
+	static const struct {
+		const char *haystack;
+		const char *needle;
+		size_t s;
+		size_t result;
+		bool reverse;
+	} test_cases[] = {
+		{"abc", "abc", 0, 0, false},
+		{"abc", "ab", 0, 0, false},
+		{"abc", "a", 0, 0, false},
+		{"abc", "", 0, 0, false},
+		{"abc", "c", 0, 2, false},
+		{"abcabc", "abc", 1, 3, false},
+		{"abcabcabc", "abc", 3, 3, false},
+		{"abcabcabc", "abc", 4, 6, false},
+		{"abcabcabc", "abc", 7, STRVIEW_NPOS, false},
+		{"", "", 0, 0, false},
+		{"", "a", 0, STRVIEW_NPOS, false},
+		{"abc", "x", 0, STRVIEW_NPOS, false},
+		{"abc", "abcd", 0, STRVIEW_NPOS, false},
+		{"abc", "abc", STRVIEW_NPOS, 0, true},
+		{"abc", "ab", STRVIEW_NPOS, 0, true},
+		{"abc", "a", STRVIEW_NPOS, 0, true},
+		{"abc", "", STRVIEW_NPOS, 3, true},
+		{"abc", "c", 1, STRVIEW_NPOS, true},
+		{"abc", "c", STRVIEW_NPOS, 2, true},
+		{"abcabc", "abc", STRVIEW_NPOS, 3, true},
+		{"abcabc", "abc", 2, 0, true},
+		{"abcabcabc", "abc", 3, 3, true},
+		{"abcabcabc", "abc", 6, 6, true},
+		{"abcabcabc", "abc", 0, 0, true},
+		{"abcabcabc", "abc", STRVIEW_NPOS, 6, true},
+		{"", "", STRVIEW_NPOS, 0, true},
+		{"", "a", STRVIEW_NPOS, STRVIEW_NPOS, true},
+		{"abc", "x", STRVIEW_NPOS, STRVIEW_NPOS, true},
+		{"abc", "abcd", STRVIEW_NPOS, STRVIEW_NPOS, true},
+	};
 
-	view = strview_from_cstr("abc");
-	str = "ab";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
+	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+		const char *haystack = test_cases[i].haystack;
+		const char *needle = test_cases[i].needle;
+		size_t s = test_cases[i].s;
+		size_t result = test_cases[i].result;
+		bool rev = test_cases[i].reverse;
+		// test_log("%s %s %zu %zu %d\n", haystack, needle, s, result, rev);
+		struct strview haystack_view = strview_from_cstr(haystack);
+		size_t p = (rev ? strview_rfind_cstr : strview_find_cstr)(haystack_view, needle, s);
+		CHECK(p == result);
+		CHECK((rev ? strview_rfind : strview_find)(haystack_view, strview_from_cstr(needle), s) == p);
+	}
 
-	view = strview_from_cstr("abc");
-	str = "a";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "c";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 2);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabc");
-	str = "abc";
-	s = 1;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 3);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 3;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 3);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 4;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 6);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 7;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("");
-	str = "";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("");
-	str = "a";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "x";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "abcd";
-	s = 0;
-	p = strview_find_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_find(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_find(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "abc";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "ab";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "a";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 3);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "c";
-	s = 1;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "c";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 2);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabc");
-	str = "abc";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 3);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabc");
-	str = "abc";
-	s = 2;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 3;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 3);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 6;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 6);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = 0;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcabcabc");
-	str = "abc";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 6);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("");
-	str = "";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == 0);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("");
-	str = "a";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "x";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abc");
-	str = "abcd";
-	s = STRVIEW_NPOS;
-	p = strview_rfind_cstr(view, str, s);
-	CHECK(p == STRVIEW_NPOS);
-	CHECK(strview_rfind(view, strview_from_cstr(str), s) == p);
-	view2 = strview_from_cstr(str);
-	CHECK(strview_rfind(view, view2, s) == p);
-
-	view = strview_from_cstr("abcdefghij0123456789");
+	struct strview view = strview_from_cstr("abcdefghij0123456789");
 	CHECK(strview_find_first_of(view, "", 0) == STRVIEW_NPOS);
 	CHECK(strview_find_first_of(view, "a", 0) == 0);
 	CHECK(strview_find_first_of(view, "b", 0) == 1);
@@ -4586,7 +3012,12 @@ SIMPLE_TEST(strview_strip)
 	view = strview_strip(view, "abcdef");
 	CHECK(strview_equal_cstr(view, ""));
 
-	view = strview_from_cstr(abc);
+	return true;
+}
+
+SIMPLE_TEST(strview_starts_ends_with)
+{
+	struct strview view = strview_from_cstr(abc);
 	CHECK(strview_startswith_cstr(view, abc));
 	CHECK(strview_startswith(view, strview_from_cstr(abc)));
 	CHECK(strview_endswith_cstr(view, abc));
@@ -4686,377 +3117,80 @@ SIMPLE_TEST(strview_strip)
 	CHECK(!strview_startswith(view, view2));
 	CHECK(!strview_endswith(view, view2));
 
-	view = strview_from_cstr("");
-	char c = 'x';
-	size_t max = SIZE_MAX;
-	size_t count = 1;
-	struct strview_list strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
+	return true;
+}
 
-	view = strview_from_cstr("x");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	strview_list_free(&strview_list);
+SIMPLE_TEST(strview_split)
+{
+	const struct {
+		const char *str;
+		char c;
+		bool reverse;
+		size_t max;
+		size_t count;
+		const char **results;
+	} test_cases[] = {
+#define TEST_CASE(reverse, str, c, max, count, ...)			\
+		{str, c, reverse, max, count, (const char *[]){__VA_ARGS__}}
 
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
+		TEST_CASE(false, "", 'x', SIZE_MAX, 1, ""),
+		TEST_CASE(false, "x", 'x', SIZE_MAX, 2, "", ""),
+		TEST_CASE(false, "xx", 'x', SIZE_MAX, 3, "", "", ""),
+		TEST_CASE(false, "axax", 'x', SIZE_MAX, 3, "a", "a", ""),
+		TEST_CASE(false, "axaxa", 'x', SIZE_MAX, 3, "a", "a", "a"),
+		TEST_CASE(false, "xaxa", 'x', SIZE_MAX, 3, "", "a", "a"),
+		TEST_CASE(false, "xax", 'x', SIZE_MAX, 3, "", "a", ""),
+		TEST_CASE(false, "", 'x', 0, 0, NULL),
+		TEST_CASE(false, "x", 'x', 1, 1, ""),
+		TEST_CASE(false, "xx", 'x', 2, 2, "", ""),
+		TEST_CASE(false, "xx", 'x', 1, 1, ""),
+		TEST_CASE(false, "axax", 'x', 2, 2, "a", "a"),
+		TEST_CASE(false, "axax", 'x', 1, 1, "a"),
+		TEST_CASE(false, "axaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(false, "axaxa", 'x', 1, 1, "a"),
+		TEST_CASE(false, "xaxa", 'x', 2, 2, "", "a"),
+		TEST_CASE(false, "xaxa", 'x', 1, 1, ""),
+		TEST_CASE(false, "xax", 'x', 2, 2, "", "a"),
+		TEST_CASE(false, "xax", 'x', 1, 1, ""),
+		TEST_CASE(true, "", 'x', SIZE_MAX, 1, ""),
+		TEST_CASE(true, "x", 'x', SIZE_MAX, 2, "", ""),
+		TEST_CASE(true, "xx", 'x', SIZE_MAX, 3, "", "", ""),
+		TEST_CASE(true, "axax", 'x', SIZE_MAX, 3, "", "a", "a"),
+		TEST_CASE(true, "axaxa", 'x', SIZE_MAX, 3, "a", "a", "a"),
+		TEST_CASE(true, "xaxa", 'x', SIZE_MAX, 3, "a", "a", ""),
+		TEST_CASE(true, "xax", 'x', SIZE_MAX, 3, "", "a", ""),
+		TEST_CASE(true, "", 'x', 0, 0, NULL),
+		TEST_CASE(true, "x", 'x', 1, 1, ""),
+		TEST_CASE(true, "xx", 'x', 2, 2, "", ""),
+		TEST_CASE(true, "xx", 'x', 1, 1, ""),
+		TEST_CASE(true, "axax", 'x', 2, 2, "", "a"),
+		TEST_CASE(true, "axax", 'x', 1, 1, ""),
+		TEST_CASE(true, "axaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(true, "axaxa", 'x', 1, 1, "a"),
+		TEST_CASE(true, "xaxa", 'x', 2, 2, "a", "a"),
+		TEST_CASE(true, "xaxa", 'x', 1, 1, "a"),
+		TEST_CASE(true, "xax", 'x', 2, 2, "", "a"),
+		TEST_CASE(true, "xax", 'x', 1, 1, ""),
 
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
+#undef TEST_CASE
+	};
 
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("");
-	c = 'x';
-	max = 0;
-	count = 0;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("x");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_split(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("x");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = SIZE_MAX;
-	count = 3;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[2], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("");
-	c = 'x';
-	max = 0;
-	count = 0;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("x");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xx");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("axaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xaxa");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = 2;
-	count = 2;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	CHECK(strview_equal_cstr(strview_list.strings[1], "a"));
-	strview_list_free(&strview_list);
-
-	view = strview_from_cstr("xax");
-	c = 'x';
-	max = 1;
-	count = 1;
-	strview_list = strview_rsplit(view, c, max);
-	CHECK(strview_list.count == count);
-	CHECK(strview_equal_cstr(strview_list.strings[0], ""));
-	strview_list_free(&strview_list);
+	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+		const char *str = test_cases[i].str;
+		char c = test_cases[i].c;
+		bool rev = test_cases[i].reverse;
+		size_t max = test_cases[i].max;
+		size_t count = test_cases[i].count;
+		const char **results = test_cases[i].results;
+		// test_log("%s %c %zu %zu\n", str, c, max, count);
+		struct strview view = strview_from_cstr(str);
+		struct strview_list strview_list = (rev ? strview_rsplit : strview_split)(view, c, max);
+		CHECK(strview_list.count == count);
+		for (size_t j = 0; j < count; j++) {
+			CHECK(strview_equal_cstr(strview_list.strings[j], results[j]));
+		}
+		strview_list_free(&strview_list);
+	}
 
 	return true;
 }
