@@ -17,15 +17,18 @@
  * SOFTWARE.
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/random.h>
 #include <unistd.h>
 #include "testing.h"
@@ -141,8 +144,44 @@ void check_failed(const char *func, const char *file, unsigned int line, const c
 
 void test_log(const char *fmt, ...)
 {
-	(void)fmt;
-	// TODO print into an fmemopen file?
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
+
+// this closes the fd
+static void print_test_output(int fd)
+{
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		perror("lseek failed");
+		exit(EXIT_FAILURE);
+	}
+	FILE *f = fdopen(fd, "r");
+	if (!f) {
+		perror("fdopen failed");
+		exit(EXIT_FAILURE);
+	}
+	bool newline = true;
+	for (;;) {
+		char buf[4096];
+		if (!fgets(buf, sizeof(buf), f)) {
+			if (ferror(f)) {
+				perror("fgets failed");
+				exit(EXIT_FAILURE);
+			}
+			break;
+		}
+		if (newline) {
+			fputs("    ", stdout);
+		}
+		fputs(buf, stdout);
+		newline = buf[strlen(buf) - 1] == '\n';
+	}
+	if (!newline) {
+		putchar('\n');
+	}
+	fclose(f);
 }
 
 static int compare_tests(const void *_a, const void *_b)
@@ -251,6 +290,13 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	int original_stdout = dup(STDOUT_FILENO);
+	int original_stderr = dup(STDERR_FILENO);
+	if (original_stdout == -1 || original_stderr == -1) {
+		perror("dup failed");
+		exit(EXIT_FAILURE);
+	}
+
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
 #define CYAN "\033[1;36m"
@@ -262,13 +308,24 @@ int main(int argc, char **argv)
 
 	size_t num_failed = 0;
 	for (size_t i = 0; i < num_tests; i++) {
-		fprintf(stderr, CLEAR_LINE "%zu/%zu\r", i, num_tests);
-
 		struct test *test = &tests[i];
 
+		fprintf(stderr, CLEAR_LINE "%zu/%zu\r", i, num_tests);
+
+		int memfd = memfd_create("test output", MFD_CLOEXEC);
+		if (memfd == -1) {
+			perror("memfd_create failed");
+			exit(EXIT_FAILURE);
+		}
+		if (dup2(memfd, STDOUT_FILENO) == -1 ||
+		    dup2(memfd, STDERR_FILENO) == -1) {
+			perror("dup2 failed");
+			exit(EXIT_FAILURE);
+		}
+
 		bool success = false;
-		int retval = sigsetjmp(jump_buffer, 1);
-		if (retval == 0) {
+		int signum = sigsetjmp(jump_buffer, 1);
+		if (signum == 0) {
 			in_test = true;
 			switch (test->type) {
 			case TEST_TYPE_SIMPLE:
@@ -283,16 +340,29 @@ int main(int argc, char **argv)
 			}
 			in_test = false;
 		} else {
-			// printf("caught signal %d\n", retval);
+			printf("Caught signal %d (%s)\n", signum, strsignal(signum));
 		}
+
+		if (dup2(original_stderr, STDERR_FILENO) == -1 ||
+		    dup2(original_stdout, STDOUT_FILENO) == -1) {
+			perror("dup2 failed");
+			exit(EXIT_FAILURE);
+		}
+
 		bool passed = success == test->should_succeed;
-		if (!passed) {
-			num_failed++;
-		}
 		printf(CLEAR_LINE "[%s/%s] %s\n", test->file, test->name, passed ? PASSED : FAILED);
+		if (passed) {
+			close(memfd);
+		} else {
+			num_failed++;
+			print_test_output(memfd);
+		}
 	}
 	printf("Summary: %s%zu/%zu failed" RESET " (random seed: %" PRIu64 ")\n",
 	       num_failed == 0 ? GREEN : RED, num_failed, num_tests, seed);
+
+	close(original_stdout);
+	close(original_stderr);
 
 	free(tests);
 
