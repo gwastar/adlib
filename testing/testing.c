@@ -203,7 +203,7 @@ static struct list_head *list_pop_head(struct list_head *list)
 }
 
 #define list_foreach(list, itername)					\
-	for (struct list_head *itername = (list)->next, *___itername__##next = itername->next; itername != (list); itername = ___itername__##next, ___itername__##next = itername->next)
+	for (struct list_head *itername = (list)->next; itername != (list); itername = itername->next)
 
 struct worker {
 	struct list_head link;
@@ -224,12 +224,9 @@ struct worker {
 	};
 };
 
-#define container_of(ptr, type, member)					\
-	((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
-
 static struct worker *to_worker(struct list_head *ptr)
 {
-	return ptr ? container_of(ptr, struct worker, link) : NULL;
+	return (struct worker *)((char *)ptr - offsetof(struct worker, link));
 }
 
 // static uint64_t splitmix64(uint64_t *state)
