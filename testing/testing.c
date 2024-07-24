@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <linux/close_range.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -295,6 +296,12 @@ static void worker_start(struct worker *worker)
 		perror("dup2 failed");
 		exit(EXIT_FAILURE);
 	}
+
+	if (close_range(3, ~0U, CLOSE_RANGE_UNSHARE) == -1) {
+		perror("close_range failed");
+		exit(EXIT_FAILURE);
+	}
+
 	bool success = run_test(worker);
 	exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
 }
@@ -428,6 +435,7 @@ static uint64_t fd_get_size(int fd)
 	return stat.st_size;
 }
 
+// this closes the fd
 static void print_test_output(int fd)
 {
 	if (lseek(fd, 0, SEEK_SET) != 0) {
@@ -482,18 +490,16 @@ static bool print_test_results(struct test *test)
 	printf(CLEAR_LINE "[%s/%s] %s (", test->file, test->name, test_passed ? PASSED : FAILED);
 	print_time(runtime, stdout);
 	puts(")");
-	if (test_passed) {
-		return true;
-	}
 	for (size_t j = 0; j < test->num_workers; j++) {
 		struct worker *work = &test->workers[j];
 		if (work->passed || fd_get_size(work->output_fd) == 0) {
+			close(work->output_fd);
 			continue;
 		}
 		printf("  " CYAN "[worker %zu]" RESET "\n", j + 1);
 		print_test_output(work->output_fd);
 	}
-	return false;
+	return test_passed;
 }
 
 static uint64_t timeval_to_ns(struct timeval tv)
