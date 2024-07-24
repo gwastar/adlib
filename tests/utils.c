@@ -4,11 +4,37 @@
 #include "testing.h"
 #include "utils.h"
 
+static unsigned int ilog2_reference(uint64_t x)
+{
+	unsigned int result = 0;
+	if (x >= (1llu << 31)) {
+		result += 31;
+		x >>= 31;
+	}
+	while (x >= (1u << 12)) {
+		result += 12;
+		x >>= 12;
+	}
+	while (x >= (1u << 6)) {
+		result += 6;
+		x >>= 6;
+	}
+	while (x >= (1u << 4)) {
+		result += 4;
+		x >>= 4;
+	}
+	while (x >= 2) {
+		result++;
+		x >>= 1;
+	}
+	return result;
+}
+
 RANGE_TEST(ilog2, 0, UINT32_MAX)
 {
 	uint64_t x = value;
-	double lg2 = log2(x != 0 ? (double)x : 1.0);
-	if (ilog2((uint32_t)x) != (unsigned int)lg2 ||
+	unsigned int lg2 = ilog2_reference((uint32_t)x);
+	if (ilog2((uint32_t)x) != lg2 ||
 	    ilog2((int32_t)x) != ilog2((uint64_t)x)) {
 		return false;
 	}
@@ -18,18 +44,40 @@ RANGE_TEST(ilog2, 0, UINT32_MAX)
 RANDOM_TEST(ilog2_rand_64, 1u << 30)
 {
 	uint64_t x = random_seed;
-	double lg2 = log2(x != 0 ? (double)x : 1.0);
-	if (ilog2((int64_t)x) != (unsigned int)lg2) {
+	unsigned int lg2 = ilog2_reference(x);
+	if (ilog2((int64_t)x) != lg2) {
 		return false;
 	}
 	return true;
 }
 
+static unsigned int ilog10_reference(uint64_t x)
+{
+	unsigned int result = 0;
+	if (x >= 100000) {
+		result += 5;
+		x /= 100000;
+	}
+	while (x >= 10000) {
+		result += 4;
+		x /= 10000;
+	}
+	while (x >= 100) {
+		result += 2;
+		x /= 100;
+	}
+	while (x >= 10) {
+		result++;
+		x /= 10;
+	}
+	return result;
+}
+
 RANGE_TEST(ilog10, 0, UINT32_MAX)
 {
 	uint64_t x = value;
-	double lg10 = log10(x != 0 ? (double)x : 1.0);
-	if (ilog10((uint32_t)x) != (unsigned int)lg10 ||
+	unsigned int lg10 = ilog10_reference((uint32_t)x);
+	if (ilog10((uint32_t)x) != lg10 ||
 	    ilog10((int32_t)x) != ilog10((uint64_t)x)) {
 		return false;
 	}
@@ -39,8 +87,8 @@ RANGE_TEST(ilog10, 0, UINT32_MAX)
 RANDOM_TEST(ilog10_rand_64, 1u << 30)
 {
 	uint64_t x = random_seed;
-	double lg10 = log10(x != 0 ? (double)x : 1.0);
-	if (ilog10((int64_t)x) != (unsigned int)lg10) {
+	unsigned int lg10 = ilog10_reference(x);
+	if (ilog10((int64_t)x) != lg10) {
 		return false;
 	}
 	return true;
