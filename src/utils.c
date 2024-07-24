@@ -134,7 +134,7 @@ static unsigned int _ilog10_32(uint32_t x)
 	// the constants are different because the original algorithm returns ceil(log10(x)) but we want
 	// floor(log10(x)) so that ilog10 matches ilog2
 	// the constants are therefore the original constants minus (1 << 32)
-	static const uint64_t table[] = {
+	static _Alignas(64) const uint64_t table[] = {
 		UINT64_C(0),
 		UINT64_C(4294967286),
 		UINT64_C(4294967286),
@@ -174,7 +174,7 @@ static unsigned int _ilog10_32(uint32_t x)
 static unsigned int _ilog10_64(uint64_t x)
 {
 	// Hacker's Delight
-	static const uint64_t table[] = {
+	static _Alignas(64) const uint64_t table[] = {
 		UINT64_C(9),
 		UINT64_C(99),
 		UINT64_C(999),

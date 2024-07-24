@@ -96,7 +96,7 @@ RANDOM_TEST(ilog10_rand_64, 1u << 30)
 
 static unsigned int hackers_delight_clz32(uint32_t x)
 {
-	static const char table[64] = {
+	static _Alignas(64) const char table[64] = {
 #define u 0
 		32, 20, 19, u, u, 18, u, 7, 10, 17, u, u, 14, u, 6, u,
 		u, 9, u, 16, u, u, 1, 26, u, 13, u, u, 24, 5, u, u,
@@ -158,7 +158,7 @@ RANDOM_TEST(clz64_rand, 1u << 30)
 
 static unsigned int hackers_delight_ctz32(uint32_t x)
 {
-	static const char table[64] = {
+	static _Alignas(64) const char table[64] = {
 #define u 0
 		32, 0, 1, 12, 2, 6, u, 13, 3, u, 7, u, u, u, u, 14,
 		10, 4, u, u, 8, u, u, 25, u, u, u, u, u, 21, 27, 15,
