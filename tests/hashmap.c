@@ -28,7 +28,7 @@ struct itable_entry {
 
 DEFINE_HASHTABLE(itable, int, struct itable_entry, 8, (entry->value == *key))
 
-RANDOM_TEST(hashmap, 2)
+RANDOM_TEST(hashmap, random_seed, 2)
 {
 	struct itable itable;
 	itable_init(&itable, 16);

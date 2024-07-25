@@ -413,13 +413,13 @@ NEGATIVE_SIMPLE_TEST(selftest2)
 	return false;
 }
 
-RANGE_TEST(selftest3, UINT64_MAX - 1, UINT64_MAX)
+RANGE_TEST(selftest3, value, UINT64_MAX - 1, UINT64_MAX)
 {
 	CHECK(UINT64_MAX - 1 <= value && value <= UINT64_MAX);
 	return true;
 }
 
-RANDOM_TEST(selftest4, 2)
+RANDOM_TEST(selftest4, random_seed, 2)
 {
 	(void)random_seed;
 #if 0

@@ -70,7 +70,7 @@ static bool random_test(int *arr, size_t n, struct random_state *rng)
 	return true;
 }
 
-RANDOM_TEST(heap_random, 4)
+RANDOM_TEST(heap_random, random_seed, 4)
 {
 #define N 2048
 	struct random_state rng;

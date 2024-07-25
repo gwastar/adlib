@@ -115,7 +115,7 @@ SIMPLE_TEST(uint128_edge_cases)
 	return true;
 }
 
-RANDOM_TEST(uint128_random, 2)
+RANDOM_TEST(uint128_random, random_seed, 2)
 {
 	struct random_state rng;
 	random_state_init(&rng, random_seed);

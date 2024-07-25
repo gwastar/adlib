@@ -32,10 +32,10 @@
 
 #define SIMPLE_TEST(name)			\
 	_SIMPLE_TEST(name, true)
-#define RANGE_TEST(name, start_, end_)		\
-	_RANGE_TEST(name, start_, end_, true)
-#define RANDOM_TEST(name, num_values)		\
-	_RANDOM_TEST(name, num_values, true)
+#define RANGE_TEST(name, arg_name, start_, end_)	\
+	_RANGE_TEST(name, arg_name, start_, end_, true)
+#define RANDOM_TEST(name, arg_name, num_values)		\
+	_RANDOM_TEST(name, arg_name, num_values, true)
 
 #define NEGATIVE_SIMPLE_TEST(name)		\
 	_SIMPLE_TEST(name, false)
@@ -48,7 +48,7 @@
 	}								\
 	static bool test_##name(void)
 
-#define _RANGE_TEST(name, start_, end_, should_succeed)			\
+#define _RANGE_TEST(name, arg_name, start_, end_, should_succeed)	\
 	static bool test_##name(uint64_t);				\
 	static bool _test_##name##_helper(uint64_t _start, uint64_t _end) \
 	{								\
@@ -64,9 +64,9 @@
 	{								\
 		register_range_test(__FILE__, #name, start_, end_, _test_##name##_helper, should_succeed); \
 	}								\
-	static bool test_##name(uint64_t value)
+	static bool test_##name(uint64_t arg_name)
 
-#define _RANDOM_TEST(name, num_values, should_succeed)			\
+#define _RANDOM_TEST(name, arg_name, num_values, should_succeed)	\
 	static bool test_##name(uint64_t);				\
 	static bool _test_##name##_helper(uint64_t _num_values, uint64_t _seed) \
 	{								\
@@ -87,7 +87,7 @@
 	{								\
 		register_random_test(__FILE__, #name, num_values, _test_##name##_helper, should_succeed); \
 	}								\
-	static bool test_##name(uint64_t random_seed)
+	static bool test_##name(uint64_t arg_name)
 
 void register_simple_test(const char *file, const char *name,
 			  bool (*f)(void), bool should_succeed);

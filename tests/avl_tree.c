@@ -115,7 +115,7 @@ static bool check_tree(struct avl_tree *tree)
 	return check_tree_recursive(tree->root, &depth);
 }
 
-RANDOM_TEST(insert_find_remove, 2)
+RANDOM_TEST(insert_find_remove, random_seed, 2)
 {
 	const unsigned int N = 200000;
 	struct avl_tree tree = AVL_EMPTY_TREE;
@@ -153,7 +153,7 @@ RANDOM_TEST(insert_find_remove, 2)
 	return true;
 }
 
-RANDOM_TEST(foreach, 2)
+RANDOM_TEST(foreach, random_seed, 2)
 {
 	struct avl_tree tree = AVL_EMPTY_TREE;
 	struct random_state rng;
@@ -175,7 +175,7 @@ RANDOM_TEST(foreach, 2)
 	return true;
 }
 
-RANDOM_TEST(random_insert_find_remove, 2)
+RANDOM_TEST(random_insert_find_remove, random_seed, 2)
 {
 	struct avl_tree tree = AVL_EMPTY_TREE;
 	struct random_state rng;

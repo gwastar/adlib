@@ -655,14 +655,13 @@ SIMPLE_TEST(to_chars_leading_zeros)
 	return true;
 }
 
-RANDOM_TEST(to_chars_random, 1u << 22)
+RANDOM_TEST(to_chars_random, x, 1u << 22)
 {
-	return check_from_number(random_seed);
+	return check_from_number(x);
 }
 
-RANGE_TEST(to_chars_bases, 2, 36)
+RANGE_TEST(to_chars_bases, base, 2, 36)
 {
-	unsigned int base = value;
 	const char *alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
 	assert(base <= strlen(alphabet));
 	unsigned char digits[64] = {0};
@@ -944,7 +943,7 @@ SIMPLE_TEST(from_chars_invalid_inputs)
 	return true;
 }
 
-RANDOM_TEST(charconv_roundtrip, 1u << 18)
+RANDOM_TEST(charconv_roundtrip, random, 1u << 18)
 {
 #define TEST(name, type)						\
 	for (unsigned int base = 0; base <= 36; base++) {		\
@@ -952,7 +951,7 @@ RANDOM_TEST(charconv_roundtrip, 1u << 18)
 			continue;					\
 		}							\
 		char buf[128];						\
-		type val = (type)random_seed;				\
+		type val = (type)random;				\
 		size_t n = to_chars(buf, sizeof(buf), val, base);	\
 		type retval;						\
 		struct from_chars_result res = from_chars(buf, n, &retval, base); \
@@ -965,7 +964,7 @@ RANDOM_TEST(charconv_roundtrip, 1u << 18)
 	return true;
 }
 
-RANDOM_TEST(charconv_roundtrip_flags, 1u << 14)
+RANDOM_TEST(charconv_roundtrip_flags, random, 1u << 14)
 {
 #define TEST(name, type)						\
 	for (unsigned int base = 0; base <= 36; base++) {		\
@@ -973,7 +972,7 @@ RANDOM_TEST(charconv_roundtrip_flags, 1u << 14)
 			continue;					\
 		}							\
 		char buf[256];						\
-		type val = (type)random_seed;				\
+		type val = (type)random;				\
 		{							\
 			size_t n = to_chars(buf, sizeof(buf), val, base | TO_CHARS_LEADING_ZEROS); \
 			type retval;					\

@@ -133,7 +133,7 @@ static bool check_tree(struct rb_tree *tree)
 	return check_tree_recursive(tree->root, 0, &black_depth);
 }
 
-RANDOM_TEST(insert_find_remove, 2)
+RANDOM_TEST(insert_find_remove, random_seed, 2)
 {
 	const unsigned int N = 200000;
 	struct rb_tree tree = RB_EMPTY_TREE;
@@ -171,7 +171,7 @@ RANDOM_TEST(insert_find_remove, 2)
 	return true;
 }
 
-RANDOM_TEST(foreach, 2)
+RANDOM_TEST(foreach, random_seed, 2)
 {
 	struct rb_tree tree = RB_EMPTY_TREE;
 	struct random_state rng;
@@ -193,7 +193,7 @@ RANDOM_TEST(foreach, 2)
 	return true;
 }
 
-RANDOM_TEST(random_insert_find_remove, 2)
+RANDOM_TEST(random_insert_find_remove, random_seed, 2)
 {
 	struct rb_tree tree = RB_EMPTY_TREE;
 	struct random_state rng;

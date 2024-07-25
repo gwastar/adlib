@@ -80,7 +80,7 @@ static bool test_range_functions(uint64_t min_value, uint64_t max_value, double 
 	return true;
 }
 
-RANDOM_TEST(random, 2)
+RANDOM_TEST(random, random_seed, 2)
 {
 	const size_t N = 32 * 1024 * 1024;
 
