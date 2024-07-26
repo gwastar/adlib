@@ -64,7 +64,7 @@ struct worker {
 
 static struct worker *to_worker(struct list_head *ptr)
 {
-	return (struct worker *)((char *)ptr - offsetof(struct worker, link));
+	return ptr ? (struct worker *)((char *)ptr - offsetof(struct worker, link)) : NULL;
 }
 
 // static uint64_t splitmix64(uint64_t *state)
