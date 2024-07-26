@@ -105,6 +105,7 @@ sources = [
   'hashtable.c',
   'random.c',
   'rb_tree.c',
+  'stringview.c',
   'utils.c',
 ]
 
