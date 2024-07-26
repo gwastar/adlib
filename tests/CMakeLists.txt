@@ -15,6 +15,7 @@ set(TESTS
   json
   random
   rb_tree
+  stringview
   uint128
   utils
 )
