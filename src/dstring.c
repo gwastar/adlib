@@ -1308,14 +1308,11 @@ bool dstr_endswith_cstr(const dstr_t dstr, const char *suffix)
 struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max)
 {
 	dstr_t *list = NULL;
-	size_t length = dstr_length(dstr);
 	size_t allocated = 0;
 	size_t count = 0;
-	size_t start = 0;
+	struct strview view = dstr_view(dstr);
+	const char accept[] = { c, '\0' };
 	while (count < max) {
-		// TODO is strchr faster here?
-		const char *p = memchr(&dstr[start], c, length - start);
-		size_t pos = p ? (size_t)(p - dstr) : length;
 		if (count == allocated) {
 			allocated = allocated == 0 ? 2 : 2 * allocated;
 			list = realloc(list, allocated * sizeof(list[0]));
@@ -1323,11 +1320,12 @@ struct dstr_list dstr_split(const dstr_t dstr, char c, size_t max)
 				abort();
 			}
 		}
-		list[count++] = dstr_substring_copy(dstr, start, pos - start);
-		if (!p) {
+		size_t pos = strview_find_first_of(view, accept, 0);
+		list[count++] = dstr_from_view(strview_substring(view, 0, pos));
+		if (pos == STRVIEW_NPOS) {
 			break;
 		}
-		start = pos + 1;
+		view = strview_substring(view, pos + 1, -1);
 	}
 	if (count != allocated) {
 		dstr_t *list2 = realloc(list, count * sizeof(list[0]));
@@ -1342,11 +1340,10 @@ struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max)
 {
 	dstr_t *list = NULL;
 	size_t allocated = 0;
-	size_t end = dstr_length(dstr);
 	size_t count = 0;
+	struct strview view = dstr_view(dstr);
+	const char accept[] = { c, '\0' };
 	while (count < max) {
-		const char *p = _strview_memrchr(dstr, c, end);
-		size_t pos = p ? (size_t)(p - dstr) + 1 : 0;
 		if (count == allocated) {
 			allocated = allocated == 0 ? 2 : 2 * allocated;
 			list = realloc(list, allocated * sizeof(list[0]));
@@ -1354,11 +1351,13 @@ struct dstr_list dstr_rsplit(const dstr_t dstr, char c, size_t max)
 				abort();
 			}
 		}
-		list[count++] = dstr_substring_copy(dstr, pos, end - pos);
+		_Static_assert(STRVIEW_NPOS + 1 == 0, "pos should be 0 if not found");
+		size_t pos = 1 + strview_find_last_of(view, accept, view.length - 1);
+		list[count++] = dstr_substring_copy(dstr, pos, view.length - pos);
 		if (pos == 0) {
 			break;
 		}
-		end = pos - 1;
+		view = strview_substring(view, 0, pos - 1);
 	}
 	if (count != allocated) {
 		dstr_t *list2 = realloc(list, count * sizeof(list[0]));
