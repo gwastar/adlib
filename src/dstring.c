@@ -138,7 +138,7 @@ size_t strview_find(struct strview haystack, struct strview needle, size_t pos)
 		return 0;
 	}
 	if (unlikely(needle.length > haystack.length)) {
-		return DSTR_NPOS;
+		return STRVIEW_NPOS;
 	}
 	const char *found = NULL;
 	const char *p = haystack.characters;
@@ -188,7 +188,7 @@ size_t strview_rfind(struct strview haystack, struct strview needle, size_t pos)
 		return haystack.length;
 	}
 	if (unlikely(needle.length > haystack.length)) {
-		return DSTR_NPOS;
+		return STRVIEW_NPOS;
 	}
 	if (pos < haystack.length - needle.length) {
 		haystack = strview_substring(haystack, 0, pos + needle.length);
