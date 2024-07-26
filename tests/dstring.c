@@ -53,7 +53,7 @@ SIMPLE_TEST(dstring)
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, "yz");
 	CHECK(sanity_check(dstr));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr_free(&dstr);
 	CHECK(!dstr);
 
@@ -69,7 +69,7 @@ SIMPLE_TEST(dstring)
 	for (size_t n = 0; n < 100; n++) {
 		dstr_t d = dstr_substring_copy(dstr, n * 26, 26);
 		CHECK(sanity_check(d));
-		CHECK(dstr_equal_cstr(d, abc));
+		CHECK(dstr_equals_cstr(d, abc));
 		dstr_free(&d);
 	}
 
@@ -166,22 +166,22 @@ SIMPLE_TEST(dstring_resize)
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
 	dstr_resize(&dstr, abc_len / 2);
-	CHECK(dstr_equal_view(dstr, strview_from_chars(abc, abc_len / 2)));
+	CHECK(dstr_equals_view(dstr, strview_from_chars(abc, abc_len / 2)));
 	CHECK(sanity_check(dstr));
 	dstr_clear(&dstr);
 	dstr_append_cstr(&dstr, a256);
 	dstr_resize(&dstr, a256_len / 2);
-	CHECK(dstr_equal_view(dstr, strview_from_chars(a256, a256_len / 2)));
+	CHECK(dstr_equals_view(dstr, strview_from_chars(a256, a256_len / 2)));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 
 	dstr = dstr_new();
 	dstr_append_cstr(&dstr, abc);
 	dstr_resize(&dstr, abc_len);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_resize(&dstr, UINT8_MAX + 1);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
 	CHECK(dstr_startswith_cstr(dstr, abc));
@@ -300,7 +300,7 @@ SIMPLE_TEST(dstring_append)
 	dstr_free(&dstr2);
 	dstr2 = dstr_copy(dstr);
 	CHECK(dstr_length(dstr2) == 100 * abc_len);
-	CHECK(dstr_equal_dstr(dstr, dstr2));
+	CHECK(dstr_equals_dstr(dstr, dstr2));
 	CHECK(sanity_check(dstr));
 	CHECK(sanity_check(dstr2));
 	dstr_free(&dstr);
@@ -348,7 +348,7 @@ SIMPLE_TEST(dstring_append)
 	dstr = dstr_new();
 	dstr_append_cstr(&dstr, abc);
 	CHECK(sanity_check(dstr));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(sanity_check(dstr));
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -358,7 +358,7 @@ SIMPLE_TEST(dstring_append)
 	dstr = dstr_new();
 	dstr_append_view(&dstr, strview_from_cstr(abc));
 	CHECK(sanity_check(dstr));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr_append_view(&dstr, strview_from_cstr(a256));
 	CHECK(sanity_check(dstr));
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -368,7 +368,7 @@ SIMPLE_TEST(dstring_append)
 	dstr = dstr_new();
 	dstr_append_fmt(&dstr, "%s", abc);
 	CHECK(sanity_check(dstr));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr_append_fmt(&dstr, "%s", a256);
 	CHECK(sanity_check(dstr));
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -380,7 +380,7 @@ SIMPLE_TEST(dstring_append)
 	dstr_append_dstr(&dstr, dstr2);
 	dstr_free(&dstr2);
 	CHECK(sanity_check(dstr));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr2 = dstr_from_cstr(a256);
 	dstr_append_dstr(&dstr, dstr2);
 	dstr_free(&dstr2);
@@ -440,10 +440,10 @@ SIMPLE_TEST(dstring_append)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, "");
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -462,10 +462,10 @@ SIMPLE_TEST(dstring_append)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_view(&dstr, strview_from_cstr(""));
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -485,10 +485,10 @@ SIMPLE_TEST(dstring_append)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_dstr(&dstr, dstr2);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -508,10 +508,10 @@ SIMPLE_TEST(dstring_append)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_chars(&dstr, "", 0);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -530,10 +530,10 @@ SIMPLE_TEST(dstring_append)
 	CHECK(dstr_is_empty(dstr));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_fmt(&dstr, "%s", "");
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	dstr_append_cstr(&dstr, a256);
 	CHECK(strncmp(dstr, abc, abc_len) == 0);
@@ -552,7 +552,7 @@ SIMPLE_TEST(dstring_uninitialized)
 	dstr_t dstr = dstr_new();
 	char *m = dstr_append_uninitialized(&dstr, abc_len);
 	strcpy(m, abc);
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	CHECK(sanity_check(dstr));
 	m = dstr_append_uninitialized(&dstr, a256_len);
 	strcpy(m, a256);
@@ -747,7 +747,7 @@ SIMPLE_TEST(dstring_insert)
 		dstr_insert_view(&dstr, i, strview_from_cstr(""));
 		dstr_insert_fmt(&dstr, i, "%s", "");
 		CHECK(sanity_check(dstr));
-		CHECK(dstr_equal_cstr(dstr, abc));
+		CHECK(dstr_equals_cstr(dstr, abc));
 	}
 	dstr_free(&dstr);
 
@@ -758,7 +758,7 @@ SIMPLE_TEST(dstring_insert)
 		dstr_insert_view(&dstr, i, strview_from_cstr(""));
 		dstr_insert_fmt(&dstr, i, "%s", "");
 		CHECK(sanity_check(dstr));
-		CHECK(dstr_equal_cstr(dstr, a256));
+		CHECK(dstr_equals_cstr(dstr, a256));
 	}
 	dstr_free(&dstr);
 	return true;
@@ -1195,7 +1195,7 @@ SIMPLE_TEST(dstring_erase)
 		dstr_erase(&dstr, i, 0);
 		CHECK(sanity_check(dstr));
 	}
-	CHECK(dstr_equal_cstr(dstr, abc));
+	CHECK(dstr_equals_cstr(dstr, abc));
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(a256);
@@ -1203,7 +1203,7 @@ SIMPLE_TEST(dstring_erase)
 		dstr_erase(&dstr, i, 0);
 		CHECK(sanity_check(dstr));
 	}
-	CHECK(dstr_equal_cstr(dstr, a256));
+	CHECK(dstr_equals_cstr(dstr, a256));
 	dstr_free(&dstr);
 	return true;
 }
@@ -1212,61 +1212,61 @@ SIMPLE_TEST(dstring_strip)
 {
 	dstr_t dstr = dstr_from_cstr("---aaa---");
 	dstr_strip(&dstr, "-");
-	CHECK(dstr_equal_cstr(dstr, "aaa"));
+	CHECK(dstr_equals_cstr(dstr, "aaa"));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("---aaa---");
 	dstr_lstrip(&dstr, "-");
-	CHECK(dstr_equal_cstr(dstr, "aaa---"));
+	CHECK(dstr_equals_cstr(dstr, "aaa---"));
 	CHECK(sanity_check(dstr));
 	dstr_rstrip(&dstr, "-");
-	CHECK(dstr_equal_cstr(dstr, "aaa"));
+	CHECK(dstr_equals_cstr(dstr, "aaa"));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("---aaa---");
 	dstr_rstrip(&dstr, "-");
-	CHECK(dstr_equal_cstr(dstr, "---aaa"));
+	CHECK(dstr_equals_cstr(dstr, "---aaa"));
 	CHECK(sanity_check(dstr));
 	dstr_lstrip(&dstr, "-");
-	CHECK(dstr_equal_cstr(dstr, "aaa"));
+	CHECK(dstr_equals_cstr(dstr, "aaa"));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abcabacba");
 	dstr_strip(&dstr, "ab");
-	CHECK(dstr_equal_cstr(dstr, "cabac"));
+	CHECK(dstr_equals_cstr(dstr, "cabac"));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "ca");
-	CHECK(dstr_equal_cstr(dstr, "b"));
+	CHECK(dstr_equals_cstr(dstr, "b"));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abcdeffedcba");
 	dstr_strip(&dstr, "bcdef");
-	CHECK(dstr_equal_cstr(dstr, "abcdeffedcba"));
+	CHECK(dstr_equals_cstr(dstr, "abcdeffedcba"));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "");
-	CHECK(dstr_equal_cstr(dstr, "abcdeffedcba"));
+	CHECK(dstr_equals_cstr(dstr, "abcdeffedcba"));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "ac");
-	CHECK(dstr_equal_cstr(dstr, "bcdeffedcb"));
+	CHECK(dstr_equals_cstr(dstr, "bcdeffedcb"));
 	CHECK(sanity_check(dstr));
 	dstr_lstrip(&dstr, "efcb");
-	CHECK(dstr_equal_cstr(dstr, "deffedcb"));
+	CHECK(dstr_equals_cstr(dstr, "deffedcb"));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "bcdf");
-	CHECK(dstr_equal_cstr(dstr, "effe"));
+	CHECK(dstr_equals_cstr(dstr, "effe"));
 	CHECK(sanity_check(dstr));
 	dstr_rstrip(&dstr, "ef");
-	CHECK(dstr_equal_cstr(dstr, ""));
+	CHECK(dstr_equals_cstr(dstr, ""));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "");
-	CHECK(dstr_equal_cstr(dstr, ""));
+	CHECK(dstr_equals_cstr(dstr, ""));
 	CHECK(sanity_check(dstr));
 	dstr_strip(&dstr, "abcdef");
-	CHECK(dstr_equal_cstr(dstr, ""));
+	CHECK(dstr_equals_cstr(dstr, ""));
 	CHECK(sanity_check(dstr));
 	dstr_free(&dstr);
 	return true;
@@ -1323,7 +1323,7 @@ SIMPLE_TEST(dstring_substring)
 		CHECK(sanity_check(dstr2));
 		CHECK(strview_equal(view,
 				    strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
-		CHECK(dstr_equal_view(dstr2, view));
+		CHECK(dstr_equals_view(dstr2, view));
 		dstr_free(&dstr2);
 	}
 	dstr_free(&dstr);
@@ -1335,7 +1335,7 @@ SIMPLE_TEST(dstring_substring)
 		CHECK(sanity_check(dstr2));
 		CHECK(strview_equal(view,
 				    strview_substring(strview_from_cstr(a256), i, a256_len - 2 * i)));
-		CHECK(dstr_equal_view(dstr2, view));
+		CHECK(dstr_equals_view(dstr2, view));
 		dstr_free(&dstr2);
 	}
 	dstr_free(&dstr);
@@ -1346,9 +1346,9 @@ SIMPLE_TEST(dstring_substring)
 		dstr_substring(&dstr, i, abc_len - 2 * i);
 		CHECK(sanity_check(dstr));
 		CHECK(sanity_check(dstr2));
-		CHECK(dstr_equal_view(dstr,
+		CHECK(dstr_equals_view(dstr,
 				      strview_substring(strview_from_cstr(abc), i, abc_len - 2 * i)));
-		CHECK(dstr_equal_dstr(dstr, dstr2));
+		CHECK(dstr_equals_dstr(dstr, dstr2));
 		dstr_free(&dstr2);
 		dstr_free(&dstr);
 	}
@@ -1359,9 +1359,9 @@ SIMPLE_TEST(dstring_substring)
 		dstr_substring(&dstr, i, a256_len - 2 * i);
 		CHECK(sanity_check(dstr));
 		CHECK(sanity_check(dstr2));
-		CHECK(dstr_equal_view(dstr,
+		CHECK(dstr_equals_view(dstr,
 				       strview_substring(strview_from_cstr(a256), i, a256_len - 2 * i)));
-		CHECK(dstr_equal_dstr(dstr, dstr2));
+		CHECK(dstr_equals_dstr(dstr, dstr2));
 		dstr_free(&dstr2);
 		dstr_free(&dstr);
 	}
@@ -1369,8 +1369,8 @@ SIMPLE_TEST(dstring_substring)
 	dstr = dstr_new();
 	dstr_t dstr2 = dstr_substring_copy(dstr, 0, 0);
 	dstr_substring(&dstr, 0, 0);
-	CHECK(dstr_equal_cstr(dstr, ""));
-	CHECK(dstr_equal_dstr(dstr, dstr2));
+	CHECK(dstr_equals_cstr(dstr, ""));
+	CHECK(dstr_equals_dstr(dstr, dstr2));
 	CHECK(sanity_check(dstr));
 	CHECK(sanity_check(dstr2));
 	dstr_free(&dstr2);
@@ -1522,111 +1522,111 @@ SIMPLE_TEST(dstring_compare)
 
 	dstr = dstr_from_cstr("abc");
 	str = "abc";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abc");
 	str = "ab";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abc");
 	str = "abcd";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abc");
 	str = "abd";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("");
 	str = "";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("abc");
 	str = "";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("");
 	str = "abc";
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(abc);
 	str = abc;
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(a256);
 	str = a256;
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(abc);
 	str = a256;
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(a256);
 	str = abc;
-	r = dstr_equal_cstr(dstr, str);
+	r = dstr_equals_cstr(dstr, str);
 	CHECK(!r);
-	CHECK(dstr_equal_view(dstr, strview_from_cstr(str)) == r);
+	CHECK(dstr_equals_view(dstr, strview_from_cstr(str)) == r);
 	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_equal_dstr(dstr, dstr2) == r);
+	CHECK(dstr_equals_dstr(dstr, dstr2) == r);
 	dstr_free(&dstr2);
 	dstr_free(&dstr);
 	return true;
@@ -2021,7 +2021,7 @@ SIMPLE_TEST(dstring_find_replace)
 		} else {
 			dstr_find_replace_cstr(&dstr, needle, replacement, max);
 		}
-		CHECK(dstr_equal_cstr(dstr, result));
+		CHECK(dstr_equals_cstr(dstr, result));
 		dstr_free(&dstr);
 		dstr = dstr_from_view(strview_from_cstr(haystack));
 		if (reverse) {
@@ -2031,7 +2031,7 @@ SIMPLE_TEST(dstring_find_replace)
 			dstr_find_replace_view(&dstr, strview_from_cstr(needle),
 					       strview_from_cstr(replacement), max);
 		}
-		CHECK(dstr_equal_view(dstr, strview_from_cstr(result)));
+		CHECK(dstr_equals_view(dstr, strview_from_cstr(result)));
 		dstr_free(&dstr);
 		dstr = dstr_from_chars(haystack, strlen(haystack));
 		dstr_t dstr2 = dstr_from_cstr(needle);
@@ -2042,7 +2042,7 @@ SIMPLE_TEST(dstring_find_replace)
 			dstr_find_replace_dstr(&dstr, dstr2, dstr3, max);
 		}
 		dstr_t dstr4 = dstr_from_cstr(result);
-		CHECK(dstr_equal_dstr(dstr, dstr4));
+		CHECK(dstr_equals_dstr(dstr, dstr4));
 		dstr_free(&dstr2);
 		dstr_free(&dstr3);
 		dstr_free(&dstr4);
@@ -2443,7 +2443,7 @@ SIMPLE_TEST(dstring_split)
 		CHECK(dstr_list.count == count);
 		CHECK(strview_list.count == count);
 		for (size_t j = 0; j < count; j++) {
-			CHECK(dstr_equal_cstr(dstr_list.strings[j], results[j]));
+			CHECK(dstr_equals_cstr(dstr_list.strings[j], results[j]));
 			CHECK(strview_equal_cstr(strview_list.strings[j], results[j]));
 		}
 		dstr_list_free(&dstr_list);

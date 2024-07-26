@@ -1132,17 +1132,17 @@ int dstr_compare_cstr(const dstr_t dstr, const char *cstr)
 	return strcmp(dstr, cstr);
 }
 
-bool dstr_equal_dstr(const dstr_t dstr1, const dstr_t dstr2)
+bool dstr_equals_dstr(const dstr_t dstr1, const dstr_t dstr2)
 {
 	return strview_equal(dstr_view(dstr1), dstr_view(dstr2));
 }
 
-bool dstr_equal_view(const dstr_t dstr, struct strview view)
+bool dstr_equals_view(const dstr_t dstr, struct strview view)
 {
 	return strview_equal(dstr_view(dstr), view);
 }
 
-bool dstr_equal_cstr(const dstr_t dstr, const char *cstr)
+bool dstr_equals_cstr(const dstr_t dstr, const char *cstr)
 {
 	return strcmp(dstr, cstr) == 0;
 }

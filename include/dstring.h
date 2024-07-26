@@ -108,10 +108,9 @@ dstr_t dstr_substring_copy(const dstr_t dstr, size_t start, size_t length) _attr
 int dstr_compare_dstr(const dstr_t dstr1, const dstr_t dstr2) _attr_pure;
 int dstr_compare_view(const dstr_t dstr, struct strview view) _attr_pure;
 int dstr_compare_cstr(const dstr_t dstr, const char *cstr) _attr_pure;
-// TODO rename equals
-bool dstr_equal_dstr(const dstr_t dstr1, const dstr_t dstr2) _attr_pure;
-bool dstr_equal_view(const dstr_t dstr, struct strview view) _attr_pure;
-bool dstr_equal_cstr(const dstr_t dstr, const char *cstr) _attr_pure;
+bool dstr_equals_dstr(const dstr_t dstr1, const dstr_t dstr2) _attr_pure;
+bool dstr_equals_view(const dstr_t dstr, struct strview view) _attr_pure;
+bool dstr_equals_cstr(const dstr_t dstr, const char *cstr) _attr_pure;
 size_t dstr_find_dstr(const dstr_t haystack, const dstr_t needle, size_t pos) _attr_pure;
 size_t dstr_find_view(const dstr_t haystack, struct strview needle_view, size_t pos) _attr_pure;
 size_t dstr_find_cstr(const dstr_t haystack, const char *needle_cstr, size_t pos) _attr_pure;
