@@ -1634,324 +1634,63 @@ SIMPLE_TEST(dstring_compare)
 
 SIMPLE_TEST(dstring_find)
 {
-	dstr_t 	dstr = dstr_from_cstr("abc");
-	const char *str = "abc";
-	size_t s = 0;
-	size_t p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr_t dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
+	static const struct {
+		const char *haystack;
+		const char *needle;
+		size_t pos;
+		size_t result;
+		bool reverse;
+	} test_cases[] = {
+		{"abc", "abc", 0, 0, false},
+		{"abc", "ab", 0, 0, false},
+		{"abc", "a", 0, 0, false},
+		{"abc", "", 0, 0, false},
+		{"abc", "c", 0, 2, false},
+		{"abcabc", "abc", 1, 3, false},
+		{"abcabcabc", "abc", 3, 3, false},
+		{"abcabcabc", "abc", 4, 6, false},
+		{"abcabcabc", "abc", 7, DSTR_NPOS, false},
+		{"", "", 0, 0, false},
+		{"", "a", 0, DSTR_NPOS, false},
+		{"abc", "x", 0, DSTR_NPOS, false},
+		{"abc", "abcd", 0, DSTR_NPOS, false},
 
-	dstr = dstr_from_cstr("abc");
-	str = "ab";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
+		{"abc", "abc", DSTR_NPOS, 0, true},
+		{"abc", "ab", DSTR_NPOS, 0, true},
+		{"abc", "a", DSTR_NPOS, 0, true},
+		{"abc", "", DSTR_NPOS, 3, true},
+		{"abc", "c", 1, DSTR_NPOS, true},
+		{"abc", "c", DSTR_NPOS, 2, true},
+		{"abcabc", "abc", DSTR_NPOS, 3, true},
+		{"abcabc", "abc", 2, 0, true},
+		{"abcabcabc", "abc", 3, 3, true},
+		{"abcabcabc", "abc", 6, 6, true},
+		{"abcabcabc", "abc", 0, 0, true},
+		{"abcabcabc", "abc", DSTR_NPOS, 6, true},
+		{"", "", DSTR_NPOS, 0, true},
+		{"", "a", DSTR_NPOS, DSTR_NPOS, true},
+		{"abc", "x", DSTR_NPOS, DSTR_NPOS, true},
+		{"abc", "abcd", DSTR_NPOS, DSTR_NPOS, true},
+	};
 
-	dstr = dstr_from_cstr("abc");
-	str = "a";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
+	for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+		const char *haystack = test_cases[i].haystack;
+		const char *needle = test_cases[i].needle;
+		size_t pos = test_cases[i].pos;
+		size_t result = test_cases[i].result;
+		bool rev = test_cases[i].reverse;
 
-	dstr = dstr_from_cstr("abc");
-	str = "";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "c";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 2);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabc");
-	str = "abc";
-	s = 1;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 3);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 3;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 3);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 4;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 6);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 7;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	str = "";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	str = "a";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "x";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "abcd";
-	s = 0;
-	p = dstr_find_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_find_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_find_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "abc";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "ab";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "a";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 3);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "c";
-	s = 1;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "c";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 2);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabc");
-	str = "abc";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 3);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabc");
-	str = "abc";
-	s = 2;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 3;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 3);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 6;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 6);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = 0;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abcabcabc");
-	str = "abc";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 6);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	str = "";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == 0);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("");
-	str = "a";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "x";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
-
-	dstr = dstr_from_cstr("abc");
-	str = "abcd";
-	s = DSTR_NPOS;
-	p = dstr_rfind_cstr(dstr, str, s);
-	CHECK(p == DSTR_NPOS);
-	CHECK(dstr_rfind_view(dstr, strview_from_cstr(str), s) == p);
-	dstr2 = dstr_from_cstr(str);
-	CHECK(dstr_rfind_dstr(dstr, dstr2, s) == p);
-	dstr_free(&dstr2);
-	dstr_free(&dstr);
+		dstr_t dstr = dstr_from_cstr(haystack);
+		size_t p = (rev ? dstr_rfind_cstr : dstr_find_cstr)(dstr, needle, pos);
+		CHECK(p == result);
+		p = (rev ? dstr_rfind_view : dstr_find_view)(dstr, strview_from_cstr(needle), pos);
+		CHECK(p == result);
+		dstr_t dstr2 = dstr_from_cstr(needle);
+		p = (rev ? dstr_rfind_dstr : dstr_find_dstr)(dstr, dstr2, pos);
+		CHECK(p == result);
+		dstr_free(&dstr2);
+		dstr_free(&dstr);
+	}
 	return true;
 }
 
@@ -2053,198 +1792,87 @@ SIMPLE_TEST(dstring_find_replace)
 
 SIMPLE_TEST(dstring_find_of)
 {
-	dstr_t dstr = dstr_from_cstr("abcdefghij0123456789");
+	const char *letters = "abcdefghij";
+	const char *numbers = "0123456789";
+	dstr_t dstr = dstr_from_cstr(letters);
+	dstr_append_cstr(&dstr, numbers);
+
 	CHECK(dstr_find_first_of(dstr, "", 0) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "a", 0) == 0);
-	CHECK(dstr_find_first_of(dstr, "b", 0) == 1);
-	CHECK(dstr_find_first_of(dstr, "c", 0) == 2);
-	CHECK(dstr_find_first_of(dstr, "d", 0) == 3);
-	CHECK(dstr_find_first_of(dstr, "e", 0) == 4);
-	CHECK(dstr_find_first_of(dstr, "f", 0) == 5);
-	CHECK(dstr_find_first_of(dstr, "g", 0) == 6);
-	CHECK(dstr_find_first_of(dstr, "h", 0) == 7);
-	CHECK(dstr_find_first_of(dstr, "i", 0) == 8);
-	CHECK(dstr_find_first_of(dstr, "j", 0) == 9);
-	CHECK(dstr_find_first_of(dstr, "0", 0) == 10);
-	CHECK(dstr_find_first_of(dstr, "1", 0) == 11);
-	CHECK(dstr_find_first_of(dstr, "2", 0) == 12);
-	CHECK(dstr_find_first_of(dstr, "3", 0) == 13);
-	CHECK(dstr_find_first_of(dstr, "4", 0) == 14);
-	CHECK(dstr_find_first_of(dstr, "5", 0) == 15);
-	CHECK(dstr_find_first_of(dstr, "6", 0) == 16);
-	CHECK(dstr_find_first_of(dstr, "7", 0) == 17);
-	CHECK(dstr_find_first_of(dstr, "8", 0) == 18);
-	CHECK(dstr_find_first_of(dstr, "9", 0) == 19);
-	CHECK(dstr_find_first_of(dstr, "a", 0) == 0);
-	CHECK(dstr_find_first_of(dstr, "b", 1) == 1);
-	CHECK(dstr_find_first_of(dstr, "c", 2) == 2);
-	CHECK(dstr_find_first_of(dstr, "d", 3) == 3);
-	CHECK(dstr_find_first_of(dstr, "e", 4) == 4);
-	CHECK(dstr_find_first_of(dstr, "f", 5) == 5);
-	CHECK(dstr_find_first_of(dstr, "g", 6) == 6);
-	CHECK(dstr_find_first_of(dstr, "h", 7) == 7);
-	CHECK(dstr_find_first_of(dstr, "i", 8) == 8);
-	CHECK(dstr_find_first_of(dstr, "j", 9) == 9);
-	CHECK(dstr_find_first_of(dstr, "0", 10) == 10);
-	CHECK(dstr_find_first_of(dstr, "1", 11) == 11);
-	CHECK(dstr_find_first_of(dstr, "2", 12) == 12);
-	CHECK(dstr_find_first_of(dstr, "3", 13) == 13);
-	CHECK(dstr_find_first_of(dstr, "4", 14) == 14);
-	CHECK(dstr_find_first_of(dstr, "5", 15) == 15);
-	CHECK(dstr_find_first_of(dstr, "6", 16) == 16);
-	CHECK(dstr_find_first_of(dstr, "7", 17) == 17);
-	CHECK(dstr_find_first_of(dstr, "8", 18) == 18);
-	CHECK(dstr_find_first_of(dstr, "9", 19) == 19);
-	CHECK(dstr_find_first_of(dstr, "a", 1) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "b", 2) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "c", 3) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "d", 4) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "e", 5) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "f", 6) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "g", 7) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "h", 8) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "i", 9) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "j", 10) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "0", 11) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "1", 12) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "2", 13) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "3", 14) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "4", 15) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "5", 16) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "6", 17) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "7", 18) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "8", 19) == DSTR_NPOS);
-	CHECK(dstr_find_first_of(dstr, "9", 20) == DSTR_NPOS);
 	CHECK(dstr_find_last_of(dstr, "", DSTR_NPOS) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "a", DSTR_NPOS) == 0);
-	CHECK(dstr_find_last_of(dstr, "b", DSTR_NPOS) == 1);
-	CHECK(dstr_find_last_of(dstr, "c", DSTR_NPOS) == 2);
-	CHECK(dstr_find_last_of(dstr, "d", DSTR_NPOS) == 3);
-	CHECK(dstr_find_last_of(dstr, "e", DSTR_NPOS) == 4);
-	CHECK(dstr_find_last_of(dstr, "f", DSTR_NPOS) == 5);
-	CHECK(dstr_find_last_of(dstr, "g", DSTR_NPOS) == 6);
-	CHECK(dstr_find_last_of(dstr, "h", DSTR_NPOS) == 7);
-	CHECK(dstr_find_last_of(dstr, "i", DSTR_NPOS) == 8);
-	CHECK(dstr_find_last_of(dstr, "j", DSTR_NPOS) == 9);
-	CHECK(dstr_find_last_of(dstr, "0", DSTR_NPOS) == 10);
-	CHECK(dstr_find_last_of(dstr, "1", DSTR_NPOS) == 11);
-	CHECK(dstr_find_last_of(dstr, "2", DSTR_NPOS) == 12);
-	CHECK(dstr_find_last_of(dstr, "3", DSTR_NPOS) == 13);
-	CHECK(dstr_find_last_of(dstr, "4", DSTR_NPOS) == 14);
-	CHECK(dstr_find_last_of(dstr, "5", DSTR_NPOS) == 15);
-	CHECK(dstr_find_last_of(dstr, "6", DSTR_NPOS) == 16);
-	CHECK(dstr_find_last_of(dstr, "7", DSTR_NPOS) == 17);
-	CHECK(dstr_find_last_of(dstr, "8", DSTR_NPOS) == 18);
-	CHECK(dstr_find_last_of(dstr, "9", DSTR_NPOS) == 19);
 	CHECK(dstr_find_last_of(dstr, "a", 0) == 0);
-	CHECK(dstr_find_last_of(dstr, "b", 1) == 1);
-	CHECK(dstr_find_last_of(dstr, "c", 2) == 2);
-	CHECK(dstr_find_last_of(dstr, "d", 3) == 3);
-	CHECK(dstr_find_last_of(dstr, "e", 4) == 4);
-	CHECK(dstr_find_last_of(dstr, "f", 5) == 5);
-	CHECK(dstr_find_last_of(dstr, "g", 6) == 6);
-	CHECK(dstr_find_last_of(dstr, "h", 7) == 7);
-	CHECK(dstr_find_last_of(dstr, "i", 8) == 8);
-	CHECK(dstr_find_last_of(dstr, "j", 9) == 9);
-	CHECK(dstr_find_last_of(dstr, "0", 10) == 10);
-	CHECK(dstr_find_last_of(dstr, "1", 11) == 11);
-	CHECK(dstr_find_last_of(dstr, "2", 12) == 12);
-	CHECK(dstr_find_last_of(dstr, "3", 13) == 13);
-	CHECK(dstr_find_last_of(dstr, "4", 14) == 14);
-	CHECK(dstr_find_last_of(dstr, "5", 15) == 15);
-	CHECK(dstr_find_last_of(dstr, "6", 16) == 16);
-	CHECK(dstr_find_last_of(dstr, "7", 17) == 17);
-	CHECK(dstr_find_last_of(dstr, "8", 18) == 18);
-	CHECK(dstr_find_last_of(dstr, "9", 19) == 19);
-	CHECK(dstr_find_last_of(dstr, "a", 0) == 0);
-	CHECK(dstr_find_last_of(dstr, "b", 0) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "c", 1) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "d", 2) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "e", 3) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "f", 4) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "g", 5) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "h", 6) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "i", 7) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "j", 8) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "0", 9) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "1", 10) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "2", 11) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "3", 12) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "4", 13) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "5", 14) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "6", 15) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "7", 16) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "8", 17) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "9", 18) == DSTR_NPOS);
-	CHECK(dstr_find_first_not_of(dstr, "a", 0) == 1);
 	CHECK(dstr_find_first_not_of(dstr, "a", 1) == 1);
-	CHECK(dstr_find_first_not_of(dstr, "b", 0) == 0);
-	CHECK(dstr_find_first_not_of(dstr, "b", 1) == 2);
-	CHECK(dstr_find_first_not_of(dstr, "c", 0) == 0);
-	CHECK(dstr_find_first_not_of(dstr, "c", 2) == 3);
-	CHECK(dstr_find_last_not_of(dstr, "9", DSTR_NPOS) == 18);
-	CHECK(dstr_find_last_not_of(dstr, "9", 19) == 18);
-	CHECK(dstr_find_last_not_of(dstr, "8", DSTR_NPOS) == 19);
-	CHECK(dstr_find_last_not_of(dstr, "8", 18) == 17);
-	CHECK(dstr_find_last_not_of(dstr, "7", DSTR_NPOS) == 19);
-	CHECK(dstr_find_last_not_of(dstr, "7", 17) == 16);
-	CHECK(dstr_find_first_of(dstr, "abcdefghij", 0) == 0);
-	CHECK(dstr_find_first_of(dstr, "0123456789", 0) == 10);
-	CHECK(dstr_find_last_of(dstr, "abcdefghij", DSTR_NPOS) == 9);
-	CHECK(dstr_find_last_of(dstr, "0123456789", DSTR_NPOS) == 19);
-	CHECK(dstr_find_first_of(dstr, "abcdefghij", 5) == 5);
-	CHECK(dstr_find_first_of(dstr, "0123456789", 15) == 15);
-	CHECK(dstr_find_last_of(dstr, "abcdefghij", 5) == 5);
-	CHECK(dstr_find_last_of(dstr, "0123456789", 15) == 15);
-	CHECK(dstr_find_first_not_of(dstr, "abcdefghij", 0) == 10);
-	CHECK(dstr_find_first_not_of(dstr, "0123456789", 0) == 0);
-	CHECK(dstr_find_last_not_of(dstr, "abcdefghij", DSTR_NPOS) == 19);
-	CHECK(dstr_find_last_not_of(dstr, "0123456789", DSTR_NPOS) == 9);
-	CHECK(dstr_find_first_not_of(dstr, "abcdefghij", 15) == 15);
-	CHECK(dstr_find_first_not_of(dstr, "0123456789", 5) == 5);
-	CHECK(dstr_find_last_not_of(dstr, "abcdefghij", 15) == 15);
-	CHECK(dstr_find_last_not_of(dstr, "0123456789", 5) == 5);
+	CHECK(dstr_find_last_of(dstr, letters, DSTR_NPOS) == 9);
+	CHECK(dstr_find_last_of(dstr, numbers, DSTR_NPOS) == 19);
+	CHECK(dstr_find_last_not_of(dstr, letters, DSTR_NPOS) == 19);
+	CHECK(dstr_find_last_not_of(dstr, numbers, DSTR_NPOS) == 9);
+
+	for (size_t i = 0; i < dstr_length(dstr); i++) {
+		bool last = i == dstr_length(dstr) - 1;
+		const char cur_char[] = { dstr[i], '\0' };
+		CHECK(dstr_find_first_of(dstr, cur_char, 0) == i);
+		CHECK(dstr_find_first_of(dstr, cur_char, i) == i);
+		CHECK(dstr_find_first_of(dstr, cur_char, i + 1) == DSTR_NPOS);
+		CHECK(dstr_find_last_of(dstr, cur_char, DSTR_NPOS) == i);
+		CHECK(dstr_find_last_of(dstr, cur_char, i) == i);
+		if (i != 0) {
+			CHECK(dstr_find_last_of(dstr, cur_char, i - 1) == DSTR_NPOS);
+		}
+		CHECK(dstr_find_first_not_of(dstr, cur_char, 0) == (i == 0));
+		CHECK(dstr_find_first_not_of(dstr, cur_char, i) == last ? DSTR_NPOS : i + 1);
+		CHECK(dstr_find_last_not_of(dstr, cur_char, DSTR_NPOS) == 19 - last);
+		CHECK(dstr_find_last_not_of(dstr, cur_char, i) == i == 0 ? DSTR_NPOS : i - 1);
+
+		CHECK(dstr_find_first_of(dstr, letters, i) == (i < strlen(letters) ? i : DSTR_NPOS));
+		CHECK(dstr_find_first_of(dstr, numbers, i) == (i < strlen(letters) ? strlen(letters) : i));
+		CHECK(dstr_find_last_of(dstr, letters, i) == (i < strlen(letters) ? i : strlen(letters) - 1));
+		CHECK(dstr_find_last_of(dstr, numbers, i) == (i < strlen(letters) ? DSTR_NPOS : i));
+		CHECK(dstr_find_first_not_of(dstr, letters, i) == (i < strlen(letters) ? strlen(letters) : i));
+		CHECK(dstr_find_first_not_of(dstr, numbers, i) == (i < strlen(letters) ? i : DSTR_NPOS));
+		CHECK(dstr_find_last_not_of(dstr, letters, i) == (i < strlen(letters) ? DSTR_NPOS : i));
+		CHECK(dstr_find_last_not_of(dstr, numbers, i) == (i < strlen(letters) ? i : strlen(letters) - 1));
+	}
 	dstr_free(&dstr);
 
-	dstr = dstr_from_cstr("abc123def456ghi789");
-	CHECK(dstr_find_first_of(dstr, "abcdefghij", 0) == 0);
-	CHECK(dstr_find_first_of(dstr, "abcdefghij", 3) == 6);
-	CHECK(dstr_find_first_of(dstr, "abcdefghij", 8) == 8);
-	CHECK(dstr_find_first_of(dstr, "0123456789", 0) == 3);
-	CHECK(dstr_find_first_of(dstr, "0123456789", 6) == 9);
-	CHECK(dstr_find_first_of(dstr, "0123456789", 11) == 11);
-	CHECK(dstr_find_last_of(dstr, "0123456789", DSTR_NPOS) == 17);
-	CHECK(dstr_find_last_of(dstr, "0123456789", 14) == 11);
-	CHECK(dstr_find_last_of(dstr, "0123456789", 9) == 9);
-	CHECK(dstr_find_last_of(dstr, "abcdefghij", DSTR_NPOS) == 14);
-	CHECK(dstr_find_last_of(dstr, "abcdefghij", 11) == 8);
-	CHECK(dstr_find_last_of(dstr, "abcdefghij", 6) == 6);
-	CHECK(dstr_find_first_not_of(dstr, "abcdefghij", 0) == 3);
-	CHECK(dstr_find_first_not_of(dstr, "abcdefghij", 5) == 5);
-	CHECK(dstr_find_first_not_of(dstr, "abcdefghij", 6) == 9);
-	CHECK(dstr_find_first_not_of(dstr, "0123456789", 0) == 0);
-	CHECK(dstr_find_first_not_of(dstr, "0123456789", 2) == 2);
-	CHECK(dstr_find_first_not_of(dstr, "0123456789", 3) == 6);
-	CHECK(dstr_find_last_not_of(dstr, "abcdefghij", DSTR_NPOS) == 17);
-	CHECK(dstr_find_last_not_of(dstr, "abcdefghij", 14) == 11);
-	CHECK(dstr_find_last_not_of(dstr, "abcdefghij", 9) == 9);
-	CHECK(dstr_find_last_not_of(dstr, "0123456789", DSTR_NPOS) == 14);
-	CHECK(dstr_find_last_not_of(dstr, "0123456789", 11) == 8);
-	CHECK(dstr_find_last_not_of(dstr, "0123456789", 6) == 6);
+	const char *mixed = "abc123def456ghi789";
+	dstr = dstr_from_cstr(mixed);
+	CHECK(dstr_find_first_of(dstr, letters, 0) == 0);
+	CHECK(dstr_find_first_of(dstr, letters, 3) == 6);
+	CHECK(dstr_find_first_of(dstr, letters, 8) == 8);
+	CHECK(dstr_find_first_of(dstr, numbers, 0) == 3);
+	CHECK(dstr_find_first_of(dstr, numbers, 6) == 9);
+	CHECK(dstr_find_first_of(dstr, numbers, 11) == 11);
+	CHECK(dstr_find_last_of(dstr, numbers, DSTR_NPOS) == 17);
+	CHECK(dstr_find_last_of(dstr, numbers, 14) == 11);
+	CHECK(dstr_find_last_of(dstr, numbers, 9) == 9);
+	CHECK(dstr_find_last_of(dstr, letters, DSTR_NPOS) == 14);
+	CHECK(dstr_find_last_of(dstr, letters, 11) == 8);
+	CHECK(dstr_find_last_of(dstr, letters, 6) == 6);
+	CHECK(dstr_find_first_not_of(dstr, letters, 0) == 3);
+	CHECK(dstr_find_first_not_of(dstr, letters, 5) == 5);
+	CHECK(dstr_find_first_not_of(dstr, letters, 6) == 9);
+	CHECK(dstr_find_first_not_of(dstr, numbers, 0) == 0);
+	CHECK(dstr_find_first_not_of(dstr, numbers, 2) == 2);
+	CHECK(dstr_find_first_not_of(dstr, numbers, 3) == 6);
+	CHECK(dstr_find_last_not_of(dstr, letters, DSTR_NPOS) == 17);
+	CHECK(dstr_find_last_not_of(dstr, letters, 14) == 11);
+	CHECK(dstr_find_last_not_of(dstr, letters, 9) == 9);
+	CHECK(dstr_find_last_not_of(dstr, numbers, DSTR_NPOS) == 14);
+	CHECK(dstr_find_last_not_of(dstr, numbers, 11) == 8);
+	CHECK(dstr_find_last_not_of(dstr, numbers, 6) == 6);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("");
-	CHECK(dstr_find_first_of(dstr, "abc123def456ghi789", 0) == DSTR_NPOS);
-	CHECK(dstr_find_first_not_of(dstr, "abc123def456ghi789", 0) == DSTR_NPOS);
-	CHECK(dstr_find_last_of(dstr, "abc123def456ghi789", DSTR_NPOS) == DSTR_NPOS);
-	CHECK(dstr_find_last_not_of(dstr, "abc123def456ghi789", DSTR_NPOS) == DSTR_NPOS);
+	CHECK(dstr_find_first_of(dstr, mixed, 0) == DSTR_NPOS);
+	CHECK(dstr_find_first_not_of(dstr, mixed, 0) == DSTR_NPOS);
+	CHECK(dstr_find_last_of(dstr, mixed, DSTR_NPOS) == DSTR_NPOS);
+	CHECK(dstr_find_last_not_of(dstr, mixed, DSTR_NPOS) == DSTR_NPOS);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr("xxxxx");
-	CHECK(dstr_find_first_of(dstr, "abc123def456ghi789", 0) == DSTR_NPOS);
-	CHECK(dstr_find_first_not_of(dstr, "abc123def456ghi789", 0) == 0);
-	CHECK(dstr_find_last_of(dstr, "abc123def456ghi789", DSTR_NPOS) == DSTR_NPOS);
-	CHECK(dstr_find_last_not_of(dstr, "abc123def456ghi789", DSTR_NPOS) == 4);
+	CHECK(dstr_find_first_of(dstr, mixed, 0) == DSTR_NPOS);
+	CHECK(dstr_find_first_not_of(dstr, mixed, 0) == 0);
+	CHECK(dstr_find_last_of(dstr, mixed, DSTR_NPOS) == DSTR_NPOS);
+	CHECK(dstr_find_last_not_of(dstr, mixed, DSTR_NPOS) == 4);
 	dstr_free(&dstr);
 
 	dstr = dstr_from_cstr(a256);
