@@ -33,27 +33,27 @@
 #include "dstring.h"
 #include "stringview.h"
 
-struct _dstr_small {
+struct dstr_small {
 	uint8_t capacity;
 	uint8_t length;
 	char    characters[];
 };
-_Static_assert(sizeof(struct _dstr_small) == offsetof(struct _dstr_small, characters), "");
+_Static_assert(sizeof(struct dstr_small) == offsetof(struct dstr_small, characters), "");
 
-struct _dstr_medium {
+struct dstr_medium {
 	uint16_t capacity;
 	uint16_t length;
 	uint8_t  is_big;
 	uint8_t  _small_length;
 	char     characters[];
 };
-_Static_assert(sizeof(struct _dstr_medium) == offsetof(struct _dstr_medium, characters), "");
-_Static_assert(offsetof(struct _dstr_medium, characters) - offsetof(struct _dstr_medium, _small_length) ==
-	       offsetof(struct _dstr_small, characters) - offsetof(struct _dstr_small, length), "");
+_Static_assert(sizeof(struct dstr_medium) == offsetof(struct dstr_medium, characters), "");
+_Static_assert(offsetof(struct dstr_medium, characters) - offsetof(struct dstr_medium, _small_length) ==
+	       offsetof(struct dstr_small, characters) - offsetof(struct dstr_small, length), "");
 
-// if _attr_packed is not available then sizeof(struct _dstr_big) != offsetof(struct _dstr_big, characters)
-// which is why the code for _dstr_big is different than the code for _dstr_small and _dstr_medium below
-struct _dstr_big {
+// if _attr_packed is not available then sizeof(struct dstr_big) != offsetof(struct dstr_big, characters)
+// which is why the code for dstr_big is different than the code for dstr_small and dstr_medium below
+struct dstr_big {
 	size_t   capacity;
 	size_t   length;
 	uint8_t  is_big;
@@ -64,10 +64,10 @@ struct _dstr_big {
 #else
 };
 #endif
-_Static_assert(offsetof(struct _dstr_big, characters) - offsetof(struct _dstr_big, _small_length) ==
-	       offsetof(struct _dstr_small, characters) - offsetof(struct _dstr_small, length), "");
+_Static_assert(offsetof(struct dstr_big, characters) - offsetof(struct dstr_big, _small_length) ==
+	       offsetof(struct dstr_small, characters) - offsetof(struct dstr_small, length), "");
 
-struct _dstr_common {
+struct dstr_common {
 	union {
 		uint8_t  is_big;
 		uint8_t  small_capacity;
@@ -75,46 +75,46 @@ struct _dstr_common {
 	uint8_t  small_length;
 	char     characters[];
 };
-_Static_assert(sizeof(struct _dstr_common) == sizeof(struct _dstr_small), "");
-_Static_assert(sizeof(struct _dstr_common) == offsetof(struct _dstr_common, characters), "");
-_Static_assert(offsetof(struct _dstr_common, characters) - offsetof(struct _dstr_common, small_length) ==
-	       offsetof(struct _dstr_small, characters) - offsetof(struct _dstr_small, length), "");
-_Static_assert(offsetof(struct _dstr_common, characters) - offsetof(struct _dstr_common, is_big) ==
-	       offsetof(struct _dstr_medium, characters) - offsetof(struct _dstr_medium, is_big), "");
-_Static_assert(offsetof(struct _dstr_common, characters) - offsetof(struct _dstr_common, is_big) ==
-	       offsetof(struct _dstr_big, characters) - offsetof(struct _dstr_big, is_big), "");
+_Static_assert(sizeof(struct dstr_common) == sizeof(struct dstr_small), "");
+_Static_assert(sizeof(struct dstr_common) == offsetof(struct dstr_common, characters), "");
+_Static_assert(offsetof(struct dstr_common, characters) - offsetof(struct dstr_common, small_length) ==
+	       offsetof(struct dstr_small, characters) - offsetof(struct dstr_small, length), "");
+_Static_assert(offsetof(struct dstr_common, characters) - offsetof(struct dstr_common, is_big) ==
+	       offsetof(struct dstr_medium, characters) - offsetof(struct dstr_medium, is_big), "");
+_Static_assert(offsetof(struct dstr_common, characters) - offsetof(struct dstr_common, is_big) ==
+	       offsetof(struct dstr_big, characters) - offsetof(struct dstr_big, is_big), "");
 
-enum _dstr_type {
-	__DSTR_SMALL,
-	__DSTR_MEDIUM,
-	__DSTR_BIG
+enum dstr_type {
+	DSTR_SMALL,
+	DSTR_MEDIUM,
+	DSTR_BIG
 };
 
 static const uint8_t _dstr_empty_dstr_bytes[3] = { 0 /* length */, 0 /* capacity */, 0 /* null terminator */};
-static const dstr_t _dstr_empty_dstr = ((struct _dstr_small *)_dstr_empty_dstr_bytes)->characters;
+static const dstr_t dstr_empty_dstr = ((struct dstr_small *)_dstr_empty_dstr_bytes)->characters;
 
-static _attr_always_inline enum _dstr_type _dstr_get_type(const dstr_t dstr)
+static inline enum dstr_type dstr_get_type(const dstr_t dstr)
 {
-	const struct _dstr_common *header = (const struct _dstr_common *)dstr - 1;
+	const struct dstr_common *header = (const struct dstr_common *)dstr - 1;
 	if (likely(header->small_length != UINT8_MAX)) {
-		return __DSTR_SMALL;
+		return DSTR_SMALL;
 	}
-	return unlikely(header->is_big) ? __DSTR_BIG : __DSTR_MEDIUM;
+	return unlikely(header->is_big) ? DSTR_BIG : DSTR_MEDIUM;
 }
 
 size_t dstr_length(const dstr_t dstr)
 {
-	switch (_dstr_get_type(dstr)) {
-	case __DSTR_SMALL: {
-		const struct _dstr_small *header = (const struct _dstr_small *)dstr - 1;
+	switch (dstr_get_type(dstr)) {
+	case DSTR_SMALL: {
+		const struct dstr_small *header = (const struct dstr_small *)dstr - 1;
 		return header->length;
 	}
-	case __DSTR_MEDIUM: {
-		const struct _dstr_medium *header = (const struct _dstr_medium *)dstr - 1;
+	case DSTR_MEDIUM: {
+		const struct dstr_medium *header = (const struct dstr_medium *)dstr - 1;
 		return header->length;
 	}
-	case __DSTR_BIG: {
-		const struct _dstr_big *header = (const struct _dstr_big *)(dstr - offsetof(struct _dstr_big,
+	case DSTR_BIG: {
+		const struct dstr_big *header = (const struct dstr_big *)(dstr - offsetof(struct dstr_big,
 											    characters));
 		return header->length;
 	}
@@ -130,18 +130,18 @@ bool dstr_is_empty(const dstr_t dstr)
 
 size_t dstr_capacity(const dstr_t dstr)
 {
-	switch (_dstr_get_type(dstr)) {
-	case __DSTR_SMALL: {
-		const struct _dstr_small *header = (const struct _dstr_small *)dstr - 1;
+	switch (dstr_get_type(dstr)) {
+	case DSTR_SMALL: {
+		const struct dstr_small *header = (const struct dstr_small *)dstr - 1;
 		return header->capacity;
 	}
-	case __DSTR_MEDIUM: {
-		const struct _dstr_medium *header = (const struct _dstr_medium *)dstr - 1;
+	case DSTR_MEDIUM: {
+		const struct dstr_medium *header = (const struct dstr_medium *)dstr - 1;
 		return header->capacity;
 	}
-	case __DSTR_BIG: {
-		const struct _dstr_big *header = (const struct _dstr_big *)(dstr - offsetof(struct _dstr_big,
-											    characters));
+	case DSTR_BIG: {
+		const struct dstr_big *header = (const struct dstr_big *)(dstr - offsetof(struct dstr_big,
+											  characters));
 		return header->capacity;
 	}
 	}
@@ -149,26 +149,26 @@ size_t dstr_capacity(const dstr_t dstr)
 	return 0;
 }
 
-static void _dstr_set_length(dstr_t dstr, size_t length)
+static void dstr_set_length(dstr_t dstr, size_t length)
 {
 	assert(length <= dstr_capacity(dstr));
-	if (unlikely(dstr == _dstr_empty_dstr)) {
+	if (unlikely(dstr == dstr_empty_dstr)) {
 		return;
 	}
 	dstr[length] = '\0';
-	switch (_dstr_get_type(dstr)) {
-	case __DSTR_SMALL: {
-		struct _dstr_small *header = (struct _dstr_small *)dstr - 1;
+	switch (dstr_get_type(dstr)) {
+	case DSTR_SMALL: {
+		struct dstr_small *header = (struct dstr_small *)dstr - 1;
 		header->length = length;
 		break;
 	}
-	case __DSTR_MEDIUM: {
-		struct _dstr_medium *header = (struct _dstr_medium *)dstr - 1;
+	case DSTR_MEDIUM: {
+		struct dstr_medium *header = (struct dstr_medium *)dstr - 1;
 		header->length = length;
 		break;
 	}
-	case __DSTR_BIG: {
-		struct _dstr_big *header = (struct _dstr_big *)(dstr - offsetof(struct _dstr_big,
+	case DSTR_BIG: {
+		struct dstr_big *header = (struct dstr_big *)(dstr - offsetof(struct dstr_big,
 										characters));
 		header->length = length;
 		break;
@@ -176,12 +176,12 @@ static void _dstr_set_length(dstr_t dstr, size_t length)
 	}
 }
 
-static _attr_pure size_t _dstr_header_size(enum _dstr_type type)
+static _attr_pure size_t dstr_header_size(enum dstr_type type)
 {
 	switch (type) {
-	case __DSTR_SMALL:  return sizeof(struct _dstr_small);
-	case __DSTR_MEDIUM: return sizeof(struct _dstr_medium);
-	case __DSTR_BIG:    return offsetof(struct _dstr_big, characters);
+	case DSTR_SMALL:  return sizeof(struct dstr_small);
+	case DSTR_MEDIUM: return sizeof(struct dstr_medium);
+	case DSTR_BIG:    return offsetof(struct dstr_big, characters);
 	}
 	assert(false);
 	unreachable();
@@ -190,10 +190,10 @@ static _attr_pure size_t _dstr_header_size(enum _dstr_type type)
 void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 {
 	if (unlikely(new_capacity == 0)) {
-		if (likely(*dstrp != _dstr_empty_dstr)) {
-			size_t header_size = _dstr_header_size(_dstr_get_type(*dstrp));
+		if (likely(*dstrp != dstr_empty_dstr)) {
+			size_t header_size = dstr_header_size(dstr_get_type(*dstrp));
 			free((*dstrp) - header_size);
-			*dstrp = _dstr_empty_dstr;
+			*dstrp = dstr_empty_dstr;
 		}
 		return;
 	}
@@ -210,25 +210,25 @@ void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 		(*dstrp)[new_length] = '\0';
 	}
 
-	enum _dstr_type new_type = __DSTR_SMALL;
+	enum dstr_type new_type = DSTR_SMALL;
 	if (unlikely(new_length >= UINT8_MAX || new_capacity > UINT8_MAX)) {
-		new_type = __DSTR_MEDIUM;
+		new_type = DSTR_MEDIUM;
 		if (unlikely(new_length > UINT16_MAX || new_capacity > UINT16_MAX)) {
-			new_type = __DSTR_BIG;
+			new_type = DSTR_BIG;
 		}
 	}
 
-	size_t new_header_size = _dstr_header_size(new_type);
+	size_t new_header_size = dstr_header_size(new_type);
 	size_t new_alloc_size = new_header_size + new_capacity + 1; // +1 for the null byte
 	uint8_t *h;
-	if (*dstrp == _dstr_empty_dstr) {
+	if (*dstrp == dstr_empty_dstr) {
 		h = malloc(new_alloc_size);
 		if (unlikely(!h)) {
 			abort();
 		}
 		h[new_header_size] = '\0';
 	} else {
-		size_t old_header_size = _dstr_header_size(_dstr_get_type(*dstrp));
+		size_t old_header_size = dstr_header_size(dstr_get_type(*dstrp));
 		h = (uint8_t *)(*dstrp) - old_header_size;
 		if (unlikely(old_header_size > new_header_size)) {
 			uint8_t *src = h + old_header_size;
@@ -247,15 +247,15 @@ void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 	}
 
 	switch (new_type) {
-	case __DSTR_SMALL: {
-		struct _dstr_small *header = (struct _dstr_small *)h;
+	case DSTR_SMALL: {
+		struct dstr_small *header = (struct dstr_small *)h;
 		header->length = new_length;
 		header->capacity = new_capacity;
 		*dstrp = header->characters;
 		break;
 	}
-	case __DSTR_MEDIUM: {
-		struct _dstr_medium *header = (struct _dstr_medium *)h;
+	case DSTR_MEDIUM: {
+		struct dstr_medium *header = (struct dstr_medium *)h;
 		header->length = new_length;
 		header->capacity = new_capacity;
 		header->is_big = false;
@@ -263,8 +263,8 @@ void dstr_resize(dstr_t *dstrp, size_t new_capacity)
 		*dstrp = header->characters;
 		break;
 	}
-	case __DSTR_BIG: {
-		struct _dstr_big *header = (struct _dstr_big *)h;
+	case DSTR_BIG: {
+		struct dstr_big *header = (struct dstr_big *)h;
 		header->length = new_length;
 		header->capacity = new_capacity;
 		header->is_big = true;
@@ -281,7 +281,7 @@ void dstr_free(dstr_t *dstrp)
 	*dstrp = NULL;
 }
 
-static void _dstr_grow(dstr_t *dstrp, size_t n)
+static void dstr_grow(dstr_t *dstrp, size_t n)
 {
 	if (unlikely(n == 0)) {
 		return;
@@ -304,13 +304,13 @@ void dstr_reserve(dstr_t *dstrp, size_t n)
 {
 	size_t rem = dstr_capacity(*dstrp) - dstr_length(*dstrp);
 	if (n > rem) {
-		_dstr_grow(dstrp, n - rem);
+		dstr_grow(dstrp, n - rem);
 	}
 }
 
 void dstr_clear(dstr_t *dstrp)
 {
-	_dstr_set_length(*dstrp, 0);
+	dstr_set_length(*dstrp, 0);
 }
 
 void dstr_shrink_to_fit(dstr_t *dstrp)
@@ -320,7 +320,7 @@ void dstr_shrink_to_fit(dstr_t *dstrp)
 
 dstr_t dstr_new(void)
 {
-	return _dstr_empty_dstr;
+	return dstr_empty_dstr;
 }
 
 dstr_t dstr_with_capacity(size_t capacity)
@@ -330,7 +330,7 @@ dstr_t dstr_with_capacity(size_t capacity)
 	return dstr;
 }
 
-static _attr_always_inline char *_dstr_replace(dstr_t *dstrp, size_t pos, size_t len, size_t n)
+static _attr_always_inline char *dstr_replace_internal(dstr_t *dstrp, size_t pos, size_t len, size_t n)
 {
 	size_t length = dstr_length(*dstrp);
 	assert(pos <= length);
@@ -347,7 +347,7 @@ static _attr_always_inline char *_dstr_replace(dstr_t *dstrp, size_t pos, size_t
 	char *p = &(*dstrp)[pos];
 	memmove(p + n, p + len, length - (pos + len));
 	length += n - len;
-	_dstr_set_length(*dstrp, length);
+	dstr_set_length(*dstrp, length);
 	return p;
 }
 
@@ -356,34 +356,34 @@ void dstr_append_char(dstr_t *dstrp, char c)
 	dstr_reserve(dstrp, 1);
 	size_t length = dstr_length(*dstrp);
 	(*dstrp)[length] = c;
-	_dstr_set_length(*dstrp, length + 1);
+	dstr_set_length(*dstrp, length + 1);
 }
 
-static _attr_always_inline void _dstr_append_chars(dstr_t *dstrp, const char *chars, size_t n)
+static _attr_always_inline void dstr_append_impl(dstr_t *dstrp, const char *chars, size_t n)
 {
-	char *p = _dstr_replace(dstrp, dstr_length(*dstrp), 0, n);
+	char *p = dstr_replace_internal(dstrp, dstr_length(*dstrp), 0, n);
 	memcpy(p, chars, n);
 }
 
 void (dstr_append_chars)(dstr_t *dstrp, const char *chars, size_t n)
 {
-	_dstr_append_chars(dstrp, chars, n);
+	dstr_append_impl(dstrp, chars, n);
 }
 
 void dstr_append_dstr(dstr_t *dstrp, const dstr_t dstr)
 {
-	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	_dstr_append_chars(dstrp, dstr, dstr_length(dstr));
+	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	dstr_append_impl(dstrp, dstr, dstr_length(dstr));
 }
 
 void dstr_append_cstr(dstr_t *dstrp, const char *cstr)
 {
-	_dstr_append_chars(dstrp, cstr, strlen(cstr));
+	dstr_append_impl(dstrp, cstr, strlen(cstr));
 }
 
 void dstr_append_view(dstr_t *dstrp, struct strview view)
 {
-	_dstr_append_chars(dstrp, view.characters, view.length);
+	dstr_append_impl(dstrp, view.characters, view.length);
 }
 
 size_t dstr_append_fmt(dstr_t *dstrp, const char *fmt, ...)
@@ -402,39 +402,39 @@ size_t dstr_append_fmtv(dstr_t *dstrp, const char *fmt, va_list args)
 
 char *dstr_append_uninitialized(dstr_t *dstrp, size_t uninit_len)
 {
-	return _dstr_replace(dstrp, dstr_length(*dstrp), 0, uninit_len);
+	return dstr_replace_internal(dstrp, dstr_length(*dstrp), 0, uninit_len);
 }
 
-static _attr_always_inline void _dstr_insert_chars(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
+static _attr_always_inline void dstr_insert_impl(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
 {
-	char *p = _dstr_replace(dstrp, pos, 0, n);
+	char *p = dstr_replace_internal(dstrp, pos, 0, n);
 	memcpy(p, chars, n);
 }
 
 void (dstr_insert_chars)(dstr_t *dstrp, size_t pos, const char *chars, size_t n)
 {
-	_dstr_insert_chars(dstrp, pos, chars, n);
+	dstr_insert_impl(dstrp, pos, chars, n);
 }
 
 void dstr_insert_char(dstr_t *dstrp, size_t pos, char c)
 {
-	_dstr_insert_chars(dstrp, pos, &c, 1);
+	dstr_insert_impl(dstrp, pos, &c, 1);
 }
 
 void dstr_insert_dstr(dstr_t *dstrp, size_t pos, const dstr_t dstr)
 {
-	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	_dstr_insert_chars(dstrp, pos, dstr, dstr_length(dstr));
+	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	dstr_insert_impl(dstrp, pos, dstr, dstr_length(dstr));
 }
 
 void dstr_insert_cstr(dstr_t *dstrp, size_t pos, const char *cstr)
 {
-	_dstr_insert_chars(dstrp, pos, cstr, strlen(cstr));
+	dstr_insert_impl(dstrp, pos, cstr, strlen(cstr));
 }
 
 void dstr_insert_view(dstr_t *dstrp, size_t pos, struct strview view)
 {
-	_dstr_insert_chars(dstrp, pos, view.characters, view.length);
+	dstr_insert_impl(dstrp, pos, view.characters, view.length);
 }
 
 size_t dstr_insert_fmt(dstr_t *dstrp, size_t pos, const char *fmt, ...)
@@ -453,35 +453,35 @@ size_t dstr_insert_fmtv(dstr_t *dstrp, size_t pos, const char *fmt, va_list args
 
 char *dstr_insert_uninitialized(dstr_t *dstrp, size_t pos, size_t uninit_len)
 {
-	return _dstr_replace(dstrp, pos, 0, uninit_len);
+	return dstr_replace_internal(dstrp, pos, 0, uninit_len);
 }
 
-static _attr_always_inline void _dstr_replace_chars(dstr_t *dstrp, size_t pos, size_t len,
-						    const char *chars, size_t n)
+static _attr_always_inline void dstr_replace_impl(dstr_t *dstrp, size_t pos, size_t len,
+						  const char *chars, size_t n)
 {
-	char *p = _dstr_replace(dstrp, pos, len, n);
+	char *p = dstr_replace_internal(dstrp, pos, len, n);
 	memcpy(p, chars, n);
 }
 
 void (dstr_replace_chars)(dstr_t *dstrp, size_t pos, size_t len, const char *chars, size_t n)
 {
-	_dstr_replace_chars(dstrp, pos, len, chars, n);
+	dstr_replace_impl(dstrp, pos, len, chars, n);
 }
 
 void dstr_replace_dstr(dstr_t *dstrp, size_t pos, size_t len, const dstr_t dstr)
 {
-	assert(dstr == _dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
-	_dstr_replace_chars(dstrp, pos, len, dstr, dstr_length(dstr));
+	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	dstr_replace_impl(dstrp, pos, len, dstr, dstr_length(dstr));
 }
 
 void dstr_replace_cstr(dstr_t *dstrp, size_t pos, size_t len, const char *cstr)
 {
-	_dstr_replace_chars(dstrp, pos, len, cstr, strlen(cstr));
+	dstr_replace_impl(dstrp, pos, len, cstr, strlen(cstr));
 }
 
 void dstr_replace_view(dstr_t *dstrp, size_t pos, size_t len, struct strview view)
 {
-	_dstr_replace_chars(dstrp, pos, len, view.characters, view.length);
+	dstr_replace_impl(dstrp, pos, len, view.characters, view.length);
 }
 
 size_t dstr_replace_fmt(dstr_t *dstrp, size_t pos, size_t len, const char *fmt, ...)
@@ -502,7 +502,7 @@ size_t dstr_replace_fmtv(dstr_t *dstrp, size_t pos, size_t len, const char *fmt,
 	size_t n = vsnprintf(buf, sizeof(buf), fmt, args_copy);
 	va_end(args_copy);
 
-	char *p = _dstr_replace(dstrp, pos, len, n);
+	char *p = dstr_replace_internal(dstrp, pos, len, n);
 	if (n < sizeof(buf)) {
 		memcpy(p, buf, n);
 		return n;
@@ -519,71 +519,71 @@ size_t dstr_replace_fmtv(dstr_t *dstrp, size_t pos, size_t len, const char *fmt,
 
 char *dstr_replace_uninitialized(dstr_t *dstrp, size_t pos, size_t len, size_t uninit_len)
 {
-	return _dstr_replace(dstrp, pos, len, uninit_len);
+	return dstr_replace_internal(dstrp, pos, len, uninit_len);
 }
 
 void dstr_erase(dstr_t *dstrp, size_t pos, size_t len)
 {
-	_dstr_replace(dstrp, pos, len, 0);
+	dstr_replace_internal(dstrp, pos, len, 0);
 }
 
-static void _dstr_strip(dstr_t dstr, const char *strip, bool left, bool right)
+static void dstr_strip_impl(dstr_t dstr, const char *strip, bool left, bool right)
 {
 	if (right) {
 		size_t pos = dstr_find_last_not_of(dstr, strip, DSTR_NPOS);
 		if (pos == DSTR_NPOS) {
-			_dstr_set_length(dstr, 0);
+			dstr_set_length(dstr, 0);
 			return;
 		}
-		_dstr_set_length(dstr, pos + 1);
+		dstr_set_length(dstr, pos + 1);
 	}
 	if (left) {
 		size_t pos = dstr_find_first_not_of(dstr, strip, 0);
 		if (pos == DSTR_NPOS) {
-			_dstr_set_length(dstr, 0);
+			dstr_set_length(dstr, 0);
 			return;
 		}
 		size_t len = dstr_length(dstr) - pos;
 		memmove(dstr, dstr + pos, len);
-		_dstr_set_length(dstr, len);
+		dstr_set_length(dstr, len);
 	}
 }
 
 void dstr_strip(dstr_t *dstrp, const char *strip)
 {
-	_dstr_strip(*dstrp, strip, true, true);
+	dstr_strip_impl(*dstrp, strip, true, true);
 }
 
 void dstr_lstrip(dstr_t *dstrp, const char *strip)
 {
-	_dstr_strip(*dstrp, strip, true, false);
+	dstr_strip_impl(*dstrp, strip, true, false);
 }
 
 void dstr_rstrip(dstr_t *dstrp, const char *strip)
 {
-	_dstr_strip(*dstrp, strip, false, true);
+	dstr_strip_impl(*dstrp, strip, false, true);
 }
 
-static _attr_always_inline dstr_t _dstr_from_chars(const char *chars, size_t n)
+static _attr_always_inline dstr_t dstr_from_chars_impl(const char *chars, size_t n)
 {
 	dstr_t dstr = dstr_new();
-	_dstr_append_chars(&dstr, chars, n);
+	dstr_append_impl(&dstr, chars, n);
 	return dstr;
 }
 
 dstr_t (dstr_from_chars)(const char *chars, size_t n)
 {
-	return _dstr_from_chars(chars, n);
+	return dstr_from_chars_impl(chars, n);
 }
 
 dstr_t dstr_from_cstr(const char *cstr)
 {
-	return _dstr_from_chars(cstr, strlen(cstr));
+	return dstr_from_chars_impl(cstr, strlen(cstr));
 }
 
 dstr_t dstr_from_view(struct strview view)
 {
-	return _dstr_from_chars(view.characters, view.length);
+	return dstr_from_chars_impl(view.characters, view.length);
 }
 
 dstr_t dstr_from_fmt(const char *fmt, ...)
@@ -665,13 +665,13 @@ dstr_t dstr_from_fmtv(const char *fmt, va_list args)
 
 dstr_t dstr_copy(const dstr_t dstr)
 {
-	return _dstr_from_chars(dstr, dstr_length(dstr));
+	return dstr_from_chars_impl(dstr, dstr_length(dstr));
 }
 
 char *dstr_to_cstr(dstr_t *dstrp)
 {
 	size_t length = dstr_length(*dstrp);
-	size_t header_size = _dstr_header_size(_dstr_get_type(*dstrp));
+	size_t header_size = dstr_header_size(dstr_get_type(*dstrp));
 	char *p = *dstrp - header_size;
 	*dstrp = NULL;
 	memmove(p, p + header_size, length + 1);
@@ -704,13 +704,13 @@ void dstr_substring(dstr_t *dstrp, size_t start, size_t length)
 {
 	struct strview view = dstr_substring_view(*dstrp, start, length);
 	memmove(*dstrp, view.characters, view.length);
-	_dstr_set_length(*dstrp, view.length);
+	dstr_set_length(*dstrp, view.length);
 }
 
 dstr_t dstr_substring_copy(const dstr_t dstr, size_t start, size_t length)
 {
 	struct strview view = dstr_substring_view(dstr, start, length);
-	return _dstr_from_chars(view.characters, view.length);
+	return dstr_from_chars_impl(view.characters, view.length);
 }
 
 int dstr_compare_dstr(const dstr_t dstr1, const dstr_t dstr2)
@@ -988,8 +988,8 @@ void dstr_list_free(struct dstr_list *list)
 
 void *_dstr_debug_get_head_ptr(const dstr_t dstr)
 {
-	if (dstr == _dstr_empty_dstr) {
+	if (dstr == dstr_empty_dstr) {
 		return NULL;
 	}
-	return dstr - _dstr_header_size(_dstr_get_type(dstr));
+	return dstr - dstr_header_size(dstr_get_type(dstr));
 }
