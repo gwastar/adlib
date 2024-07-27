@@ -31,6 +31,7 @@
 #include "compiler.h"
 #include "config.h"
 #include "dstring.h"
+#include "fortify.h"
 #include "stringview.h"
 
 struct dstr_small {
@@ -287,7 +288,7 @@ static void dstr_grow(dstr_t *dstrp, size_t n)
 		return;
 	}
 	size_t capacity = dstr_capacity(*dstrp);
-	assert(SIZE_MAX - n >= capacity);
+	_fortify_check(SIZE_MAX - n >= capacity);
 	const size_t numerator = DSTRING_GROWTH_FACTOR_NUMERATOR;
 	const size_t denominator = DSTRING_GROWTH_FACTOR_DENOMINATOR;
 	size_t new_capacity = (capacity + denominator - 1) / denominator * numerator;
@@ -333,11 +334,11 @@ dstr_t dstr_with_capacity(size_t capacity)
 static _attr_always_inline char *dstr_replace_internal(dstr_t *dstrp, size_t pos, size_t len, size_t n)
 {
 	size_t length = dstr_length(*dstrp);
-	assert(pos <= length);
+	_fortify_check(pos <= length);
 	if (len == DSTR_NPOS) {
 		len = length - pos;
 	}
-	assert(pos + len <= length);
+	_fortify_check(pos + len <= length);
 	if (n == len) {
 		return &(*dstrp)[pos];
 	}
@@ -372,7 +373,7 @@ void (dstr_append_chars)(dstr_t *dstrp, const char *chars, size_t n)
 
 void dstr_append_dstr(dstr_t *dstrp, const dstr_t dstr)
 {
-	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	_fortify_check(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	dstr_append_impl(dstrp, dstr, dstr_length(dstr));
 }
 
@@ -423,7 +424,7 @@ void dstr_insert_char(dstr_t *dstrp, size_t pos, char c)
 
 void dstr_insert_dstr(dstr_t *dstrp, size_t pos, const dstr_t dstr)
 {
-	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	_fortify_check(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	dstr_insert_impl(dstrp, pos, dstr, dstr_length(dstr));
 }
 
@@ -470,7 +471,7 @@ void (dstr_replace_chars)(dstr_t *dstrp, size_t pos, size_t len, const char *cha
 
 void dstr_replace_dstr(dstr_t *dstrp, size_t pos, size_t len, const dstr_t dstr)
 {
-	assert(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
+	_fortify_check(dstr == dstr_empty_dstr || *dstrp != dstr); // TODO? *dstrp must be != dstr currently
 	dstr_replace_impl(dstrp, pos, len, dstr, dstr_length(dstr));
 }
 

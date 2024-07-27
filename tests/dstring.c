@@ -2502,10 +2502,24 @@ NEGATIVE_SIMPLE_TEST(fortify_replace_chars)
 	return true;
 }
 
-NEGATIVE_SIMPLE_TEST(fortify_strview_from_chars)
+NEGATIVE_SIMPLE_TEST(fortify_append_dstr)
 {
-	char chars[16] = {0};
-	strview_from_chars(chars, sizeof(chars) + 1);
+	dstr_t dstr = dstr_from_cstr(abc);
+	dstr_append_dstr(&dstr, dstr);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_insert_cstr)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
+	dstr_insert_cstr(&dstr, abc_len + 1, abc);
+	return true;
+}
+
+NEGATIVE_SIMPLE_TEST(fortify_replace_cstr)
+{
+	dstr_t dstr = dstr_from_cstr(abc);
+	dstr_replace_cstr(&dstr, abc_len - 2, 3, abc);
 	return true;
 }
 
