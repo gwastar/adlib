@@ -1654,6 +1654,8 @@ SIMPLE_TEST(dstring_find)
 		{"", "a", 0, DSTR_NPOS, false},
 		{"abc", "x", 0, DSTR_NPOS, false},
 		{"abc", "abcd", 0, DSTR_NPOS, false},
+		{"xxx", "x", 3, DSTR_NPOS, false},
+		{"xxx", "x", DSTR_NPOS, DSTR_NPOS, false},
 
 		{"abc", "abc", DSTR_NPOS, 0, true},
 		{"abc", "ab", DSTR_NPOS, 0, true},
