@@ -747,7 +747,7 @@ bool dstr_equals_cstr(const dstr_t dstr, const char *cstr)
 size_t dstr_find_dstr(const dstr_t haystack, const dstr_t needle, size_t pos)
 {
 	// TODO test that both versions behave the same for pos > length(haystack) and length(needle) ==/!= 0
-#if defined(HAVE_MEMMEM) && defined(_GNU_SOURCE)
+#if defined(HAVE_MEMMEM)
 	// if memmem is available, this might be a little faster since we already know the lengths
 	return strview_find(dstr_view(haystack), dstr_view(needle), pos);
 #else

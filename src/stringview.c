@@ -123,7 +123,7 @@ bool strview_equal_cstr(struct strview view, const char *cstr)
 size_t strview_find(struct strview haystack, struct strview needle, size_t pos)
 {
 	haystack = strview_narrow(haystack, pos, 0);
-#if defined(HAVE_MEMMEM) && defined(_GNU_SOURCE)
+#if defined(HAVE_MEMMEM)
 	const char *found = memmem(haystack.characters, haystack.length, needle.characters, needle.length);
 #else
 	if (unlikely(needle.length == 0)) {
@@ -157,7 +157,7 @@ size_t strview_find_cstr(struct strview haystack, const char *needle, size_t pos
 
 static _attr_always_inline void *_strview_memrchr(const void *s, unsigned char c, size_t n)
 {
-#if defined(HAVE_MEMRCHR) && defined(_GNU_SOURCE)
+#if defined(HAVE_MEMRCHR)
 	return memrchr(s, c, n);
 #else
 	if (unlikely(n == 0)) {
